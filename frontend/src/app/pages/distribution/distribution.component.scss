@@ -1,0 +1,14 @@
+.page { padding-bottom: 40px; }
+.top-row { display: flex; gap: 20px; margin-bottom: 28px; @media(max-width:768px){flex-direction:column;} }
+.simulation { padding: 20px; }
+.sim-list { display: flex; flex-direction: column; gap: 10px; }
+.sim-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; background: rgba(255,255,255,0.04); border-radius: 10px; border-left: 3px solid; font-size: 14px; }
+.pct-status { text-align: center; margin-top: 10px; font-weight: 600; font-size: 13px; }
+.rules-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.rule-card { padding: 18px; border-left: 4px solid; }
+.rule-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.rule-name { font-size: 15px; font-weight: 600; }
+.rule-actions { display: flex; gap: 6px; }
+.icon-btn { background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px; border-radius: 6px; &:hover { background: rgba(255,255,255,0.1); } &.danger:hover { background: rgba(239,68,68,0.2); } }
+.rule-type { font-size: 12px; margin-bottom: 8px; }
+.rule-pct { font-size: 28px; font-weight: 700; color: var(--accent-blue); }

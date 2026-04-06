@@ -1,0 +1,56 @@
+<div class="page">
+  <div class="page-header">
+    <h1>🏠 Dashboard</h1>
+    <div class="d-flex gap-1 align-center">
+      <input type="month" [(ngModel)]="selectedMonth" (change)="loadData()" />
+    </div>
+  </div>
+
+  <div class="kpi-grid" *ngIf="!loading">
+    <div class="kpi-card blue">
+      <div class="label">💰 Saldo Total</div>
+      <div class="value">{{ fmt(summary.totalBalance) }}</div>
+      <div class="sub">em todas as contas</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="label">📈 Receita do Mês</div>
+      <div class="value">{{ fmt(summary.monthlyIncome) }}</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="label">📉 Despesas do Mês</div>
+      <div class="value">{{ fmt(summary.monthlyExpense) }}</div>
+    </div>
+    <div class="kpi-card gold">
+      <div class="label">🏆 Patrimônio Líquido</div>
+      <div class="value">{{ fmt(summary.netWorth) }}</div>
+      <div class="sub">incluindo investimentos</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="label">📊 Investido</div>
+      <div class="value">{{ fmt(summary.totalInvested) }}</div>
+    </div>
+    <div class="kpi-card" [class.green]="summary.netMonth >= 0" [class.red]="summary.netMonth < 0">
+      <div class="label">{{ summary.netMonth >= 0 ? '✅' : '⚠️' }} Saldo do Mês</div>
+      <div class="value">{{ fmt(summary.netMonth) }}</div>
+    </div>
+  </div>
+
+  <div class="loading-container" *ngIf="loading">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-container chart-full">
+      <div class="chart-title">📊 Receitas vs Despesas (12 meses)</div>
+      <div echarts [options]="balanceChartOption" style="height:280px"></div>
+    </div>
+    <div class="chart-container">
+      <div class="chart-title">🍩 Despesas por Categoria</div>
+      <div echarts [options]="donutChartOption" style="height:260px"></div>
+    </div>
+    <div class="chart-container">
+      <div class="chart-title">🔥 Mapa de Calor — Gastos Diários</div>
+      <div echarts [options]="heatmapOption" style="height:260px"></div>
+    </div>
+  </div>
+</div>

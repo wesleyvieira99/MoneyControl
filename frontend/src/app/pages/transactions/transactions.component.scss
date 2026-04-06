@@ -1,0 +1,6 @@
+.page { padding-bottom: 40px; }
+.overdue-row td { background: rgba(239,68,68,0.05) !important; }
+.desc-cell { display: flex; align-items: center; gap: 6px; }
+.notes-icon { cursor: help; }
+.status-btn { background: none; border: none; cursor: pointer; padding: 0; }
+.action-btns { display: flex; gap: 6px; }

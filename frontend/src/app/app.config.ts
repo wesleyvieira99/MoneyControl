@@ -1,0 +1,16 @@
+import { ApplicationConfig } from '@angular/core';
+import { provideRouter } from '@angular/router';
+import { provideHttpClient } from '@angular/common/http';
+import { provideAnimations } from '@angular/platform-browser/animations';
+import { routes } from './app.routes';
+import { provideEchartsCore } from 'ngx-echarts';
+import * as echarts from 'echarts';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideRouter(routes),
+    provideHttpClient(),
+    provideAnimations(),
+    provideEchartsCore({ echarts: () => import('echarts') })
+  ]
+};

@@ -1,0 +1,19 @@
+# Backend
+backend/target/
+backend/data/
+backend/src/main/resources/application-local.properties
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# Secrets
+*.env
+.env.local
+application-secrets.properties
+
+# IDE
+.idea/
+.vscode/
+*.class

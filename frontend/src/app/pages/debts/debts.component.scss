@@ -1,0 +1,11 @@
+.page { padding-bottom: 40px; }
+.debts-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.debt-card { padding: 20px; }
+.debt-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+.debt-name { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+.debt-source { font-size: 12px; }
+.debt-actions { display: flex; align-items: center; gap: 6px; }
+.icon-btn { background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px; border-radius: 6px; transition: all 0.2s; &:hover { background: rgba(255,255,255,0.1); } &.danger:hover { background: rgba(239,68,68,0.2); } }
+.debt-amounts { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; margin-bottom: 10px; }
+.debt-footer { display: flex; justify-content: space-between; margin-top: 6px; }
+.debt-notes { font-size: 12px; margin-top: 8px; font-style: italic; }

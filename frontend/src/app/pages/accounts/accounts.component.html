@@ -1,0 +1,79 @@
+<div class="page">
+  <div class="page-header">
+    <h1>🏦 Contas Bancárias</h1>
+    <button class="btn-primary" (click)="openNew()">+ Nova Conta</button>
+  </div>
+
+  <div class="total-card glass-card">
+    <div class="total-label">💰 Saldo Total em Todas as Contas</div>
+    <div class="total-value">{{ fmt(totalBalance()) }}</div>
+  </div>
+
+  <div class="accounts-grid mt-2">
+    <div class="account-card glass-card" *ngFor="let a of accounts" [style.border-left-color]="a.color">
+      <div class="acc-header">
+        <img *ngIf="a.logoUrl" [src]="a.logoUrl" class="bank-logo" onerror="this.style.display='none'" />
+        <div>
+          <div class="acc-name">{{ a.name }}</div>
+          <div class="acc-bank text-muted">{{ a.bankName }}</div>
+        </div>
+        <div class="acc-actions">
+          <button class="icon-btn" (click)="openHistory(a)" title="Histórico">📋</button>
+          <button class="icon-btn" (click)="openEdit(a)" title="Editar">✏️</button>
+          <button class="icon-btn danger" (click)="delete(a.id)" title="Excluir">🗑️</button>
+        </div>
+      </div>
+      <div class="acc-balance">{{ fmt(a.balance) }}</div>
+      <div class="acc-number text-muted" *ngIf="a.accountNumber">Ag/Conta: {{ a.accountNumber }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ editMode ? '✏️ Editar' : '➕ Nova' }} Conta</h2>
+      <button class="close-btn" (click)="closeModal()">×</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Nome *</label><input type="text" [(ngModel)]="form.name" placeholder="Minha Conta" /></div>
+      <div class="form-group"><label>Banco *</label><input type="text" [(ngModel)]="form.bankName" placeholder="Nubank" /></div>
+    </div>
+    <div class="form-row mt-1">
+      <div class="form-group"><label>Saldo Atual (R$)</label><input type="number" [(ngModel)]="form.balance" /></div>
+      <div class="form-group"><label>Cor</label><input type="color" [(ngModel)]="form.color" /></div>
+    </div>
+    <div class="form-row mt-1">
+      <div class="form-group"><label>URL Logo</label><input type="text" [(ngModel)]="form.logoUrl" placeholder="https://..." /></div>
+      <div class="form-group"><label>Agência/Conta</label><input type="text" [(ngModel)]="form.accountNumber" /></div>
+    </div>
+    <div class="form-group mt-1"><label>Notas</label><textarea rows="2" [(ngModel)]="form.notes" style="resize:vertical"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" (click)="closeModal()">Cancelar</button>
+      <button class="btn-primary" (click)="save()">{{ editMode ? 'Atualizar' : 'Criar' }}</button>
+    </div>
+  </div>
+</div>
+
+<!-- History Modal -->
+<div class="modal-overlay" *ngIf="historyAccount" (click)="historyAccount = null">
+  <div class="modal modal-lg" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>📋 Histórico — {{ historyAccount.name }}</h2>
+      <button class="close-btn" (click)="historyAccount = null">×</button>
+    </div>
+    <table>
+      <thead><tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Valor</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let t of historyTxs">
+          <td>{{ t.date | date:'dd/MM/yy' }}</td><td>{{ t.description }}</td>
+          <td><span class="badge badge-blue">{{ t.type }}</span></td>
+          <td [class.text-green]="t.type==='INCOME'" [class.text-red]="t.type==='EXPENSE'">{{ fmt(t.amount) }}</td>
+          <td><span class="badge" [class.badge-green]="t.status==='PAID'" [class.badge-yellow]="t.status==='PENDING'" [class.badge-red]="t.status==='OVERDUE'">{{ t.status }}</span></td>
+        </tr>
+        <tr *ngIf="historyTxs.length===0"><td colspan="5" style="text-align:center;padding:30px;color:#475569">Sem histórico</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>

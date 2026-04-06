@@ -1,0 +1,78 @@
+<div class="page">
+  <div class="page-header">
+    <h1>🔴 Dívidas & Parcelas</h1>
+    <button class="btn-primary" (click)="openNew()">+ Nova Dívida</button>
+  </div>
+
+  <div class="kpi-card red" style="margin-bottom:24px">
+    <div class="label">💸 Total em Dívidas</div>
+    <div class="value">{{ fmt(totalDebt()) }}</div>
+  </div>
+
+  <div class="debts-list">
+    <div class="debt-card glass-card" *ngFor="let d of debts">
+      <div class="debt-header">
+        <div>
+          <div class="debt-name">{{ d.description }}</div>
+          <div class="debt-source text-muted">{{ d.creditCard?.name || d.bankAccount?.name || '—' }}</div>
+        </div>
+        <div class="debt-actions">
+          <span class="badge" [class.badge-green]="d.status==='PAID'" [class.badge-yellow]="d.status==='PENDING'" [class.badge-red]="d.status==='OVERDUE'">{{ d.status }}</span>
+          <button class="icon-btn" (click)="openEdit(d)">✏️</button>
+          <button class="icon-btn danger" (click)="delete(d.id)">🗑️</button>
+        </div>
+      </div>
+      <div class="debt-amounts">
+        <div><span class="text-muted">Restante:</span> <strong class="text-red">{{ fmt(d.remainingAmount) }}</strong></div>
+        <div><span class="text-muted">Original:</span> {{ fmt(d.originalAmount) }}</div>
+        <div><span class="text-muted">Parcelas:</span> {{ d.paidInstallments }}/{{ d.totalInstallments }}</div>
+      </div>
+      <div class="progress-bar mt-1">
+        <div class="fill green" [style.width]="progress(d) + '%'"></div>
+      </div>
+      <div class="debt-footer">
+        <span class="text-muted" style="font-size:12px">{{ progress(d).toFixed(0) }}% quitado</span>
+        <span class="text-muted" style="font-size:12px" *ngIf="d.startDate">Início: {{ d.startDate | date:'MM/yyyy' }}</span>
+      </div>
+      <div class="debt-notes text-muted" *ngIf="d.notes">📝 {{ d.notes }}</div>
+    </div>
+    <div class="glass-card" style="padding:40px;text-align:center;color:#475569" *ngIf="debts.length===0">Nenhuma dívida cadastrada 🎉</div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ editMode ? '✏️ Editar' : '➕ Nova' }} Dívida</h2>
+      <button class="close-btn" (click)="closeModal()">×</button>
+    </div>
+    <div class="form-group"><label>Descrição *</label><input type="text" [(ngModel)]="form.description" placeholder="Ex: Financiamento Carro" /></div>
+    <div class="form-row mt-1">
+      <div class="form-group"><label>Valor Original (R$)</label><input type="number" [(ngModel)]="form.originalAmount" /></div>
+      <div class="form-group"><label>Valor Restante (R$)</label><input type="number" [(ngModel)]="form.remainingAmount" /></div>
+    </div>
+    <div class="form-row mt-1">
+      <div class="form-group"><label>Total de Parcelas</label><input type="number" [(ngModel)]="form.totalInstallments" /></div>
+      <div class="form-group"><label>Parcelas Pagas</label><input type="number" [(ngModel)]="form.paidInstallments" /></div>
+    </div>
+    <div class="form-row mt-1">
+      <div class="form-group"><label>Cartão</label>
+        <select [(ngModel)]="form.creditCardId"><option value="">Nenhum</option><option *ngFor="let c of cards" [value]="c.id">{{ c.name }}</option></select>
+      </div>
+      <div class="form-group"><label>Conta</label>
+        <select [(ngModel)]="form.bankAccountId"><option value="">Nenhuma</option><option *ngFor="let a of accounts" [value]="a.id">{{ a.name }}</option></select>
+      </div>
+    </div>
+    <div class="form-row mt-1">
+      <div class="form-group"><label>Data de Início</label><input type="date" [(ngModel)]="form.startDate" /></div>
+      <div class="form-group"><label>Status</label>
+        <select [(ngModel)]="form.status"><option value="PENDING">Pendente</option><option value="PAID">Quitado</option><option value="OVERDUE">Atrasado</option></select>
+      </div>
+    </div>
+    <div class="form-group mt-1"><label>Notas</label><textarea rows="2" [(ngModel)]="form.notes" style="resize:vertical"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" (click)="closeModal()">Cancelar</button>
+      <button class="btn-primary" (click)="save()">{{ editMode ? 'Atualizar' : 'Criar' }}</button>
+    </div>
+  </div>
+</div>
