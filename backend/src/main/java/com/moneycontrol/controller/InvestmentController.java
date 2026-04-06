@@ -5,6 +5,8 @@ import com.moneycontrol.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 import java.util.List;
 
 @RestController
@@ -36,6 +38,6 @@ public class InvestmentController {
     @PostMapping("/{id}/transactions")
     public InvestmentTransaction addTransaction(@PathVariable Long id, @RequestBody InvestmentTransaction tx) {
         return repo.findById(id).map(inv -> { tx.setInvestment(inv); return txRepo.save(tx); })
-                .orElseThrow();
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investment not found: " + id));
     }
 }

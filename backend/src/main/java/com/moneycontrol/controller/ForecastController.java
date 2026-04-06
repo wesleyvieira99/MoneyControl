@@ -15,6 +15,9 @@ import java.util.*;
 public class ForecastController {
     private final TransactionRepository txRepo;
 
+    /** Small epsilon to avoid division by zero in linear regression when all x values are equal. */
+    private static final double EPSILON = 1e-9;
+
     @GetMapping
     public Map<String, Object> getForecast(@RequestParam(defaultValue = "6") int months) {
         List<Double> incomes = new ArrayList<>();
@@ -65,7 +68,7 @@ public class ForecastController {
             sumXY += i * data.get(i);
             sumX2 += i * i;
         }
-        double slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX + 1e-9);
+        double slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX + EPSILON);
         double intercept = (sumY - slope * sumX) / n;
         return Math.max(0, intercept + slope * (n + stepsAhead - 1));
     }
