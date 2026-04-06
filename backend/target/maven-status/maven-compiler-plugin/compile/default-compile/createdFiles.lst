@@ -36,13 +36,13 @@ com/moneycontrol/model/CreditCard.class
 com/moneycontrol/controller/InvestmentController.class
 com/moneycontrol/repository/InstallmentGroupRepository.class
 com/moneycontrol/repository/TransactionRepository.class
-com/moneycontrol/model/Transaction$TransactionBuilder.class
 com/moneycontrol/controller/TransactionController.class
+com/moneycontrol/model/Transaction$TransactionBuilder.class
 com/moneycontrol/model/InvestmentTransaction.class
 com/moneycontrol/model/FinancialGoal$FinancialGoalBuilder.class
 com/moneycontrol/model/Investment$InvestmentBuilder.class
-com/moneycontrol/model/TransactionType.class
 com/moneycontrol/controller/DashboardController.class
+com/moneycontrol/model/TransactionType.class
 com/moneycontrol/controller/CreditCardController.class
 com/moneycontrol/controller/FinancialGoalController.class
 com/moneycontrol/model/BankAccount.class
