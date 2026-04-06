@@ -1,0 +1,14 @@
+.page { padding-bottom: 40px; }
+.total-card { padding: 24px; text-align: center; margin-bottom: 0; }
+.total-label { color: var(--text-secondary); font-size: 14px; margin-bottom: 8px; }
+.total-value { font-size: 36px; font-weight: 700; color: var(--accent-blue); }
+.accounts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.account-card { padding: 20px; border-left: 4px solid var(--accent-blue); }
+.acc-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.bank-logo { height: 32px; width: 32px; border-radius: 8px; object-fit: contain; }
+.acc-name { font-size: 16px; font-weight: 600; }
+.acc-bank { font-size: 12px; }
+.acc-actions { display: flex; gap: 6px; margin-left: auto; }
+.icon-btn { background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px; border-radius: 6px; transition: all 0.2s; &:hover { background: rgba(255,255,255,0.1); } &.danger:hover { background: rgba(239,68,68,0.2); } }
+.acc-balance { font-size: 24px; font-weight: 700; color: var(--accent-green); margin-bottom: 6px; }
+.acc-number { font-size: 12px; }

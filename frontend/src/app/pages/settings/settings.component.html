@@ -1,0 +1,81 @@
+<div class="page">
+  <div class="page-header">
+    <h1>⚙️ Configurações</h1>
+  </div>
+
+  <div class="settings-sections">
+    <!-- API Config -->
+    <div class="glass-card section">
+      <h3 class="section-title">🔑 Configuração da IA (OpenAI)</h3>
+      <p class="section-desc">A chave da API OpenAI deve ser configurada no servidor via variável de ambiente <code>OPENAI_API_KEY</code>. Não armazenamos sua chave no frontend por segurança.</p>
+      <div class="glass-card" style="background:rgba(245,158,11,0.08);border-color:rgba(245,158,11,0.3);padding:14px 18px;margin-top:12px">
+        <strong style="color:#f59e0b">⚠️ Segurança:</strong>
+        <p style="color:#94a3b8;font-size:13px;margin-top:6px">Nunca exponha sua chave API no código-fonte ou frontend. Configure via: <br/>
+        <code style="background:rgba(0,0,0,0.3);padding:4px 8px;border-radius:6px;font-size:12px">export OPENAI_API_KEY=sk-proj-...</code><br/>
+        e reinicie o backend.</p>
+      </div>
+    </div>
+
+    <!-- Categories -->
+    <div class="glass-card section">
+      <div class="d-flex justify-between align-center" style="margin-bottom:20px">
+        <h3 class="section-title" style="margin-bottom:0">🏷️ Categorias</h3>
+        <button class="btn-primary" (click)="openNewCat()">+ Categoria</button>
+      </div>
+
+      <div *ngFor="let type of catTypes">
+        <div class="type-header" *ngIf="byType(type).length > 0">{{ typeIcon(type) }} {{ typeLabel(type) }}</div>
+        <div class="cat-grid" *ngIf="byType(type).length > 0">
+          <div class="cat-chip" *ngFor="let c of byType(type)" [style.border-color]="c.color">
+            <span>{{ c.icon }} {{ c.name }}</span>
+            <div class="cat-actions">
+              <button class="icon-btn" (click)="openEditCat(c)">✏️</button>
+              <button class="icon-btn" (click)="deleteCat(c.id)">🗑️</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info -->
+    <div class="glass-card section">
+      <h3 class="section-title">ℹ️ Sobre o MoneyControl</h3>
+      <div class="about-grid">
+        <div class="about-item"><span class="about-label">Versão</span><span>1.0.0</span></div>
+        <div class="about-item"><span class="about-label">Backend</span><span>Spring Boot 3.x + H2</span></div>
+        <div class="about-item"><span class="about-label">Frontend</span><span>Angular 17 + ngx-echarts</span></div>
+        <div class="about-item"><span class="about-label">IA</span><span>OpenAI gpt-4o</span></div>
+        <div class="about-item"><span class="about-label">H2 Console</span><a href="http://localhost:8080/h2-console" target="_blank" style="color:var(--accent-blue)">Abrir Console</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showCatModal" (click)="closeCatModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ editCatMode ? '✏️ Editar' : '➕ Nova' }} Categoria</h2>
+      <button class="close-btn" (click)="closeCatModal()">×</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Nome *</label><input type="text" [(ngModel)]="catForm.name" placeholder="Alimentação" /></div>
+      <div class="form-group"><label>Tipo *</label>
+        <select [(ngModel)]="catForm.type">
+          <option *ngFor="let t of catTypes" [value]="t">{{ typeIcon(t) }} {{ typeLabel(t) }}</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row mt-1">
+      <div class="form-group"><label>Cor</label><input type="color" [(ngModel)]="catForm.color" /></div>
+      <div class="form-group"><label>Ícone</label>
+        <select [(ngModel)]="catForm.icon">
+          <option *ngFor="let i of catIcons" [value]="i">{{ i }}</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" (click)="closeCatModal()">Cancelar</button>
+      <button class="btn-primary" (click)="saveCat()">{{ editCatMode ? 'Atualizar' : 'Criar' }}</button>
+    </div>
+  </div>
+</div>

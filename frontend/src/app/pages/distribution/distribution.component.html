@@ -1,0 +1,75 @@
+<div class="page">
+  <div class="page-header">
+    <h1>⚖️ Distribuição de Lucros</h1>
+    <button class="btn-primary" (click)="openNew()">+ Nova Regra</button>
+  </div>
+
+  <div class="top-row">
+    <div class="chart-container" style="flex:1">
+      <div class="chart-title">Distribuição Atual</div>
+      <div echarts [options]="chartOption" style="height:250px"></div>
+      <div class="pct-status" [class.text-green]="totalPct() === 100" [class.text-red]="totalPct() !== 100">
+        Total: {{ totalPct() }}% {{ totalPct() === 100 ? '✅' : '⚠️ deve ser 100%' }}
+      </div>
+    </div>
+    <div class="simulation glass-card" style="flex:1">
+      <div class="chart-title">🧮 Simulação de Distribuição</div>
+      <div class="form-group mb-2">
+        <label>Renda para simular (R$)</label>
+        <input type="number" [(ngModel)]="simulationIncome" />
+      </div>
+      <div class="sim-list">
+        <div class="sim-item" *ngFor="let r of rules; let i = index" [style.border-left-color]="colors[i % colors.length]">
+          <span>{{ r.name }}</span>
+          <span class="text-blue">{{ simAmount(r) }}</span>
+          <span class="badge badge-purple">{{ r.percentage }}%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rules-grid mt-2">
+    <div class="rule-card glass-card" *ngFor="let r of rules; let i = index" [style.border-left-color]="colors[i % colors.length]">
+      <div class="rule-header">
+        <div class="rule-name">{{ r.name }}</div>
+        <div class="rule-actions">
+          <button class="icon-btn" (click)="openEdit(r)">✏️</button>
+          <button class="icon-btn danger" (click)="delete(r.id)">🗑️</button>
+        </div>
+      </div>
+      <div class="rule-type text-muted">{{ destLabels[r.destinationType] || r.destinationType }}</div>
+      <div class="rule-pct">{{ r.percentage }}%</div>
+      <div class="progress-bar mt-1">
+        <div class="fill blue" [style.width]="r.percentage + '%'"></div>
+      </div>
+    </div>
+    <div class="glass-card" style="padding:40px;text-align:center;color:#475569" *ngIf="rules.length===0">Nenhuma regra cadastrada. Adicione regras para distribuir sua renda!</div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ editMode ? '✏️ Editar' : '➕ Nova' }} Regra</h2>
+      <button class="close-btn" (click)="closeModal()">×</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Nome *</label><input type="text" [(ngModel)]="form.name" placeholder="Poupança, Investimento..." /></div>
+      <div class="form-group"><label>Percentual (%)</label><input type="number" [(ngModel)]="form.percentage" min="0" max="100" /></div>
+    </div>
+    <div class="form-row mt-1">
+      <div class="form-group"><label>Destino</label>
+        <select [(ngModel)]="form.destinationType">
+          <option *ngFor="let d of destTypes" [value]="d">{{ destLabels[d] }}</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Conta Destino</label>
+        <select [(ngModel)]="form.bankAccountId"><option value="">Nenhuma</option><option *ngFor="let a of accounts" [value]="a.id">{{ a.name }}</option></select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" (click)="closeModal()">Cancelar</button>
+      <button class="btn-primary" (click)="save()">{{ editMode ? 'Atualizar' : 'Criar' }}</button>
+    </div>
+  </div>
+</div>

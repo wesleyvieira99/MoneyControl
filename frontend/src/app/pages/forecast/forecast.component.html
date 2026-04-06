@@ -1,0 +1,67 @@
+<div class="page">
+  <!-- Training Screen -->
+  <div class="training-screen" *ngIf="training">
+    <div class="training-card glass-card">
+      <div class="training-icon">🤖</div>
+      <h2>Treinando Modelo de ML</h2>
+      <p class="training-msg">{{ trainMessage }}</p>
+      <div class="progress-wrap">
+        <div class="progress-bar" style="height:12px">
+          <div class="fill blue" [style.width]="trainProgress + '%'"></div>
+        </div>
+        <div class="pct-text">{{ trainProgress.toFixed(0) }}%</div>
+      </div>
+      <div class="training-animation">
+        <div class="dot" *ngFor="let d of [1,2,3,4,5]"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forecast Results -->
+  <div *ngIf="!training && forecastData">
+    <div class="page-header">
+      <h1>🤖 Previsões ML</h1>
+      <div class="d-flex gap-1 align-center">
+        <select [(ngModel)]="forecastMonths" style="width:auto">
+          <option value="3">3 meses</option>
+          <option value="6">6 meses</option>
+          <option value="12">12 meses</option>
+        </select>
+        <button class="btn-secondary" (click)="retrain()">🔄 Retreinar</button>
+      </div>
+    </div>
+
+    <div class="info-banner glass-card mb-2">
+      <span>📊 Modelo treinado com {{ forecastData.historicMonths?.length || 12 }} meses de dados históricos usando <strong>Regressão Linear</strong></span>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-container chart-full">
+        <div class="chart-title">📊 Projeção: Receitas vs Despesas (próximos {{ forecastMonths }} meses)</div>
+        <div echarts [options]="barChartOption" style="height:300px"></div>
+      </div>
+      <div class="chart-container chart-full">
+        <div class="chart-title">📈 Histórico + Projeção (linha do tempo)</div>
+        <div echarts [options]="lineChartOption" style="height:300px"></div>
+      </div>
+    </div>
+
+    <div class="table-wrapper mt-2">
+      <table>
+        <thead>
+          <tr><th>Mês</th><th>Receita Projetada</th><th>Despesa Projetada</th><th>Saldo Projetado</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of forecastData.projections">
+            <td><strong>{{ p.month }}</strong></td>
+            <td class="text-green">{{ fmt(p.projectedIncome) }}</td>
+            <td class="text-red">{{ fmt(p.projectedExpense) }}</td>
+            <td [class.text-green]="p.projectedNet >= 0" [class.text-red]="p.projectedNet < 0">
+              <strong>{{ fmt(p.projectedNet) }}</strong>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

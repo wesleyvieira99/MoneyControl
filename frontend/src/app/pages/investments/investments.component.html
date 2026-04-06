@@ -1,0 +1,148 @@
+<div class="page">
+  <div class="page-header">
+    <h1>📈 Investimentos & Apostas</h1>
+    <button class="btn-primary" (click)="openNew()">+ Novo Investimento</button>
+  </div>
+
+  <div class="top-row">
+    <div class="kpi-card purple" style="flex:1">
+      <div class="label">🏆 Portfólio Total</div>
+      <div class="value">{{ fmt(totalPortfolio()) }}</div>
+    </div>
+    <div class="chart-container" style="flex:2">
+      <div class="chart-title">Distribuição do Portfólio</div>
+      <div echarts [options]="portfolioChart" style="height:200px"></div>
+    </div>
+  </div>
+
+  <div class="type-sections">
+    <div *ngFor="let type of types">
+      <div class="type-header" *ngIf="getByType(type).length > 0">
+        <span class="type-icon">{{ typeIcons[type] }}</span>
+        <span>{{ typeLabels[type] }}</span>
+        <span class="badge badge-blue">{{ getByType(type).length }}</span>
+      </div>
+      <div class="inv-grid" *ngIf="getByType(type).length > 0">
+        <div class="inv-card glass-card" *ngFor="let inv of getByType(type)" (click)="openDetail(inv)">
+          <div class="inv-header">
+            <img *ngIf="inv.logoUrl" [src]="inv.logoUrl" class="inv-logo" onerror="this.style.display='none'" />
+            <div>
+              <div class="inv-name">{{ inv.name }}</div>
+              <div class="inv-ticker text-muted">{{ inv.ticker }}</div>
+            </div>
+            <div class="inv-actions" (click)="$event.stopPropagation()">
+              <button class="icon-btn" (click)="openEdit(inv)">✏️</button>
+              <button class="icon-btn danger" (click)="delete(inv.id)">🗑️</button>
+            </div>
+          </div>
+          <div class="inv-value">{{ fmt(inv.currentValue) }}</div>
+          <div class="inv-gain" [class.text-green]="gain(inv) >= 0" [class.text-red]="gain(inv) < 0">
+            {{ gain(inv) >= 0 ? '▲' : '▼' }} {{ fmt(Math.abs(gain(inv))) }} ({{ gainPct(inv) }}%)
+          </div>
+          <div class="inv-initial text-muted">Investido: {{ fmt(inv.initialAmount) }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ editMode ? '✏️ Editar' : '➕ Novo' }} Investimento</h2>
+      <button class="close-btn" (click)="closeModal()">×</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Nome *</label><input type="text" [(ngModel)]="form.name" placeholder="PETR4, Bitcoin..." /></div>
+      <div class="form-group"><label>Ticker</label><input type="text" [(ngModel)]="form.ticker" placeholder="PETR4" /></div>
+    </div>
+    <div class="form-row mt-1">
+      <div class="form-group">
+        <label>Tipo *</label>
+        <select [(ngModel)]="form.type">
+          <option *ngFor="let t of types" [value]="t">{{ typeIcons[t] }} {{ typeLabels[t] }}</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Conta</label>
+        <select [(ngModel)]="form.bankAccountId">
+          <option value="">Nenhuma</option>
+          <option *ngFor="let a of accounts" [value]="a.id">{{ a.name }}</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row mt-1">
+      <div class="form-group"><label>Valor Investido (R$)</label><input type="number" [(ngModel)]="form.initialAmount" /></div>
+      <div class="form-group"><label>Valor Atual (R$)</label><input type="number" [(ngModel)]="form.currentValue" /></div>
+    </div>
+    <div class="form-row mt-1">
+      <div class="form-group"><label>Data de Início</label><input type="date" [(ngModel)]="form.startDate" /></div>
+      <div class="form-group"><label>URL Logo</label><input type="text" [(ngModel)]="form.logoUrl" /></div>
+    </div>
+    <div class="form-group mt-1"><label>Notas</label><textarea rows="2" [(ngModel)]="form.notes" style="resize:vertical"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" (click)="closeModal()">Cancelar</button>
+      <button class="btn-primary" (click)="save()">{{ editMode ? 'Atualizar' : 'Criar' }}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" *ngIf="detailInvestment" (click)="detailInvestment = null">
+  <div class="modal modal-lg" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ typeIcons[detailInvestment.type] }} {{ detailInvestment.name }}</h2>
+      <button class="close-btn" (click)="detailInvestment = null">×</button>
+    </div>
+    <div class="detail-kpis">
+      <div class="kpi-card blue"><div class="label">Valor Atual</div><div class="value">{{ fmt(detailInvestment.currentValue) }}</div></div>
+      <div class="kpi-card" [class.green]="gain(detailInvestment)>=0" [class.red]="gain(detailInvestment)<0">
+        <div class="label">Ganho/Perda</div><div class="value">{{ fmt(gain(detailInvestment)) }}</div></div>
+      <div class="kpi-card gold"><div class="label">Rentabilidade</div><div class="value">{{ gainPct(detailInvestment) }}%</div></div>
+    </div>
+    <div class="d-flex justify-between align-center mt-2 mb-2">
+      <h3>Movimentações</h3>
+      <button class="btn-primary" (click)="openTxModal()">+ Adicionar</button>
+    </div>
+    <table>
+      <thead><tr><th>Data</th><th>Tipo</th><th>Valor</th><th>Notas</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let tx of detailTxs">
+          <td>{{ tx.date | date:'dd/MM/yy' }}</td>
+          <td><span class="badge" [class.badge-green]="tx.type==='YIELD'||tx.type==='DIVIDEND'" [class.badge-blue]="tx.type==='DEPOSIT'" [class.badge-red]="tx.type==='WITHDRAWAL'">{{ tx.type }}</span></td>
+          <td [class.text-green]="tx.type!=='WITHDRAWAL'" [class.text-red]="tx.type==='WITHDRAWAL'">{{ fmt(tx.amount) }}</td>
+          <td class="text-muted">{{ tx.notes }}</td>
+        </tr>
+        <tr *ngIf="detailTxs.length===0"><td colspan="4" style="text-align:center;padding:30px;color:#475569">Sem movimentações</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add Transaction Modal -->
+<div class="modal-overlay" *ngIf="showTxModal" (click)="closeTxModal()">
+  <div class="modal" style="max-width:400px" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>➕ Movimentação</h2>
+      <button class="close-btn" (click)="closeTxModal()">×</button>
+    </div>
+    <div class="form-group"><label>Data</label><input type="date" [(ngModel)]="txForm.date" /></div>
+    <div class="form-row mt-1">
+      <div class="form-group"><label>Tipo</label>
+        <select [(ngModel)]="txForm.type">
+          <option value="DEPOSIT">Aporte</option>
+          <option value="WITHDRAWAL">Retirada</option>
+          <option value="YIELD">Rendimento</option>
+          <option value="DIVIDEND">Dividendo</option>
+          <option value="BONUS">Bônus</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Valor (R$)</label><input type="number" [(ngModel)]="txForm.amount" /></div>
+    </div>
+    <div class="form-group mt-1"><label>Notas</label><textarea rows="2" [(ngModel)]="txForm.notes" style="resize:vertical"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" (click)="closeTxModal()">Cancelar</button>
+      <button class="btn-primary" (click)="saveTx()">Adicionar</button>
+    </div>
+  </div>
+</div>

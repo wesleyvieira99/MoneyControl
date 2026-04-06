@@ -1,0 +1,27 @@
+<div class="app-shell" [class.sidebar-collapsed]="!sidebarOpen">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <span class="logo-icon">💰</span>
+        <span class="logo-text" *ngIf="sidebarOpen">MoneyControl</span>
+      </div>
+      <button class="toggle-btn" (click)="toggleSidebar()">{{ sidebarOpen ? '◀' : '▶' }}</button>
+    </div>
+    <nav class="sidebar-nav">
+      <a *ngFor="let item of navItems"
+         [routerLink]="item.path"
+         routerLinkActive="active"
+         class="nav-item"
+         [title]="item.label">
+        <span class="nav-icon">{{ item.icon }}</span>
+        <span class="nav-label" *ngIf="sidebarOpen">{{ item.label }}</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer" *ngIf="sidebarOpen">
+      <div class="version">v1.0.0 · MoneyControl</div>
+    </div>
+  </aside>
+  <main class="main-content">
+    <router-outlet></router-outlet>
+  </main>
+</div>

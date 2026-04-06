@@ -1,0 +1,17 @@
+.page { padding-bottom: 40px; }
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+.credit-card {
+  padding: 22px;
+  border-top: 3px solid var(--card-color, #3b82f6);
+  transition: all 0.3s ease;
+  &:hover { transform: translateY(-4px); box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+}
+.card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.bank-logo { height: 28px; width: 28px; border-radius: 6px; object-fit: contain; }
+.bank-name { font-size: 13px; color: var(--text-secondary); flex: 1; }
+.card-actions { display: flex; gap: 6px; }
+.icon-btn { background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px; border-radius: 6px; transition: all 0.2s; &:hover { background: rgba(255,255,255,0.1); } &.danger:hover { background: rgba(239,68,68,0.2); } }
+.card-name { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+.card-digits { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; letter-spacing: 2px; }
+.limit-info { margin-bottom: 14px; }
+.due-info { flex-wrap: wrap; gap: 6px !important; }

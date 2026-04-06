@@ -1,0 +1,51 @@
+<div class="page">
+  <div class="page-header">
+    <h1>🧑‍⚖️ IR / Chat com IA Financeira</h1>
+    <button class="btn-secondary" (click)="clearHistory()">🗑️ Limpar</button>
+  </div>
+
+  <div class="chat-layout">
+    <!-- Quick Prompts -->
+    <div class="quick-prompts glass-card">
+      <div class="qp-title">💡 Sugestões Rápidas</div>
+      <button class="qp-btn" *ngFor="let q of quickPrompts" (click)="send(q)">{{ q }}</button>
+    </div>
+
+    <!-- Chat Window -->
+    <div class="chat-window glass-card">
+      <div class="messages">
+        <div *ngFor="let m of messages" class="message" [class.user]="m.role==='user'" [class.assistant]="m.role==='assistant'">
+          <div class="avatar">{{ m.role === 'user' ? '👤' : '🤖' }}</div>
+          <div class="bubble">
+            <div class="text">{{ m.content }}</div>
+            <div class="time">{{ m.time | date:'HH:mm' }}</div>
+          </div>
+        </div>
+
+        <div class="message assistant" *ngIf="loading">
+          <div class="avatar">🤖</div>
+          <div class="bubble typing">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          </div>
+        </div>
+
+        <div #messagesEnd></div>
+      </div>
+
+      <div class="error-banner" *ngIf="error">⚠️ {{ error }}</div>
+
+      <div class="input-area">
+        <textarea
+          [(ngModel)]="inputText"
+          (keydown)="onKeyDown($event)"
+          placeholder="Digite sua dúvida sobre IR... (Enter para enviar, Shift+Enter nova linha)"
+          rows="2"
+          [disabled]="loading"
+        ></textarea>
+        <button class="send-btn" (click)="send()" [disabled]="loading || !inputText.trim()">
+          {{ loading ? '⏳' : '📤' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
