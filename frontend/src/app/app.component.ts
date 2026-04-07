@@ -18,6 +18,8 @@ interface CmdItem { label: string; icon: string; path: string; keywords: string;
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent implements OnInit, OnDestroy {
+  private static readonly SPLASH_DURATION_MS = 2800;
+
   showSplash = true;
   showClosing = false;
   sidebarOpen = true;
@@ -126,7 +128,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.timer = setInterval(() => this.updateTime(), 1000);
     this.loadTicker();
     this.tickerTimer = setInterval(() => this.loadTicker(), 30000);
-    setTimeout(() => { this.showSplash = false; }, 2800);
+    setTimeout(() => { this.showSplash = false; }, AppComponent.SPLASH_DURATION_MS);
   }
 
   ngOnDestroy() {
