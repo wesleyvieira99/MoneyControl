@@ -2,6 +2,8 @@
 // BUDGET COMPONENT — APPLE GLASS DESIGN SYSTEM V3
 // ═══════════════════════════════════════════════════════════════════════════
 
+.budget-page { padding-bottom: 60px; }
+
 .hero-month {
   color: var(--accent-purple);
   font-weight: 700;
@@ -337,7 +339,7 @@
   height: 32px;
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   color: var(--text-secondary);
   font-size: 0.875rem;
   cursor: pointer;
@@ -398,7 +400,7 @@
   align-items: center;
   gap: var(--spacing-md);
   padding-top: var(--spacing-md);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--glass-border);
 }
 
 .amount-item {
@@ -428,7 +430,7 @@
 .amount-divider {
   width: 1px;
   height: 32px;
-  background: var(--border);
+  background: var(--glass-border);
 }
 
 // ─── MODAL ────────────────────────────────────────────────────────────────
@@ -488,7 +490,7 @@
   height: 32px;
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   color: var(--text-secondary);
   font-size: 1.25rem;
   cursor: pointer;
@@ -526,7 +528,7 @@
   height: 44px;
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   font-size: 1.25rem;
   cursor: pointer;
   display: flex;

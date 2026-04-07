@@ -15,7 +15,7 @@
 .training-card {
   padding:4rem 3.25rem; text-align:center; max-width:540px; width:100%; border-radius:28px;
   position:relative; overflow:hidden;
-  background:var(--glass-bg); border:1px solid var(--border); backdrop-filter:blur(32px);
+  background:var(--glass-bg); border:1px solid var(--glass-border); backdrop-filter:blur(32px);
   box-shadow:0 32px 80px rgba(0,0,0,.5);
 
   &::before {
@@ -56,7 +56,7 @@
   .tstep-icon { width:20px; text-align:center; font-size:.875rem; }
   .tstep-label { flex:1; }
   &.done { background:rgba(16,185,129,.07); color:#10b981; }
-  &.active { background:rgba(59,130,246,.08); color:var(--text); font-weight:700; }
+  &.active { background:rgba(59,130,246,.08); color:var(--text-primary); font-weight:700; }
 }
 
 .training-dots { display:flex; justify-content:center; gap:.625rem; }
@@ -71,9 +71,9 @@
 .info-banner {
   position:relative; overflow:hidden; padding:1rem 1.375rem; font-size:.875rem; color:var(--text-muted);
   margin-bottom:1.75rem; display:flex; align-items:center; gap:.75rem;
-  background:var(--glass-bg); border:1px solid var(--border); border-left:3px solid #3b82f6;
+  background:var(--glass-bg); border:1px solid var(--glass-border); border-left:3px solid #3b82f6;
   border-radius:16px; backdrop-filter:blur(20px);
-  strong { color:var(--text); font-weight:800; }
+  strong { color:var(--text-primary); font-weight:800; }
 }
 
 /* ─── Forecast KPIs ──────────────────────────── */
@@ -81,7 +81,7 @@
 
 .fkpi {
   padding:1.375rem 1.25rem; border-radius:18px; position:relative; overflow:hidden;
-  text-align:center; background:var(--glass-bg); border:1px solid var(--border);
+  text-align:center; background:var(--glass-bg); border:1px solid var(--glass-border);
   backdrop-filter:blur(20px); transition:transform .25s ease,box-shadow .25s; animation:cardIn .5s ease both;
 
   &::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:18px 18px 0 0; }
@@ -119,7 +119,7 @@
 
   .chart-container {
     position:relative; overflow:hidden; padding:1.5rem; background:var(--glass-bg);
-    border:1px solid var(--border); border-radius:22px; backdrop-filter:blur(24px);
+    border:1px solid var(--glass-border); border-radius:22px; backdrop-filter:blur(24px);
     &::before {
       content:''; position:absolute; top:0; left:0; right:0; height:2px;
       background:linear-gradient(90deg,#3b82f6,#8b5cf6,transparent); opacity:.55;
@@ -129,7 +129,7 @@
 
 /* ─── Table Section ──────────────────────────── */
 .table-section-header {
-  padding:1rem 1.375rem; border-bottom:1px solid var(--border);
+  padding:1rem 1.375rem; border-bottom:1px solid var(--glass-border);
   font-size:.875rem; font-weight:800; display:flex; align-items:center; gap:.625rem;
 }
 
