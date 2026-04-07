@@ -61,7 +61,7 @@ export class CalendarComponent implements OnInit {
   // Alarm modal
   showAlarmModal = false;
   alarmDebt: DebtInstallment | null = null;
-  alarmPhone = '5511985536310';
+  alarmPhone = '';
 
   // Stored alarms
   alarms: ScheduledAlarm[] = [];
@@ -131,25 +131,33 @@ export class CalendarComponent implements OnInit {
 
   getDebtsForDate(date: Date): DebtInstallment[] {
     const installments: DebtInstallment[] = [];
+    // Pre-build alarm lookup for O(1) checks
+    const alarmKeys = new Set(this.alarms.map(a => `${a.debtId}_${a.dueDate}`));
 
     for (const debt of this.debts) {
       if (!debt.startDate || !debt.totalInstallments) continue;
 
-      const startDate = new Date(debt.startDate + 'T00:00:00');
+      const startDate = new Date(debt.startDate);
+      // Normalize to local midnight
+      startDate.setHours(0, 0, 0, 0);
       const totalInst = +debt.totalInstallments;
       const paidInst = +debt.paidInstallments || 0;
       const originalAmt = +debt.originalAmount || 0;
       const installmentAmt = totalInst > 0 ? originalAmt / totalInst : 0;
 
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
       for (let i = 0; i < totalInst; i++) {
         const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, startDate.getDate());
+        dueDate.setHours(0, 0, 0, 0);
 
         if (dueDate.getFullYear() === date.getFullYear() &&
             dueDate.getMonth() === date.getMonth() &&
             dueDate.getDate() === date.getDate()) {
 
           const isPaid = i < paidInst;
-          const isOverdue = !isPaid && dueDate < new Date();
+          const isOverdue = !isPaid && dueDate.getTime() < today.getTime();
           const source = debt.creditCard ? '💳 ' + debt.creditCard.name :
                         (debt.bankAccount ? '🏦 ' + debt.bankAccount.name : '—');
 
@@ -165,7 +173,7 @@ export class CalendarComponent implements OnInit {
             source,
             notes: debt.notes || '',
             dueDate,
-            alarmSet: this.isAlarmSet(debt.id, dueDate)
+            alarmSet: alarmKeys.has(`${debt.id}_${dueDate.toISOString().slice(0, 10)}`)
           });
         }
       }
