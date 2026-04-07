@@ -1,56 +1,458 @@
-<div class="page">
+<div class="page dash-page">
+
+  <!-- HEADER -->
   <div class="page-header">
-    <h1>🏠 Dashboard</h1>
-    <div class="d-flex gap-1 align-center">
-      <input type="month" [(ngModel)]="selectedMonth" (change)="loadData()" />
+    <div>
+      <h1>Dashboard</h1>
+      <div class="page-subtitle">Visão completa do seu patrimônio</div>
+    </div>
+    <div class="page-header-actions">
+      <input type="month" [(ngModel)]="selectedMonth" (change)="loadData()" class="month-picker" />
+      <button class="btn-secondary" (click)="loadData()">↺ Atualizar</button>
     </div>
   </div>
 
+  <div class="skeleton" style="height:70px;border-radius:16px;margin-bottom:24px" *ngIf="loading"></div>
+
+  <div class="offline-banner" *ngIf="!loading && isMockData">
+    <span class="offline-icon">⚡</span>
+    <span>Backend offline — exibindo dados de demonstração</span>
+    <small>Inicie o servidor para ver dados reais</small>
+  </div>
+
+  <!-- INSIGHTS CAROUSEL -->
+  <div class="insights-carousel" *ngIf="!loading && insights.length">
+    <button class="carousel-arrow left" (click)="prevInsight()">‹</button>
+    <div class="carousel-viewport">
+      <div class="insight-card insight-{{ insights[insightIndex].color }} animate-card">
+        <span class="insight-icon">{{ insights[insightIndex].icon }}</span>
+        <div class="insight-body">
+          <div class="insight-title">{{ insights[insightIndex].title }}</div>
+          <div class="insight-desc">{{ insights[insightIndex].desc }}</div>
+        </div>
+        <div class="carousel-dots">
+          <span *ngFor="let ins of insights; let i = index" class="dot" [class.active]="i === insightIndex" (click)="insightIndex = i"></span>
+        </div>
+      </div>
+    </div>
+    <button class="carousel-arrow right" (click)="nextInsight()">›</button>
+  </div>
+
+  <!-- SKELETON KPIs -->
+  <div *ngIf="loading" class="kpi-grid">
+    <div *ngFor="let i of [1,2,3,4,5,6]" class="kpi-card">
+      <div class="skeleton" style="height:12px;width:60%;margin-bottom:10px"></div>
+      <div class="skeleton" style="height:28px;width:80%;margin-bottom:8px"></div>
+      <div class="skeleton" style="height:10px;width:40%"></div>
+    </div>
+  </div>
+
+  <!-- KPI GRID -->
   <div class="kpi-grid" *ngIf="!loading">
-    <div class="kpi-card blue">
-      <div class="label">💰 Saldo Total</div>
-      <div class="value">{{ fmt(summary.totalBalance) }}</div>
-      <div class="sub">em todas as contas</div>
+
+    <div class="kpi-card kpi-flip blue animate-card" style="animation-delay:.05s"
+         [class.is-flipped]="flippedCard==='balance'" (click)="flippedCard = flippedCard==='balance' ? null : 'balance'">
+      <div class="kpi-front">
+        <div class="kpi-icon-bg">💰</div>
+        <div class="kpi-label">Saldo Total</div>
+        <div class="kpi-value">{{ fmt(summary.totalBalance) }}</div>
+        <div class="kpi-sub">em todas as contas</div>
+      </div>
+      <div class="kpi-back">
+        <div class="kpi-back-title">💰 Saldo</div>
+        <div class="kpi-back-val">{{ fmt(summary.totalBalance) }}</div>
+        <div class="kpi-back-hint">Soma de todas as contas</div>
+        <div class="kpi-coin-anim"><span class="coin">💵</span><span class="coin" style="animation-delay:.2s">💶</span><span class="coin" style="animation-delay:.4s">💷</span></div>
+      </div>
     </div>
-    <div class="kpi-card green">
-      <div class="label">📈 Receita do Mês</div>
-      <div class="value">{{ fmt(summary.monthlyIncome) }}</div>
+
+    <div class="kpi-card kpi-flip green animate-card" style="animation-delay:.1s"
+         [class.is-flipped]="flippedCard==='income'" (click)="flippedCard = flippedCard==='income' ? null : 'income'">
+      <div class="kpi-front">
+        <div class="kpi-icon-bg">📈</div>
+        <div class="kpi-label">Receita do Mês</div>
+        <div class="kpi-value">{{ fmt(summary.monthlyIncome) }}</div>
+        <div class="kpi-sub d-flex gap-1 align-center">
+          <span class="kpi-trend up">+{{ expensePct() < 100 ? (100 - expensePct()) : 0 }}%</span>
+          <span>vs despesas</span>
+        </div>
+      </div>
+      <div class="kpi-back">
+        <div class="kpi-back-title">📈 Receita</div>
+        <div class="kpi-back-val text-green">{{ fmt(summary.monthlyIncome) }}</div>
+        <div class="kpi-back-hint">Entradas do mês</div>
+        <div class="money-rain"><span *ngFor="let n of [1,2,3,4,5]" class="money-drop" [style.animation-delay]="(n*0.18)+'s'">💸</span></div>
+      </div>
     </div>
-    <div class="kpi-card red">
-      <div class="label">📉 Despesas do Mês</div>
-      <div class="value">{{ fmt(summary.monthlyExpense) }}</div>
+
+    <div class="kpi-card kpi-flip red animate-card" style="animation-delay:.15s"
+         [class.is-flipped]="flippedCard==='expense'" (click)="flippedCard = flippedCard==='expense' ? null : 'expense'">
+      <div class="kpi-front">
+        <div class="kpi-icon-bg">📉</div>
+        <div class="kpi-label">Despesas do Mês</div>
+        <div class="kpi-value">{{ fmt(summary.monthlyExpense) }}</div>
+        <div class="kpi-sub d-flex gap-1 align-center">
+          <span class="kpi-trend down">{{ expensePct() }}%</span>
+          <span>da receita</span>
+        </div>
+      </div>
+      <div class="kpi-back">
+        <div class="kpi-back-title">📉 Despesas</div>
+        <div class="kpi-back-val text-red">{{ fmt(summary.monthlyExpense) }}</div>
+        <div class="kpi-back-hint">Saídas do mês</div>
+        <div class="fire-anim">🔥</div>
+      </div>
     </div>
-    <div class="kpi-card gold">
-      <div class="label">🏆 Patrimônio Líquido</div>
-      <div class="value">{{ fmt(summary.netWorth) }}</div>
-      <div class="sub">incluindo investimentos</div>
+
+    <div class="kpi-card kpi-flip gold animate-card" style="animation-delay:.2s"
+         [class.is-flipped]="flippedCard==='networth'" (click)="flippedCard = flippedCard==='networth' ? null : 'networth'">
+      <div class="kpi-front">
+        <div class="kpi-icon-bg">🏆</div>
+        <div class="kpi-label">Patrimônio Líquido</div>
+        <div class="kpi-value">{{ fmt(summary.netWorth) }}</div>
+        <div class="kpi-sub">incluindo investimentos</div>
+      </div>
+      <div class="kpi-back">
+        <div class="kpi-back-title">🏆 Patrimônio</div>
+        <div class="kpi-back-val text-gold">{{ fmt(summary.netWorth) }}</div>
+        <div class="kpi-back-hint">Ativos menos Passivos</div>
+        <div class="trophy-anim">🏆</div>
+      </div>
     </div>
-    <div class="kpi-card purple">
-      <div class="label">📊 Investido</div>
-      <div class="value">{{ fmt(summary.totalInvested) }}</div>
+
+    <div class="kpi-card kpi-flip purple animate-card" style="animation-delay:.25s"
+         [class.is-flipped]="flippedCard==='invested'" (click)="flippedCard = flippedCard==='invested' ? null : 'invested'">
+      <div class="kpi-front">
+        <div class="kpi-icon-bg">📊</div>
+        <div class="kpi-label">Total Investido</div>
+        <div class="kpi-value">{{ fmt(summary.totalInvested) }}</div>
+        <div class="kpi-sub">carteira ativa</div>
+      </div>
+      <div class="kpi-back">
+        <div class="kpi-back-title">📊 Investimentos</div>
+        <div class="kpi-back-val text-purple">{{ fmt(summary.totalInvested) }}</div>
+        <div class="kpi-back-hint">Carteira de ativos</div>
+        <div class="chart-anim">📈</div>
+      </div>
     </div>
-    <div class="kpi-card" [class.green]="summary.netMonth >= 0" [class.red]="summary.netMonth < 0">
-      <div class="label">{{ summary.netMonth >= 0 ? '✅' : '⚠️' }} Saldo do Mês</div>
-      <div class="value">{{ fmt(summary.netMonth) }}</div>
+
+    <div class="kpi-card kpi-flip animate-card"
+         [class.green]="summary.netMonth >= 0" [class.red]="summary.netMonth < 0"
+         style="animation-delay:.3s"
+         [class.is-flipped]="flippedCard==='net'" (click)="flippedCard = flippedCard==='net' ? null : 'net'">
+      <div class="kpi-front">
+        <div class="kpi-icon-bg">{{ summary.netMonth >= 0 ? '✅' : '⚠️' }}</div>
+        <div class="kpi-label">{{ summary.netMonth >= 0 ? 'Saldo do Mês' : 'Déficit' }}</div>
+        <div class="kpi-value">{{ fmt(summary.netMonth) }}</div>
+        <div class="kpi-sub">
+          <span class="kpi-trend" [class.up]="summary.netMonth>=0" [class.down]="summary.netMonth<0">{{ savingsPct() }}% poupado</span>
+        </div>
+      </div>
+      <div class="kpi-back">
+        <div class="kpi-back-title">{{ summary.netMonth >= 0 ? '✅ Superávit' : '⚠️ Déficit' }}</div>
+        <div class="kpi-back-val" [class.text-green]="summary.netMonth>=0" [class.text-red]="summary.netMonth<0">{{ fmt(summary.netMonth) }}</div>
+        <div class="kpi-back-hint">{{ summary.netMonth >= 0 ? 'Parabéns! Continue assim.' : 'Reduza despesas.' }}</div>
+        <div class="pulse-anim">{{ summary.netMonth >= 0 ? '🎯' : '📌' }}</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs-bar">
+    <button class="tab-btn" [class.active]="activeTab==='overview'" (click)="activeTab='overview'">📊 Visão Geral</button>
+    <button class="tab-btn" [class.active]="activeTab==='categories'" (click)="activeTab='categories'">🏷️ Categorias</button>
+    <button class="tab-btn" [class.active]="activeTab==='heatmap'" (click)="activeTab='heatmap'">🔥 Heatmap</button>
+    <button class="tab-btn" [class.active]="activeTab==='savings'" (click)="activeTab='savings'">💡 Economia</button>
+    <button class="tab-btn" [class.active]="activeTab==='news'" (click)="activeTab='news'">📰 Notícias</button>
+  </div>
+
+  <!-- TAB: OVERVIEW -->
+  <div *ngIf="activeTab==='overview'">
+    <div class="charts-grid">
+      <div class="chart-container chart-full animate-card">
+        <div class="chart-header"><div>
+          <div class="chart-title">📊 Receitas vs Despesas — Últimos 12 Meses</div>
+          <div class="chart-subtitle">Análise histórica completa com tendência de saldo</div>
+        </div></div>
+        <div echarts [options]="balanceChartOption" style="height:300px"></div>
+      </div>
+      <div class="chart-container animate-card" style="animation-delay:.1s">
+        <div class="chart-header"><div class="chart-title">🍩 Despesas por Categoria</div></div>
+        <div echarts [options]="donutChartOption" style="height:280px"></div>
+      </div>
+      <div class="chart-container animate-card" style="animation-delay:.15s">
+        <div class="chart-header"><div class="chart-title">📉 Top Categorias</div></div>
+        <div echarts [options]="categoryBarOption" style="height:280px"></div>
+      </div>
     </div>
   </div>
 
-  <div class="loading-container" *ngIf="loading">
-    <div class="loading-spinner"></div>
+  <!-- TAB: CATEGORIES -->
+  <div *ngIf="activeTab==='categories'">
+    <div class="charts-grid">
+      <div class="chart-container chart-full animate-card">
+        <div class="chart-header"><div class="chart-title">🏷️ Ranking de Categorias</div></div>
+        <div echarts [options]="categoryBarOption" style="height:340px"></div>
+      </div>
+      <div class="chart-container animate-card">
+        <div class="chart-title">🍩 Distribuição</div>
+        <div echarts [options]="donutChartOption" style="height:320px"></div>
+      </div>
+      <div class="chart-container animate-card">
+        <div class="chart-title">📈 Tendência de Saldo</div>
+        <div echarts [options]="dailyOption" style="height:320px"></div>
+      </div>
+    </div>
   </div>
 
-  <div class="charts-grid">
-    <div class="chart-container chart-full">
-      <div class="chart-title">📊 Receitas vs Despesas (12 meses)</div>
-      <div echarts [options]="balanceChartOption" style="height:280px"></div>
+  <!-- TAB: HEATMAP -->
+  <div *ngIf="activeTab==='heatmap'" class="heatmap-tab">
+
+    <div class="hm-header">
+      <div class="hm-header-left">
+        <div class="hm-title">🔥 Mapa de Calor de Gastos Diários</div>
+        <div class="hm-subtitle">Cada célula = 1 dia · Cores quentes = mais gastos · Clique nos filtros para zoom</div>
+      </div>
+      <div class="hm-year-group">
+        <button *ngFor="let y of heatmapYears" class="hm-year-btn" [class.active]="y === heatmapYear" (click)="setHeatmapYear(y)">{{ y }}</button>
+      </div>
     </div>
-    <div class="chart-container">
-      <div class="chart-title">🍩 Despesas por Categoria</div>
-      <div echarts [options]="donutChartOption" style="height:260px"></div>
+
+    <div class="hm-month-bar">
+      <button class="hm-month-btn" [class.active]="heatmapMonth === ''" (click)="setHeatmapMonth('')">
+        <span>��</span><span>Ano todo</span>
+      </button>
+      <button *ngFor="let m of heatmapMonths" class="hm-month-btn" [class.active]="m.value === heatmapMonth" (click)="setHeatmapMonth(m.value)">
+        {{ m.label }}
+      </button>
     </div>
-    <div class="chart-container">
-      <div class="chart-title">🔥 Mapa de Calor — Gastos Diários</div>
-      <div echarts [options]="heatmapOption" style="height:260px"></div>
+
+    <div class="hm-stats-row">
+      <div class="hm-stat hm-stat-purple">
+        <div class="hm-stat-icon">��</div>
+        <div class="hm-stat-body">
+          <div class="hm-stat-val">{{ fmt(heatmapStats.total) }}</div>
+          <div class="hm-stat-label">Total gasto</div>
+        </div>
+      </div>
+      <div class="hm-stat hm-stat-red">
+        <div class="hm-stat-icon">🔥</div>
+        <div class="hm-stat-body">
+          <div class="hm-stat-val">{{ fmt(heatmapStats.max) }}</div>
+          <div class="hm-stat-label">Maior dia</div>
+        </div>
+      </div>
+      <div class="hm-stat hm-stat-blue">
+        <div class="hm-stat-icon">📊</div>
+        <div class="hm-stat-body">
+          <div class="hm-stat-val">{{ fmt(heatmapStats.avg) }}</div>
+          <div class="hm-stat-label">Média diária</div>
+        </div>
+      </div>
+      <div class="hm-stat hm-stat-green">
+        <div class="hm-stat-icon">📆</div>
+        <div class="hm-stat-body">
+          <div class="hm-stat-val">{{ heatmapStats.activeDays }}</div>
+          <div class="hm-stat-label">Dias ativos</div>
+        </div>
+      </div>
+      <div class="hm-stat hm-stat-gold" *ngIf="heatmapStats.maxDay">
+        <div class="hm-stat-icon">🏆</div>
+        <div class="hm-stat-body">
+          <div class="hm-stat-val">{{ heatmapStats.maxDay | date:'dd/MM' }}</div>
+          <div class="hm-stat-label">Pico de gastos</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hm-chart-card">
+      <div class="hm-legend-row">
+        <span class="hm-legend-label">Menos</span>
+        <div class="hm-legend-scale">
+          <span class="hm-scale-cell" style="background:rgba(15,23,42,0.3)"></span>
+          <span class="hm-scale-cell" style="background:rgba(30,58,138,0.4)"></span>
+          <span class="hm-scale-cell" style="background:rgba(67,56,202,0.65)"></span>
+          <span class="hm-scale-cell" style="background:#7c3aed"></span>
+          <span class="hm-scale-cell" style="background:#db2777"></span>
+          <span class="hm-scale-cell" style="background:#ea580c"></span>
+          <span class="hm-scale-cell" style="background:#fbbf24"></span>
+        </div>
+        <span class="hm-legend-label">Mais</span>
+      </div>
+      <div echarts [options]="heatmapOption"
+           [style.height]="heatmapMonth ? '300px' : '200px'"
+           style="width:100%;transition:height 0.4s cubic-bezier(0.4,0,0.2,1)"></div>
+    </div>
+
+    <div class="charts-grid" style="margin-top:20px">
+      <div class="chart-container animate-card">
+        <div class="chart-header"><div class="chart-title">📊 Histórico Mensal</div></div>
+        <div echarts [options]="balanceChartOption" style="height:260px"></div>
+      </div>
+      <div class="chart-container animate-card">
+        <div class="chart-header"><div class="chart-title">🍩 Categorias</div></div>
+        <div echarts [options]="donutChartOption" style="height:260px"></div>
+      </div>
     </div>
   </div>
+
+  <!-- TAB: SAVINGS -->
+  <div *ngIf="activeTab==='savings'">
+    <div class="charts-grid">
+      <div class="chart-container animate-card" style="display:flex;flex-direction:column;align-items:center">
+        <div class="chart-header" style="width:100%"><div>
+          <div class="chart-title">💡 Taxa de Poupança do Mês</div>
+          <div class="chart-subtitle">Percentual da receita que virou poupança</div>
+        </div></div>
+        <div echarts [options]="savingsRateOption" style="height:260px;width:100%"></div>
+        <div class="savings-detail">
+          <div class="sav-row"><span class="text-muted">Receita</span><span class="text-green font-bold">{{ fmt(summary.monthlyIncome) }}</span></div>
+          <div class="sav-row"><span class="text-muted">Despesas</span><span class="text-red font-bold">{{ fmt(summary.monthlyExpense) }}</span></div>
+          <div class="sav-row"><span class="text-muted">Economizado</span><span [class.text-green]="summary.netMonth>=0" [class.text-red]="summary.netMonth<0" class="font-bold">{{ fmt(summary.netMonth) }}</span></div>
+        </div>
+      </div>
+      <div class="chart-container animate-card">
+        <div class="chart-header"><div class="chart-title">📈 Tendência de Saldo Mensal</div></div>
+        <div echarts [options]="dailyOption" style="height:280px"></div>
+      </div>
+      <div class="chart-container animate-card">
+        <div class="chart-header"><div class="chart-title">🏦 Evolução do Patrimônio</div></div>
+        <div echarts [options]="netWorthOption" style="height:280px"></div>
+      </div>
+      <div class="chart-container chart-full animate-card">
+        <div class="chart-title">📊 12 Meses — Receita vs Despesa vs Saldo</div>
+        <div echarts [options]="balanceChartOption" style="height:280px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: NOTICIAS -->
+  <div *ngIf="activeTab==='news'" class="news-tab">
+
+    <div class="news-header">
+      <div class="news-header-left">
+        <div class="news-title">📰 Central de Notícias &amp; Mercados</div>
+        <div class="news-subtitle">Dados em tempo real · TradingView · 100% gratuito</div>
+      </div>
+      <div class="news-live-badge"><span class="news-dot"></span><span>AO VIVO</span></div>
+    </div>
+
+    <div class="news-grid">
+
+      <div class="news-card news-card-full">
+        <div class="news-card-header">
+          <span class="nch-icon">📡</span>
+          <span class="nch-title">Mercados em Tempo Real</span>
+          <span class="nch-badge">Ticker</span>
+        </div>
+        <div class="news-card-body ncp-zero">
+          <iframe
+            src="https://s.tradingview.com/embed-widget/tickers/?locale=pt_BR#%7B%22symbols%22%3A%5B%7B%22proName%22%3A%22BMFBOVESPA%3AIBOV%22%2C%22title%22%3A%22IBOVESPA%22%7D%2C%7B%22proName%22%3A%22FOREXCOM%3ASPXUSD%22%2C%22title%22%3A%22S%26P+500%22%7D%2C%7B%22proName%22%3A%22FOREXCOM%3ANSXUSD%22%2C%22title%22%3A%22Nasdaq%22%7D%2C%7B%22proName%22%3A%22FX_IDC%3AUSDBRL%22%2C%22title%22%3A%22USD%2FBRL%22%7D%2C%7B%22proName%22%3A%22BITSTAMP%3ABTCUSD%22%2C%22title%22%3A%22Bitcoin%22%7D%2C%7B%22proName%22%3A%22COMEX%3AGC1%21%22%2C%22title%22%3A%22Ouro%22%7D%5D%2C%22colorTheme%22%3A%22dark%22%2C%22isTransparent%22%3Atrue%2C%22showSymbolLogo%22%3Atrue%2C%22width%22%3A%22100%25%22%2C%22height%22%3A%2272%22%7D"
+            width="100%" height="72" frameborder="0" scrolling="no"
+            title="TradingView Tickers" sandbox="allow-scripts allow-same-origin">
+          </iframe>
+        </div>
+      </div>
+
+      <div class="news-card news-card-half">
+        <div class="news-card-header">
+          <span class="nch-icon">��</span>
+          <span class="nch-title">Câmbio — Taxas Cruzadas</span>
+          <span class="nch-badge">Ao vivo</span>
+        </div>
+        <div class="news-card-body">
+          <iframe
+            src="https://s.tradingview.com/embed-widget/forex-cross-rates/?locale=pt_BR#%7B%22width%22%3A%22100%25%22%2C%22height%22%3A%22380%22%2C%22currencies%22%3A%5B%22EUR%22%2C%22USD%22%2C%22BRL%22%2C%22GBP%22%2C%22JPY%22%2C%22AUD%22%5D%2C%22colorTheme%22%3A%22dark%22%2C%22isTransparent%22%3Atrue%7D"
+            width="100%" height="380" frameborder="0" scrolling="no"
+            title="Forex Cross Rates" sandbox="allow-scripts allow-same-origin">
+          </iframe>
+        </div>
+      </div>
+
+      <div class="news-card news-card-half">
+        <div class="news-card-header">
+          <span class="nch-icon">🌐</span>
+          <span class="nch-title">Visão do Mercado Global</span>
+          <span class="nch-badge nch-badge-blue">Multi-índice</span>
+        </div>
+        <div class="news-card-body">
+          <iframe
+            src="https://s.tradingview.com/embed-widget/market-overview/?locale=pt_BR#%7B%22colorTheme%22%3A%22dark%22%2C%22dateRange%22%3A%221D%22%2C%22showChart%22%3Atrue%2C%22width%22%3A%22100%25%22%2C%22height%22%3A%22380%22%2C%22isTransparent%22%3Atrue%2C%22showSymbolLogo%22%3Atrue%2C%22plotLineColorGrowing%22%3A%2210b981%22%2C%22plotLineColorFalling%22%3A%22ef4444%22%2C%22tabs%22%3A%5B%7B%22title%22%3A%22%C3%8Endices%22%2C%22symbols%22%3A%5B%7B%22s%22%3A%22BMFBOVESPA%3AIBOV%22%7D%2C%7B%22s%22%3A%22FOREXCOM%3ASPXUSD%22%7D%2C%7B%22s%22%3A%22FOREXCOM%3ANSXUSD%22%7D%5D%7D%2C%7B%22title%22%3A%22Criptos%22%2C%22symbols%22%3A%5B%7B%22s%22%3A%22BITSTAMP%3ABTCUSD%22%7D%2C%7B%22s%22%3A%22BITSTAMP%3AETHUSD%22%7D%5D%7D%5D%7D"
+            width="100%" height="380" frameborder="0" scrolling="no"
+            title="Market Overview" sandbox="allow-scripts allow-same-origin">
+          </iframe>
+        </div>
+      </div>
+
+      <div class="news-card news-card-full">
+        <div class="news-card-header">
+          <span class="nch-icon">📅</span>
+          <span class="nch-title">Calendário Econômico</span>
+          <span class="nch-badge nch-badge-gold">Macro eventos</span>
+        </div>
+        <div class="news-card-body">
+          <iframe
+            src="https://s.tradingview.com/embed-widget/events/?locale=pt_BR#%7B%22colorTheme%22%3A%22dark%22%2C%22isTransparent%22%3Atrue%2C%22width%22%3A%22100%25%22%2C%22height%22%3A%22420%22%2C%22importanceFilter%22%3A%22-1%2C0%2C1%22%2C%22countryFilter%22%3A%22br%2Cus%2Ceu%22%7D"
+            width="100%" height="420" frameborder="0" scrolling="no"
+            title="Economic Calendar" sandbox="allow-scripts allow-same-origin">
+          </iframe>
+        </div>
+      </div>
+
+      <div class="news-card news-card-half">
+        <div class="news-card-header">
+          <span class="nch-icon">₿</span>
+          <span class="nch-title">Criptomoedas</span>
+          <span class="nch-badge nch-badge-purple">Screener</span>
+        </div>
+        <div class="news-card-body">
+          <iframe
+            src="https://s.tradingview.com/embed-widget/screener/?locale=pt_BR#%7B%22width%22%3A%22100%25%22%2C%22height%22%3A%22420%22%2C%22defaultScreen%22%3A%22crypto_mkt%22%2C%22market%22%3A%22crypto%22%2C%22colorTheme%22%3A%22dark%22%2C%22isTransparent%22%3Atrue%7D"
+            width="100%" height="420" frameborder="0" scrolling="no"
+            title="Crypto Screener" sandbox="allow-scripts allow-same-origin">
+          </iframe>
+        </div>
+      </div>
+
+      <div class="news-card news-card-half">
+        <div class="news-card-header">
+          <span class="nch-icon">🇧🇷</span>
+          <span class="nch-title">Ações Brasileiras — B3</span>
+          <span class="nch-badge nch-badge-green">Screener</span>
+        </div>
+        <div class="news-card-body">
+          <iframe
+            src="https://s.tradingview.com/embed-widget/screener/?locale=pt_BR#%7B%22width%22%3A%22100%25%22%2C%22height%22%3A%22420%22%2C%22defaultScreen%22%3A%22most_capitalized%22%2C%22market%22%3A%22brazil%22%2C%22colorTheme%22%3A%22dark%22%2C%22isTransparent%22%3Atrue%7D"
+            width="100%" height="420" frameborder="0" scrolling="no"
+            title="B3 Stocks" sandbox="allow-scripts allow-same-origin">
+          </iframe>
+        </div>
+      </div>
+
+      <div class="news-card news-card-full">
+        <div class="news-card-header">
+          <span class="nch-icon">📉</span>
+          <span class="nch-title">IBOVESPA — Gráfico Interativo Avançado</span>
+          <span class="nch-badge nch-badge-purple">Pro Chart</span>
+        </div>
+        <div class="news-card-body ncp-zero">
+          <iframe
+            src="https://s.tradingview.com/embed-widget/advanced-chart/?locale=pt_BR#%7B%22symbol%22%3A%22BMFBOVESPA%3AIBOV%22%2C%22interval%22%3A%22D%22%2C%22timezone%22%3A%22America%2FSao_Paulo%22%2C%22theme%22%3A%22dark%22%2C%22style%22%3A%221%22%2C%22locale%22%3A%22pt_BR%22%2C%22backgroundColor%22%3A%22rgba(6%2C9%2C20%2C0.98)%22%2C%22gridColor%22%3A%22rgba(255%2C255%2C255%2C0.04)%22%2C%22hide_top_toolbar%22%3Afalse%2C%22withdateranges%22%3Atrue%2C%22allow_symbol_change%22%3Atrue%2C%22width%22%3A%22100%25%22%2C%22height%22%3A%22520%22%7D"
+            width="100%" height="520" frameborder="0"
+            title="IBOV Chart" sandbox="allow-scripts allow-same-origin allow-popups">
+          </iframe>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="news-footer">
+      <span>Dados por </span>
+      <a href="https://www.tradingview.com" target="_blank" rel="noopener" class="news-footer-link">TradingView</a>
+      <span> · Widgets gratuitos · Tempo real</span>
+    </div>
+
+  </div>
+
 </div>

@@ -1,27 +1,31 @@
 <div class="page">
-  <!-- Training Screen -->
+
+  <!-- ── Training Screen ── -->
   <div class="training-screen" *ngIf="training">
     <div class="training-card glass-card">
-      <div class="training-icon">🤖</div>
-      <h2>Treinando Modelo de ML</h2>
+      <span class="training-icon">🤖</span>
+      <div class="training-title">Treinando Modelo de ML</div>
       <p class="training-msg">{{ trainMessage }}</p>
       <div class="progress-wrap">
-        <div class="progress-bar" style="height:12px">
-          <div class="fill blue" [style.width]="trainProgress + '%'"></div>
+        <div class="progress-track">
+          <div class="progress-track-fill" [style.width]="trainProgress + '%'"></div>
         </div>
         <div class="pct-text">{{ trainProgress.toFixed(0) }}%</div>
       </div>
-      <div class="training-animation">
-        <div class="dot" *ngFor="let d of [1,2,3,4,5]"></div>
+      <div class="training-dots">
+        <div class="tdot" *ngFor="let d of [1,2,3,4,5]"></div>
       </div>
     </div>
   </div>
 
-  <!-- Forecast Results -->
-  <div *ngIf="!training && forecastData">
+  <!-- ── Forecast Results ── -->
+  <div *ngIf="!training && forecastData" style="animation: pageIn 0.4s ease">
     <div class="page-header">
-      <h1>🤖 Previsões ML</h1>
-      <div class="d-flex gap-1 align-center">
+      <div>
+        <h1>🤖 Previsões com ML</h1>
+        <p class="page-subtitle">Projeções baseadas em regressão linear dos seus dados históricos</p>
+      </div>
+      <div class="d-flex gap-1 align-center flex-wrap">
         <select [(ngModel)]="forecastMonths" style="width:auto">
           <option value="3">3 meses</option>
           <option value="6">6 meses</option>
@@ -31,33 +35,107 @@
       </div>
     </div>
 
-    <div class="info-banner glass-card mb-2">
-      <span>📊 Modelo treinado com {{ forecastData.historicMonths?.length || 12 }} meses de dados históricos usando <strong>Regressão Linear</strong></span>
+    <!-- Info Banner -->
+    <div class="info-banner glass-card">
+      <span>📊</span>
+      <span>Modelo treinado com
+        <strong>{{ forecastData.historicMonths?.length || 12 }} meses</strong> de dados históricos &mdash;
+        Algoritmo: <strong>Regressão Linear Simples</strong> &mdash;
+        Confiança:
+        <span class="confidence-badge" [class]="avgProjected('projectedNet') > 1500 ? 'high' : avgProjected('projectedNet') > 0 ? 'medium' : 'low'">
+          {{ avgProjected('projectedNet') > 1500 ? '● Alta' : avgProjected('projectedNet') > 0 ? '● Média' : '● Baixa' }}
+        </span>
+      </span>
     </div>
 
-    <div class="charts-grid">
-      <div class="chart-container chart-full">
-        <div class="chart-title">📊 Projeção: Receitas vs Despesas (próximos {{ forecastMonths }} meses)</div>
+    <!-- Projection KPIs -->
+    <div class="forecast-kpis">
+      <div class="fkpi green animate-card" style="animation-delay:.05s">
+        <div class="fkpi-label">📈 Receita Média Proj.</div>
+        <div class="fkpi-value">{{ fmt(avgProjected('projectedIncome')) }}</div>
+      </div>
+      <div class="fkpi red animate-card" style="animation-delay:.1s">
+        <div class="fkpi-label">📉 Despesa Média Proj.</div>
+        <div class="fkpi-value">{{ fmt(avgProjected('projectedExpense')) }}</div>
+      </div>
+      <div class="fkpi blue animate-card" style="animation-delay:.15s">
+        <div class="fkpi-label">💰 Saldo Médio Proj.</div>
+        <div class="fkpi-value">{{ fmt(avgProjected('projectedNet')) }}</div>
+      </div>
+      <div class="fkpi purple animate-card" style="animation-delay:.2s">
+        <div class="fkpi-label">📅 Meses Projetados</div>
+        <div class="fkpi-value">{{ forecastData.projections?.length || 0 }}</div>
+      </div>
+    </div>
+
+    <!-- Charts — 2-column grid -->
+    <div class="forecast-charts">
+      <div class="chart-container animate-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">📊 Projeção — Receitas vs Despesas</div>
+            <div class="chart-subtitle">Próximos {{ forecastMonths }} meses</div>
+          </div>
+        </div>
         <div echarts [options]="barChartOption" style="height:300px"></div>
       </div>
-      <div class="chart-container chart-full">
-        <div class="chart-title">📈 Histórico + Projeção (linha do tempo)</div>
+      <div class="chart-container animate-card" style="animation-delay:.1s">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">📈 Histórico + Projeção</div>
+            <div class="chart-subtitle">Linha do tempo completa — tracejado = projeção</div>
+          </div>
+        </div>
         <div echarts [options]="lineChartOption" style="height:300px"></div>
       </div>
     </div>
 
-    <div class="table-wrapper mt-2">
+    <!-- Projections Table -->
+    <div class="table-wrapper animate-card" style="animation-delay:.2s">
+      <div class="table-section-header">
+        📋 Detalhamento das Projeções
+        <span class="badge badge-purple" style="margin-left:auto">{{ forecastData.projections?.length }} meses</span>
+      </div>
       <table>
         <thead>
-          <tr><th>Mês</th><th>Receita Projetada</th><th>Despesa Projetada</th><th>Saldo Projetado</th></tr>
+          <tr>
+            <th>#</th>
+            <th>Mês</th>
+            <th>Receita Projetada</th>
+            <th>Despesa Projetada</th>
+            <th>Saldo Projetado</th>
+            <th>Margem</th>
+            <th>Tendência</th>
+          </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let p of forecastData.projections">
-            <td><strong>{{ p.month }}</strong></td>
-            <td class="text-green">{{ fmt(p.projectedIncome) }}</td>
-            <td class="text-red">{{ fmt(p.projectedExpense) }}</td>
-            <td [class.text-green]="p.projectedNet >= 0" [class.text-red]="p.projectedNet < 0">
-              <strong>{{ fmt(p.projectedNet) }}</strong>
+          <tr *ngFor="let p of forecastData.projections; let i = index">
+            <td style="color:var(--text-muted);font-size:12px">{{ i + 1 }}</td>
+            <td><span class="month-label">{{ p.month }}</span></td>
+            <td class="text-green font-bold">{{ fmt(p.projectedIncome) }}</td>
+            <td class="text-red font-bold">{{ fmt(p.projectedExpense) }}</td>
+            <td>
+              <span [class.net-positive]="p.projectedNet >= 0" [class.net-negative]="p.projectedNet < 0">
+                {{ p.projectedNet >= 0 ? '+' : '' }}{{ fmt(p.projectedNet) }}
+              </span>
+            </td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="progress-wrap" style="flex:1;min-width:60px">
+                  <div class="progress-fill"
+                    [class]="p.projectedIncome > 0 && (p.projectedNet/p.projectedIncome*100) > 20 ? 'green' : 'gold'"
+                    [style.width]="(p.projectedIncome > 0 ? Math.min(100, p.projectedNet/p.projectedIncome*100) : 0) + '%'">
+                  </div>
+                </div>
+                <span style="font-size:11px;color:var(--text-muted);white-space:nowrap">
+                  {{ p.projectedIncome > 0 ? (p.projectedNet/p.projectedIncome*100).toFixed(0) : 0 }}%
+                </span>
+              </div>
+            </td>
+            <td>
+              <span class="badge" [class.badge-green]="p.projectedNet >= 0" [class.badge-red]="p.projectedNet < 0">
+                {{ p.projectedNet >= 0 ? '📈 Positivo' : '📉 Negativo' }}
+              </span>
             </td>
           </tr>
         </tbody>

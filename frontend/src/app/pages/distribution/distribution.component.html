@@ -1,52 +1,80 @@
 <div class="page">
   <div class="page-header">
-    <h1>⚖️ Distribuição de Lucros</h1>
+    <div>
+      <h1>⚖️ Distribuição de Renda</h1>
+      <p class="page-subtitle">Defina como alocar sua renda automaticamente</p>
+    </div>
     <button class="btn-primary" (click)="openNew()">+ Nova Regra</button>
   </div>
 
-  <div class="top-row">
-    <div class="chart-container" style="flex:1">
-      <div class="chart-title">Distribuição Atual</div>
-      <div echarts [options]="chartOption" style="height:250px"></div>
-      <div class="pct-status" [class.text-green]="totalPct() === 100" [class.text-red]="totalPct() !== 100">
-        Total: {{ totalPct() }}% {{ totalPct() === 100 ? '✅' : '⚠️ deve ser 100%' }}
+  <!-- Top: Chart + Simulation -->
+  <div class="dist-top">
+    <!-- Donut -->
+    <div class="donut-card glass-card">
+      <div class="donut-header">
+        <div class="chart-title">📊 Distribuição Atual</div>
+        <div class="pct-indicator" [class.over]="totalPct() !== 100">
+          {{ totalPct() }}% {{ totalPct() === 100 ? '✅ Balanceado' : '⚠️ Desbalanceado' }}
+        </div>
       </div>
+      <div echarts [options]="chartOption" style="height:280px;flex:1"></div>
     </div>
-    <div class="simulation glass-card" style="flex:1">
-      <div class="chart-title">🧮 Simulação de Distribuição</div>
-      <div class="form-group mb-2">
-        <label>Renda para simular (R$)</label>
-        <input type="number" [(ngModel)]="simulationIncome" />
+
+    <!-- Simulation -->
+    <div class="sim-card glass-card">
+      <div class="chart-title" style="margin-bottom:16px">🧮 Simulador de Distribuição</div>
+      <div class="sim-income-row">
+        <span class="sim-income-label">💰 Renda mensal:</span>
+        <input type="number" [(ngModel)]="simulationIncome" placeholder="R$ 10.000" />
       </div>
       <div class="sim-list">
-        <div class="sim-item" *ngFor="let r of rules; let i = index" [style.border-left-color]="colors[i % colors.length]">
-          <span>{{ r.name }}</span>
-          <span class="text-blue">{{ simAmount(r) }}</span>
+        <div class="sim-item" *ngFor="let r of rules; let i = index"
+          [style.border-left-color]="colors[i % colors.length]">
+          <span class="sim-name">{{ destLabels[r.destinationType] || r.destinationType }} {{ r.name }}</span>
           <span class="badge badge-purple">{{ r.percentage }}%</span>
+          <span class="sim-amount">{{ simAmount(r) }}</span>
+        </div>
+        <div *ngIf="rules.length === 0" style="text-align:center;color:var(--text-secondary);padding:30px 0;font-size:13px">
+          Adicione regras para simular a distribuição
         </div>
       </div>
     </div>
   </div>
 
-  <div class="rules-grid mt-2">
-    <div class="rule-card glass-card" *ngFor="let r of rules; let i = index" [style.border-left-color]="colors[i % colors.length]">
-      <div class="rule-header">
+  <!-- Rules Grid -->
+  <div class="rules-section-title">📋 Regras de Distribuição ({{ rules.length }})</div>
+  <div class="rules-grid">
+    <div class="rule-card glass-card" *ngFor="let r of rules; let i = index"
+      [style.border-left-color]="colors[i % colors.length]">
+      <div class="rule-top">
         <div class="rule-name">{{ r.name }}</div>
         <div class="rule-actions">
           <button class="icon-btn" (click)="openEdit(r)">✏️</button>
           <button class="icon-btn danger" (click)="delete(r.id)">🗑️</button>
         </div>
       </div>
-      <div class="rule-type text-muted">{{ destLabels[r.destinationType] || r.destinationType }}</div>
-      <div class="rule-pct">{{ r.percentage }}%</div>
-      <div class="progress-bar mt-1">
-        <div class="fill blue" [style.width]="r.percentage + '%'"></div>
+      <div class="rule-type-badge">{{ destLabels[r.destinationType] || r.destinationType }}</div>
+      <div class="rule-pct-row">
+        <div class="rule-pct" [style.color]="colors[i % colors.length]">{{ r.percentage }}</div>
+        <div class="rule-pct-label">%</div>
+      </div>
+      <div class="rule-bar">
+        <div class="rule-bar-fill"
+          [style.width]="r.percentage + '%'"
+          [style.background]="colors[i % colors.length]">
+        </div>
       </div>
     </div>
-    <div class="glass-card" style="padding:40px;text-align:center;color:#475569" *ngIf="rules.length===0">Nenhuma regra cadastrada. Adicione regras para distribuir sua renda!</div>
+
+    <div class="rules-empty glass-card" *ngIf="rules.length === 0">
+      <span class="ei">⚖️</span>
+      <div class="et">Nenhuma regra criada</div>
+      <div class="es">Crie regras para distribuir sua renda automaticamente entre contas e objetivos</div>
+    </div>
   </div>
 </div>
 
+<!-- Modal -->
 <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
   <div class="modal" (click)="$event.stopPropagation()">
     <div class="modal-header">
@@ -54,7 +82,7 @@
       <button class="close-btn" (click)="closeModal()">×</button>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Nome *</label><input type="text" [(ngModel)]="form.name" placeholder="Poupança, Investimento..." /></div>
+      <div class="form-group"><label>Nome *</label><input type="text" [(ngModel)]="form.name" placeholder="Ex: Poupança Emergência" /></div>
       <div class="form-group"><label>Percentual (%)</label><input type="number" [(ngModel)]="form.percentage" min="0" max="100" /></div>
     </div>
     <div class="form-row mt-1">

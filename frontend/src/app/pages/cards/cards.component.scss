@@ -1,17 +1,207 @@
-.page { padding-bottom: 40px; }
-.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
-.credit-card {
-  padding: 22px;
-  border-top: 3px solid var(--card-color, #3b82f6);
-  transition: all 0.3s ease;
-  &:hover { transform: translateY(-4px); box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+.page { padding-bottom: 60px; }
+
+.cards-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
 }
-.card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-.bank-logo { height: 28px; width: 28px; border-radius: 6px; object-fit: contain; }
-.bank-name { font-size: 13px; color: var(--text-secondary); flex: 1; }
-.card-actions { display: flex; gap: 6px; }
-.icon-btn { background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px; border-radius: 6px; transition: all 0.2s; &:hover { background: rgba(255,255,255,0.1); } &.danger:hover { background: rgba(239,68,68,0.2); } }
-.card-name { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
-.card-digits { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; letter-spacing: 2px; }
-.limit-info { margin-bottom: 14px; }
-.due-info { flex-wrap: wrap; gap: 6px !important; }
+.summary-stat {
+  padding: 20px 22px;
+  border-radius: 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(20px);
+  transition: transform 0.2s ease;
+}
+.summary-stat:hover { transform: translateY(-2px); }
+.summary-stat .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); margin-bottom: 8px; font-weight: 600; }
+.summary-stat .stat-value { font-size: 22px; font-weight: 700; }
+.summary-stat .stat-sub { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+.summary-stat.blue { border-top: 3px solid var(--accent-blue); }
+.summary-stat.blue .stat-value { color: var(--accent-blue); }
+.summary-stat.red { border-top: 3px solid var(--accent-red); }
+.summary-stat.red .stat-value { color: var(--accent-red); }
+.summary-stat.green { border-top: 3px solid var(--accent-green); }
+.summary-stat.green .stat-value { color: var(--accent-green); }
+.summary-stat.purple { border-top: 3px solid var(--accent-purple); }
+.summary-stat.purple .stat-value { color: var(--accent-purple); }
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.credit-card {
+  padding: 0;
+  overflow: hidden;
+  border: none !important;
+  border-radius: 20px !important;
+  position: relative;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.credit-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 32px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1);
+}
+
+.card-face {
+  padding: 24px 26px 22px;
+  min-height: 190px;
+  position: relative;
+  overflow: hidden;
+}
+.card-face::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 50%, rgba(0,0,0,0.1) 100%);
+  pointer-events: none;
+}
+.card-face::after {
+  content: '';
+  position: absolute;
+  right: -30px; bottom: -30px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  border: 40px solid rgba(255,255,255,0.06);
+  pointer-events: none;
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.bank-logo-wrap {
+  width: 42px; height: 42px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 800; color: #fff;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.3);
+}
+.bank-logo-wrap img { width: 28px; height: 28px; object-fit: contain; border-radius: 4px; }
+
+.card-actions { display: flex; gap: 6px; position: relative; z-index: 2; }
+
+.card-action-btn {
+  width: 32px; height: 32px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.card-action-btn:hover { background: rgba(0,0,0,0.45); transform: scale(1.1); }
+.card-action-btn.danger:hover { background: rgba(239,68,68,0.5); }
+
+.chip-icon {
+  width: 36px; height: 28px;
+  background: linear-gradient(135deg, #d4af37, #f5d76e, #d4af37);
+  border-radius: 6px;
+  position: relative; z-index: 1;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.chip-icon::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 28px; height: 18px;
+  border: 1.5px solid rgba(0,0,0,0.25);
+  border-radius: 3px;
+}
+
+.card-digits {
+  font-size: 15px;
+  color: rgba(255,255,255,0.85);
+  letter-spacing: 3px;
+  font-family: 'Courier New', monospace;
+  font-weight: 500;
+  position: relative; z-index: 1;
+  margin-bottom: 14px;
+}
+
+.card-name-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  position: relative; z-index: 1;
+}
+
+.card-name { font-size: 17px; font-weight: 700; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+.card-brand { font-size: 12px; color: rgba(255,255,255,0.7); display: flex; align-items: center; }
+.brand-dot { width: 24px; height: 24px; border-radius: 50%; }
+.brand-dot.red { background: rgba(239,68,68,0.9); }
+.brand-dot.overlap { margin-left: -10px; background: rgba(245,158,11,0.9); }
+
+.card-info {
+  padding: 16px 20px;
+  background: var(--glass-bg);
+  border-top: 1px solid var(--glass-border);
+}
+
+.limit-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+.limit-amount { font-weight: 700; color: var(--text-primary); font-size: 13px; }
+
+.limit-bar {
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.limit-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.limit-fill.green { background: linear-gradient(90deg, #10b981, #34d399); box-shadow: 0 0 8px rgba(16,185,129,0.5); }
+.limit-fill.gold  { background: linear-gradient(90deg, #f59e0b, #fcd34d); box-shadow: 0 0 8px rgba(245,158,11,0.5); }
+.limit-fill.red   { background: linear-gradient(90deg, #ef4444, #f87171); box-shadow: 0 0 8px rgba(239,68,68,0.5); }
+
+.due-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.invoice-panel { padding: 24px; animation: cardIn 0.3s ease; }
+.invoice-header-row { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.invoice-total-badge {
+  padding: 8px 16px;
+  background: rgba(239,68,68,0.12);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 10px;
+  color: var(--accent-red);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.empty-cards {
+  grid-column: 1 / -1;
+  padding: 60px 40px;
+  text-align: center;
+}
+.empty-cards .empty-icon { font-size: 64px; margin-bottom: 20px; opacity: 0.5; display: block; }
+.empty-cards .empty-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+.empty-cards .empty-sub { font-size: 13px; color: var(--text-secondary); }
+
+@media (max-width: 640px) {
+  .cards-grid { grid-template-columns: 1fr; }
+  .cards-summary { grid-template-columns: repeat(2, 1fr); }
+}

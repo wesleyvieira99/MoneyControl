@@ -1,36 +1,112 @@
 <div class="page">
   <div class="page-header">
-    <h1>💳 Cartões de Crédito</h1>
+    <div>
+      <h1>💳 Cartões de Crédito</h1>
+      <p class="page-subtitle">Gerencie seus cartões e faturas</p>
+    </div>
     <button class="btn-primary" (click)="openNew()">+ Novo Cartão</button>
   </div>
 
+  <!-- Summary Row -->
+  <div class="cards-summary">
+    <div class="summary-stat blue">
+      <div class="stat-label">Total de Cartões</div>
+      <div class="stat-value">{{ cards.length }}</div>
+      <div class="stat-sub">cartões cadastrados</div>
+    </div>
+    <div class="summary-stat red">
+      <div class="stat-label">Total Usado</div>
+      <div class="stat-value">{{ fmt(totalUsed()) }}</div>
+      <div class="stat-sub">em todos os cartões</div>
+    </div>
+    <div class="summary-stat green">
+      <div class="stat-label">Limite Total</div>
+      <div class="stat-value">{{ fmt(totalLimit()) }}</div>
+      <div class="stat-sub">limite disponível</div>
+    </div>
+    <div class="summary-stat purple">
+      <div class="stat-label">Limite Livre</div>
+      <div class="stat-value">{{ fmt(totalLimit() - totalUsed()) }}</div>
+      <div class="stat-sub">para gastar</div>
+    </div>
+  </div>
+
+  <!-- Limit Usage Chart -->
+  <div class="chart-container animate-card" *ngIf="cards.length > 0" style="margin-bottom:24px">
+    <div class="chart-header">
+      <div class="chart-title">📊 Utilização vs Limite por Cartão</div>
+      <div class="chart-subtitle">Barras = valor usado · Linha tracejada = limite do cartão</div>
+    </div>
+    <div echarts [options]="limitChart" style="height:220px"></div>
+  </div>
+
+  <!-- Cards Grid -->
   <div class="cards-grid">
-    <div class="credit-card glass-card" *ngFor="let card of cards" [style.--card-color]="card.color">
-      <div class="card-header">
-        <img *ngIf="card.logoUrl" [src]="card.logoUrl" class="bank-logo" onerror="this.style.display='none'" />
-        <div class="bank-name">{{ card.bankName }}</div>
-        <div class="card-actions">
-          <button class="icon-btn" (click)="openInvoice(card)">📄</button>
-          <button class="icon-btn" (click)="openEdit(card)">✏️</button>
-          <button class="icon-btn danger" (click)="delete(card.id)">🗑️</button>
+    <div class="credit-card glass-card" *ngFor="let card of cards; let i = index">
+      <!-- Card Face -->
+      <div class="card-face" [style.background]="'linear-gradient(135deg,' + card.color + 'dd,' + card.color + '88)'">
+        <div class="card-top">
+          <div class="bank-logo-wrap">
+            <img *ngIf="card.logoUrl" [src]="card.logoUrl" onerror="this.style.display='none'" />
+            <span *ngIf="!card.logoUrl">{{ card.bankName?.charAt(0) || '💳' }}</span>
+          </div>
+          <div class="card-actions">
+            <button class="card-action-btn" title="Ver fatura" (click)="openInvoice(card)">📄</button>
+            <button class="card-action-btn" title="Editar" (click)="openEdit(card)">✏️</button>
+            <button class="card-action-btn danger" title="Excluir" (click)="delete(card.id)">🗑️</button>
+          </div>
+        </div>
+
+        <div class="chip-icon"></div>
+
+        <div class="card-digits">
+          {{ card.lastFourDigits ? ('**** **** **** ' + card.lastFourDigits) : '**** **** **** ••••' }}
+        </div>
+
+        <div class="card-name-row">
+          <div class="card-name">{{ card.name }}</div>
+          <div class="card-brand">
+            <span class="brand-dot red"></span>
+            <span class="brand-dot overlap"></span>
+          </div>
         </div>
       </div>
-      <div class="card-name">{{ card.name }}</div>
-      <div class="card-digits" *ngIf="card.lastFourDigits">**** **** **** {{ card.lastFourDigits }}</div>
-      <div class="limit-info">
-        <div class="d-flex justify-between mb-1">
-          <span class="text-muted">Usado: {{ fmt(card.usedLimit) }}</span>
-          <span class="text-muted">Limite: {{ fmt(card.creditLimit) }}</span>
+
+      <!-- Card Info -->
+      <div class="card-info">
+        <div class="limit-row">
+          <span>Limite Usado</span>
+          <span>
+            <span class="limit-amount">{{ fmt(card.usedLimit) }}</span>
+            <span style="color:var(--text-secondary)"> / {{ fmt(card.creditLimit) }}</span>
+          </span>
         </div>
-        <div class="progress-bar">
-          <div class="fill" [class.red]="usedPercent(card) > 80" [class.gold]="usedPercent(card) > 50 && usedPercent(card) <= 80" [class.green]="usedPercent(card) <= 50"
-               [style.width]="usedPercent(card) + '%'"></div>
+        <div class="limit-bar">
+          <div class="limit-fill"
+            [class.green]="usedPercent(card) <= 50"
+            [class.gold]="usedPercent(card) > 50 && usedPercent(card) <= 80"
+            [class.red]="usedPercent(card) > 80"
+            [style.width]="usedPercent(card) + '%'">
+          </div>
+        </div>
+        <div class="due-tags">
+          <span class="badge badge-blue">✂️ Fecha dia {{ card.closingDay }}</span>
+          <span class="badge badge-purple">📅 Vence dia {{ card.dueDay }}</span>
+          <span class="badge"
+            [class.badge-green]="usedPercent(card) <= 50"
+            [class.badge-yellow]="usedPercent(card) > 50 && usedPercent(card) <= 80"
+            [class.badge-red]="usedPercent(card) > 80">
+            {{ usedPercent(card).toFixed(0) }}% usado
+          </span>
         </div>
       </div>
-      <div class="due-info d-flex gap-2">
-        <span class="badge badge-blue">Fecha dia {{ card.closingDay }}</span>
-        <span class="badge badge-purple">Vence dia {{ card.dueDay }}</span>
-      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-cards glass-card" *ngIf="cards.length === 0">
+      <span class="empty-icon">💳</span>
+      <div class="empty-title">Nenhum cartão cadastrado</div>
+      <div class="empty-sub">Adicione seus cartões de crédito para gerenciar faturas e limites</div>
     </div>
   </div>
 </div>

@@ -1,12 +1,57 @@
 <div class="page">
+
   <div class="page-header">
-    <h1>💳 Transações</h1>
-    <div class="d-flex gap-1 align-center">
-      <span class="badge badge-red" *ngIf="overdueCount > 0">⚠️ {{ overdueCount }} atrasadas</span>
+    <div>
+      <h1>Transações</h1>
+      <div style="font-size:13px;color:var(--text-muted);margin-top:2px">{{ filtered.length }} registros encontrados</div>
+    </div>
+    <div class="page-header-actions">
+      <span class="badge badge-red animate-pulse" *ngIf="overdueCount > 0">⚠️ {{ overdueCount }} atrasadas</span>
       <button class="btn-primary" (click)="openNew()">+ Nova Transação</button>
     </div>
   </div>
 
+  <!-- STATS -->
+  <div class="tx-stats">
+    <div class="tx-stat green animate-card" style="animation-delay:.05s">
+      <div class="stat-label">📈 Receitas</div>
+      <div class="stat-value">{{ fmt(totalIncome()) }}</div>
+    </div>
+    <div class="tx-stat red animate-card" style="animation-delay:.1s">
+      <div class="stat-label">📉 Despesas</div>
+      <div class="stat-value">{{ fmt(totalExpense()) }}</div>
+    </div>
+    <div class="tx-stat blue animate-card" style="animation-delay:.15s">
+      <div class="stat-label">⇄ Transferências</div>
+      <div class="stat-value">{{ countTransfers() }}</div>
+    </div>
+    <div class="tx-stat gold animate-card" style="animation-delay:.2s">
+      <div class="stat-label">⏳ Pendentes</div>
+      <div class="stat-value">{{ countPending() }}</div>
+    </div>
+  </div>
+
+  <!-- OVERDUE BANNER -->
+  <div class="overdue-banner" *ngIf="overdueCount > 0">
+    ⚠️ Você tem <strong>{{ overdueCount }} transações atrasadas</strong> que precisam de atenção!
+  </div>
+
+  <!-- DAILY FLOW CHART -->
+  <div class="chart-container animate-card" *ngIf="!loading && filtered.length > 1" style="margin-bottom:20px">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">📊 Fluxo Diário — Receitas vs Despesas</div>
+        <div class="chart-subtitle">Distribuição das transações do período selecionado</div>
+      </div>
+      <div class="d-flex gap-1">
+        <span class="badge badge-green">+{{ fmt(totalIncome()) }}</span>
+        <span class="badge badge-red">-{{ fmt(totalExpense()) }}</span>
+      </div>
+    </div>
+    <div echarts [options]="dailyFlowChart" style="height:220px"></div>
+  </div>
+
+  <!-- FILTERS -->
   <div class="filters-bar">
     <div class="filter-group">
       <label>De</label>
@@ -51,19 +96,24 @@
     </div>
     <div class="filter-group" style="flex:1;min-width:200px">
       <label>Buscar</label>
-      <input type="text" placeholder="Descrição..." [(ngModel)]="filters.search" (input)="applyFilters()" />
+      <input type="text" placeholder="🔍 Descrição..." [(ngModel)]="filters.search" (input)="applyFilters()" />
     </div>
   </div>
 
+  <!-- TABLE -->
   <div class="table-wrapper">
-    <table>
+    <div class="loading-container" *ngIf="loading">
+      <div class="spinner"></div>
+      <span>Carregando transações...</span>
+    </div>
+    <table *ngIf="!loading">
       <thead>
         <tr>
           <th>Data</th>
           <th>Descrição</th>
           <th>Tipo</th>
           <th>Categoria</th>
-          <th>Conta / Cartão</th>
+          <th>Origem</th>
           <th>Valor</th>
           <th>Status</th>
           <th>Ações</th>
@@ -71,45 +121,62 @@
       </thead>
       <tbody>
         <tr *ngFor="let t of filtered" [class.overdue-row]="t.status === 'OVERDUE'">
-          <td>{{ t.date | date:'dd/MM/yy' }}</td>
+          <td style="font-variant-numeric:tabular-nums;white-space:nowrap">{{ t.date | date:'dd/MM/yy' }}</td>
           <td>
             <div class="desc-cell">
-              {{ t.description }}
-              <span class="notes-icon" *ngIf="t.notes" [title]="t.notes">📝</span>
-              <span class="badge badge-yellow" *ngIf="t.isRecurring">↻</span>
+              <span>{{ t.description }}</span>
+              <span class="badge badge-yellow" *ngIf="t.isRecurring" title="Recorrente">↻</span>
+              <span style="font-size:14px;cursor:help" *ngIf="t.notes" [title]="t.notes">📝</span>
             </div>
           </td>
           <td><span class="badge" [class]="'badge-' + typeColor(t.type)">{{ t.type }}</span></td>
           <td>{{ t.category?.name || '—' }}</td>
-          <td>{{ t.bankAccount?.name || t.creditCard?.name || '—' }}</td>
-          <td [class.text-green]="t.type === 'INCOME'" [class.text-red]="t.type === 'EXPENSE'">
-            {{ fmt(t.amount) }}
+          <td style="color:var(--text-secondary);font-size:13px">{{ t.bankAccount?.name || t.creditCard?.name || '—' }}</td>
+          <td style="font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap"
+              [class.text-green]="t.type === 'INCOME'"
+              [class.text-red]="t.type === 'EXPENSE'">
+            {{ t.type === 'INCOME' ? '+' : t.type === 'EXPENSE' ? '-' : '' }}{{ fmt(t.amount) }}
           </td>
           <td>
-            <button class="status-btn" (click)="toggleStatus(t)">
+            <button class="status-btn" (click)="toggleStatus(t)" style="background:none;border:none;cursor:pointer;padding:0">
               <span class="badge" [class]="'badge-' + statusColor(t.status)">{{ t.status }}</span>
             </button>
           </td>
           <td>
             <div class="action-btns">
-              <button class="btn-secondary" style="padding:6px 10px;font-size:13px" (click)="openEdit(t)">✏️</button>
-              <button class="btn-danger" style="padding:6px 10px;font-size:13px" (click)="delete(t.id)">🗑️</button>
+              <button class="icon-btn" (click)="openEdit(t)" title="Editar">✏️</button>
+              <button class="icon-btn danger" (click)="delete(t.id)" title="Excluir">🗑️</button>
             </div>
           </td>
         </tr>
         <tr *ngIf="!loading && filtered.length === 0">
-          <td colspan="8" style="text-align:center;padding:40px;color:#475569">Nenhuma transação encontrada</td>
+          <td colspan="8">
+            <div class="empty-state">
+              <div class="empty-icon">🔍</div>
+              <div class="empty-title">Nenhuma transação encontrada</div>
+              <div class="empty-sub">Tente ajustar os filtros ou crie uma nova transação</div>
+            </div>
+          </td>
         </tr>
       </tbody>
     </table>
+    <!-- Net balance footer row -->
+    <div class="balance-net-row" *ngIf="!loading && filtered.length > 0">
+      <span class="net-label">{{ filtered.length }} transações no período</span>
+      <span style="color:var(--text-muted);font-size:12px">Saldo líquido:</span>
+      <span [class.net-pos]="(totalIncome()-totalExpense())>=0" [class.net-neg]="(totalIncome()-totalExpense())<0">
+        {{ (totalIncome()-totalExpense()) >= 0 ? '+' : '' }}{{ fmt(totalIncome()-totalExpense()) }}
+      </span>
+    </div>
   </div>
+
 </div>
 
-<!-- Modal -->
+<!-- MODAL NOVA/EDITAR TRANSAÇÃO -->
 <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
   <div class="modal" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h2>{{ editMode ? '✏️ Editar' : '➕ Nova' }} Transação</h2>
+      <h2>{{ editMode ? 'Editar' : 'Nova' }} Transação</h2>
       <button class="close-btn" (click)="closeModal()">×</button>
     </div>
     <div class="form-row">
@@ -118,31 +185,31 @@
         <input type="date" [(ngModel)]="form.date" />
       </div>
       <div class="form-group">
-        <label>Valor *</label>
-        <input type="number" placeholder="0,00" [(ngModel)]="form.amount" step="0.01" />
+        <label>Valor (R$) *</label>
+        <input type="number" placeholder="0,00" [(ngModel)]="form.amount" step="0.01" min="0" />
       </div>
     </div>
     <div class="form-group mt-1">
       <label>Descrição *</label>
-      <input type="text" placeholder="Ex: Salário, Almoço..." [(ngModel)]="form.description" />
+      <input type="text" placeholder="Ex: Salário, Supermercado..." [(ngModel)]="form.description" />
     </div>
     <div class="form-row mt-1">
       <div class="form-group">
         <label>Tipo *</label>
         <select [(ngModel)]="form.type">
-          <option value="INCOME">Receita</option>
-          <option value="EXPENSE">Despesa</option>
-          <option value="TRANSFER">Transferência</option>
-          <option value="INVESTMENT">Investimento</option>
+          <option value="INCOME">📈 Receita</option>
+          <option value="EXPENSE">📉 Despesa</option>
+          <option value="TRANSFER">⇄ Transferência</option>
+          <option value="INVESTMENT">📊 Investimento</option>
         </select>
       </div>
       <div class="form-group">
         <label>Status</label>
         <select [(ngModel)]="form.status">
-          <option value="PENDING">Pendente</option>
-          <option value="PAID">Pago</option>
-          <option value="OVERDUE">Atrasado</option>
-          <option value="CANCELLED">Cancelado</option>
+          <option value="PENDING">⏳ Pendente</option>
+          <option value="PAID">✅ Pago</option>
+          <option value="OVERDUE">⚠️ Atrasado</option>
+          <option value="CANCELLED">❌ Cancelado</option>
         </select>
       </div>
     </div>
@@ -170,18 +237,20 @@
           <option *ngFor="let c of cards" [value]="c.id">{{ c.name }}</option>
         </select>
       </div>
-      <div class="form-group" style="justify-content:center;flex-direction:row;align-items:center;gap:8px;padding-top:20px">
-        <input type="checkbox" id="recurring" [(ngModel)]="form.isRecurring" style="width:auto" />
-        <label for="recurring" style="margin:0">Recorrente</label>
+      <div class="form-group" style="justify-content:flex-end;padding-top:18px">
+        <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;cursor:pointer">
+          <input type="checkbox" [(ngModel)]="form.isRecurring" style="width:auto;accent-color:var(--accent-blue)" />
+          Transação recorrente
+        </label>
       </div>
     </div>
     <div class="form-group mt-1">
       <label>Notas</label>
-      <textarea rows="2" placeholder="Observações..." [(ngModel)]="form.notes" style="resize:vertical"></textarea>
+      <textarea rows="2" placeholder="Observações opcionais..." [(ngModel)]="form.notes" style="resize:vertical"></textarea>
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" (click)="closeModal()">Cancelar</button>
-      <button class="btn-primary" (click)="save()">{{ editMode ? 'Atualizar' : 'Criar' }}</button>
+      <button class="btn-primary" (click)="save()">{{ editMode ? '✓ Atualizar' : '+ Criar' }}</button>
     </div>
   </div>
 </div>

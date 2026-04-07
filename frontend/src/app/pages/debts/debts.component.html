@@ -1,45 +1,131 @@
 <div class="page">
   <div class="page-header">
-    <h1>🔴 Dívidas & Parcelas</h1>
+    <div>
+      <h1>🔴 Dívidas & Parcelas</h1>
+      <p class="page-subtitle">Controle suas dívidas e acompanhe o progresso</p>
+    </div>
     <button class="btn-primary" (click)="openNew()">+ Nova Dívida</button>
   </div>
 
-  <div class="kpi-card red" style="margin-bottom:24px">
-    <div class="label">💸 Total em Dívidas</div>
-    <div class="value">{{ fmt(totalDebt()) }}</div>
+  <!-- Summary Banner -->
+  <div class="debt-banner">
+    <div class="banner-main">
+      <div class="banner-label">💸 Total em Dívidas</div>
+      <div class="banner-value">{{ fmt(totalDebt()) }}</div>
+    </div>
+    <div class="banner-stats">
+      <div class="banner-stat green">
+        <div class="bstat-label">Quitadas</div>
+        <div class="bstat-value">{{ countByStatus('PAID') }}</div>
+      </div>
+      <div class="banner-stat yellow">
+        <div class="bstat-label">Pendentes</div>
+        <div class="bstat-value">{{ countByStatus('PENDING') }}</div>
+      </div>
+      <div class="banner-stat red">
+        <div class="bstat-label">Atrasadas</div>
+        <div class="bstat-value">{{ countByStatus('OVERDUE') }}</div>
+      </div>
+    </div>
   </div>
 
-  <div class="debts-list">
-    <div class="debt-card glass-card" *ngFor="let d of debts">
-      <div class="debt-header">
-        <div>
-          <div class="debt-name">{{ d.description }}</div>
-          <div class="debt-source text-muted">{{ d.creditCard?.name || d.bankAccount?.name || '—' }}</div>
-        </div>
-        <div class="debt-actions">
-          <span class="badge" [class.badge-green]="d.status==='PAID'" [class.badge-yellow]="d.status==='PENDING'" [class.badge-red]="d.status==='OVERDUE'">{{ d.status }}</span>
-          <button class="icon-btn" (click)="openEdit(d)">✏️</button>
-          <button class="icon-btn danger" (click)="delete(d.id)">🗑️</button>
-        </div>
+  <!-- Charts Row -->
+  <div class="debt-charts-row" *ngIf="debts.length > 0">
+    <div class="chart-container animate-card" style="animation-delay:.05s">
+      <div class="chart-header">
+        <div class="chart-title">⭕ Progresso por Dívida (top 5)</div>
+        <div class="chart-subtitle">% de parcelas pagas</div>
       </div>
-      <div class="debt-amounts">
-        <div><span class="text-muted">Restante:</span> <strong class="text-red">{{ fmt(d.remainingAmount) }}</strong></div>
-        <div><span class="text-muted">Original:</span> {{ fmt(d.originalAmount) }}</div>
-        <div><span class="text-muted">Parcelas:</span> {{ d.paidInstallments }}/{{ d.totalInstallments }}</div>
-      </div>
-      <div class="progress-bar mt-1">
-        <div class="fill green" [style.width]="progress(d) + '%'"></div>
-      </div>
-      <div class="debt-footer">
-        <span class="text-muted" style="font-size:12px">{{ progress(d).toFixed(0) }}% quitado</span>
-        <span class="text-muted" style="font-size:12px" *ngIf="d.startDate">Início: {{ d.startDate | date:'MM/yyyy' }}</span>
-      </div>
-      <div class="debt-notes text-muted" *ngIf="d.notes">📝 {{ d.notes }}</div>
+      <div echarts [options]="debtProgressChart" style="height:180px"></div>
     </div>
-    <div class="glass-card" style="padding:40px;text-align:center;color:#475569" *ngIf="debts.length===0">Nenhuma dívida cadastrada 🎉</div>
+    <div class="chart-container animate-card" style="animation-delay:.1s">
+      <div class="chart-header">
+        <div class="chart-title">📊 Valor Restante por Dívida</div>
+        <div class="chart-subtitle">🟢 quase quitada · 🟡 em andamento · 🔴 início</div>
+      </div>
+      <div echarts [options]="debtBreakdownChart" style="height:180px"></div>
+    </div>
+  </div>
+
+  <!-- Debts Grid -->
+  <div class="debts-grid">
+    <div class="debt-card glass-card" *ngFor="let d of debts">
+      <!-- Status Bar top -->
+      <div class="debt-card-top"
+        [class.green]="d.status === 'PAID'"
+        [class.yellow]="d.status === 'PENDING'"
+        [class.red]="d.status === 'OVERDUE'">
+      </div>
+
+      <div class="debt-card-body">
+        <div class="debt-header">
+          <div>
+            <div class="debt-name">{{ d.description }}</div>
+            <div class="debt-source">
+              {{ d.creditCard ? '💳 ' + d.creditCard.name : (d.bankAccount ? '🏦 ' + d.bankAccount.name : '—') }}
+            </div>
+          </div>
+          <div class="debt-header-right">
+            <span class="badge"
+              [class.badge-green]="d.status==='PAID'"
+              [class.badge-yellow]="d.status==='PENDING'"
+              [class.badge-red]="d.status==='OVERDUE'">
+              {{ d.status === 'PAID' ? '✅ Quitada' : d.status === 'OVERDUE' ? '🔴 Atrasada' : '⏳ Pendente' }}
+            </span>
+            <div class="debt-actions">
+              <button class="icon-btn" (click)="openEdit(d)">✏️</button>
+              <button class="icon-btn danger" (click)="delete(d.id)">🗑️</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Amount cards -->
+        <div class="debt-amounts">
+          <div class="debt-amount-item">
+            <div class="amount-label">Restante</div>
+            <div class="amount-value red">{{ fmt(d.remainingAmount) }}</div>
+          </div>
+          <div class="debt-amount-item">
+            <div class="amount-label">Original</div>
+            <div class="amount-value">{{ fmt(d.originalAmount) }}</div>
+          </div>
+          <div class="debt-amount-item">
+            <div class="amount-label">Parcelas</div>
+            <div class="amount-value green">{{ d.paidInstallments }}/{{ d.totalInstallments }}</div>
+          </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="debt-progress-wrap">
+          <div class="debt-progress-label">
+            <span>Progresso de quitação</span>
+            <span>{{ progress(d).toFixed(0) }}% quitado</span>
+          </div>
+          <div class="debt-progress-bar">
+            <div class="debt-progress-fill" [style.width]="progress(d) + '%'"></div>
+          </div>
+        </div>
+
+        <!-- Start date -->
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:8px" *ngIf="d.startDate">
+          📅 Início: {{ d.startDate | date:'dd/MM/yyyy' }}
+        </div>
+
+        <!-- Notes -->
+        <div class="debt-notes" *ngIf="d.notes">📝 {{ d.notes }}</div>
+      </div>
+    </div>
+
+    <!-- Empty -->
+    <div class="debt-empty glass-card" *ngIf="debts.length === 0">
+      <span class="empty-icon">🎉</span>
+      <div class="empty-title">Nenhuma dívida cadastrada</div>
+      <div class="empty-sub">Você está livre de dívidas! Ou adicione para acompanhar seus compromissos.</div>
+    </div>
   </div>
 </div>
 
+<!-- Modal -->
 <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
   <div class="modal" (click)="$event.stopPropagation()">
     <div class="modal-header">
@@ -66,7 +152,7 @@
     <div class="form-row mt-1">
       <div class="form-group"><label>Data de Início</label><input type="date" [(ngModel)]="form.startDate" /></div>
       <div class="form-group"><label>Status</label>
-        <select [(ngModel)]="form.status"><option value="PENDING">Pendente</option><option value="PAID">Quitado</option><option value="OVERDUE">Atrasado</option></select>
+        <select [(ngModel)]="form.status"><option value="PENDING">⏳ Pendente</option><option value="PAID">✅ Quitado</option><option value="OVERDUE">🔴 Atrasado</option></select>
       </div>
     </div>
     <div class="form-group mt-1"><label>Notas</label><textarea rows="2" [(ngModel)]="form.notes" style="resize:vertical"></textarea></div>

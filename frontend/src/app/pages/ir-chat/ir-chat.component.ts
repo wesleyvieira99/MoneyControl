@@ -7,6 +7,7 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   time: Date;
+  id: string;
 }
 
 @Component({
@@ -18,20 +19,55 @@ interface Message {
 })
 export class IrChatComponent implements OnInit, AfterViewChecked {
   @ViewChild('messagesEnd') messagesEnd!: ElementRef;
+  @ViewChild('inputRef') inputRef!: ElementRef;
 
   messages: Message[] = [];
   inputText = '';
   loading = false;
   error = '';
+  charCount = 0;
+  private shouldScroll = false;
 
-  quickPrompts = [
-    '💰 Quais ativos devo declarar no IR?',
-    '📊 Calcule meu imposto sobre ganho de capital',
-    '📅 Quais os prazos para declaração?',
-    '💡 Como otimizar meus impostos sobre investimentos?',
-    '🎰 Como declarar apostas esportivas no IR?',
-    '📋 O que é o carnê-leão e quando usar?',
+  quickCategories = [
+    {
+      label: '🧾 Declaração IR',
+      prompts: [
+        'Quais ativos devo declarar no IR este ano?',
+        'Como declarar rendimentos de FIIs no IR?',
+        'Quais são os limites de isenção do IR 2026?',
+        'Como declarar criptomoedas no imposto de renda?',
+      ]
+    },
+    {
+      label: '📊 Ganho de Capital',
+      prompts: [
+        'Calcule meu imposto sobre ganho de capital em ações',
+        'Quando posso vender ações sem pagar IR?',
+        'Como calcular o custo médio das minhas ações?',
+        'Day trade tem tratamento diferente no IR?',
+      ]
+    },
+    {
+      label: '💡 Planejamento',
+      prompts: [
+        'Como otimizar meus impostos sobre investimentos?',
+        'O que é o carnê-leão e quando usar?',
+        'Como usar prejuízos para compensar imposto?',
+        'Quais despesas posso deduzir no IR?',
+      ]
+    },
+    {
+      label: '🎰 Apostas & Prêmios',
+      prompts: [
+        'Como declarar apostas esportivas no IR?',
+        'Preciso declarar ganhos de loteria?',
+        'Qual a alíquota de IR sobre prêmios?',
+        'Como declarar prêmios em criptomoedas?',
+      ]
+    },
   ];
+
+  selectedCategory = 0;
 
   constructor(private api: ApiService) {}
 
@@ -39,18 +75,23 @@ export class IrChatComponent implements OnInit, AfterViewChecked {
     const saved = localStorage.getItem('ir-chat-history');
     if (saved) {
       try {
-        this.messages = JSON.parse(saved).map((m: any) => ({ ...m, time: new Date(m.time) }));
+        this.messages = JSON.parse(saved).map((m: any) => ({ ...m, time: new Date(m.time), id: m.id || this.uid() }));
       } catch {}
     }
     if (this.messages.length === 0) {
-      this.addMessage('assistant', 'Olá! 👋 Sou seu assistente financeiro especialista em IR. Tenho acesso aos seus dados financeiros e posso ajudar com dúvidas sobre imposto de renda, declarações, ganho de capital, e muito mais. Como posso ajudar?');
+      this.addMessage('assistant', `Olá! 👋 Sou seu assistente financeiro especialista em IR e finanças pessoais.\n\nTenho acesso aos seus dados financeiros e posso ajudar com:\n\n• 🧾 **Declaração de Imposto de Renda**\n• 📊 **Cálculo de ganho de capital**\n• 💡 **Planejamento tributário**\n• 📈 **Análise dos seus investimentos**\n• 🎰 **Apostas e prêmios**\n\nComo posso te ajudar hoje?`);
     }
   }
 
-  ngAfterViewChecked() { this.scrollToBottom(); }
+  ngAfterViewChecked() {
+    if (this.shouldScroll) { this.scrollToBottom(); this.shouldScroll = false; }
+  }
+
+  uid() { return Math.random().toString(36).slice(2); }
 
   addMessage(role: 'user' | 'assistant', content: string) {
-    this.messages.push({ role, content, time: new Date() });
+    this.messages.push({ role, content, time: new Date(), id: this.uid() });
+    this.shouldScroll = true;
     this.saveHistory();
   }
 
@@ -58,11 +99,13 @@ export class IrChatComponent implements OnInit, AfterViewChecked {
     const msg = text || this.inputText.trim();
     if (!msg || this.loading) return;
     this.inputText = '';
+    this.charCount = 0;
     this.error = '';
     this.addMessage('user', msg);
     this.loading = true;
+    this.shouldScroll = true;
 
-    const apiMessages = this.messages.slice(-10).map(m => ({ role: m.role, content: m.content }));
+    const apiMessages = this.messages.slice(-14).map(m => ({ role: m.role, content: m.content }));
 
     this.api.aiChat(apiMessages).subscribe({
       next: (res: any) => {
@@ -78,7 +121,7 @@ export class IrChatComponent implements OnInit, AfterViewChecked {
   }
 
   clearHistory() {
-    if (confirm('Limpar histórico do chat?')) {
+    if (confirm('Limpar todo o histórico do chat?')) {
       this.messages = [];
       localStorage.removeItem('ir-chat-history');
       this.addMessage('assistant', 'Histórico limpo! Como posso ajudar?');
@@ -86,12 +129,25 @@ export class IrChatComponent implements OnInit, AfterViewChecked {
   }
 
   saveHistory() {
-    localStorage.setItem('ir-chat-history', JSON.stringify(this.messages.slice(-50)));
+    localStorage.setItem('ir-chat-history', JSON.stringify(this.messages.slice(-60)));
   }
 
   scrollToBottom() {
     try { this.messagesEnd?.nativeElement?.scrollIntoView({ behavior: 'smooth' }); } catch {}
   }
 
-  onKeyDown(e: KeyboardEvent) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.send(); } }
+  onKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.send(); }
+  }
+
+  onInput(e: any) { this.charCount = e.target.value.length; }
+
+  formatMessage(content: string): string {
+    return content
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`(.+?)`/g, '<code>$1</code>')
+      .replace(/\n• /g, '\n<span class="bullet">•</span> ')
+      .replace(/\n/g, '<br>');
+  }
 }

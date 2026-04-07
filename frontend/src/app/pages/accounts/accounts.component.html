@@ -1,79 +1,150 @@
 <div class="page">
+
   <div class="page-header">
-    <h1>🏦 Contas Bancárias</h1>
-    <button class="btn-primary" (click)="openNew()">+ Nova Conta</button>
+    <div>
+      <h1>Contas Bancárias</h1>
+      <div style="font-size:13px;color:var(--text-muted);margin-top:2px">{{ accounts.length }} contas cadastradas</div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn-primary" (click)="openNew()">+ Nova Conta</button>
+    </div>
   </div>
 
-  <div class="total-card glass-card">
-    <div class="total-label">💰 Saldo Total em Todas as Contas</div>
-    <div class="total-value">{{ fmt(totalBalance()) }}</div>
+  <!-- TOTAL BALANCE -->
+  <div class="total-banner animate-card">
+    <div>
+      <div class="total-label">💰 Saldo Total Consolidado</div>
+      <div class="total-value">{{ fmt(totalBalance()) }}</div>
+    </div>
+    <div class="total-icon">◉</div>
   </div>
 
-  <div class="accounts-grid mt-2">
-    <div class="account-card glass-card" *ngFor="let a of accounts" [style.border-left-color]="a.color">
+  <!-- CHARTS ROW -->
+  <div class="acc-charts-row" *ngIf="accounts.length > 1">
+    <div class="chart-container animate-card" style="animation-delay:.05s">
+      <div class="chart-title">🍩 Participação por Conta</div>
+      <div echarts [options]="balancePieOption" style="height:200px"></div>
+    </div>
+    <div class="chart-container animate-card" style="animation-delay:.1s">
+      <div class="chart-title">📊 Saldo por Conta</div>
+      <div echarts [options]="balanceBarOption" style="height:200px"></div>
+    </div>
+  </div>
+
+  <!-- ACCOUNTS GRID -->
+  <div class="accounts-grid mt-3">
+    <div class="account-card glass-card animate-card"
+         *ngFor="let a of accounts; let i = index"
+         [style.--acc-color]="a.color || '#3b82f6'"
+         [style.animation-delay]="(i * 0.07) + 's'">
+
+      <div class="acc-top-bar" [style.background]="a.color || '#3b82f6'"></div>
+
       <div class="acc-header">
-        <img *ngIf="a.logoUrl" [src]="a.logoUrl" class="bank-logo" onerror="this.style.display='none'" />
-        <div>
+        <div class="acc-logo-wrap">
+          <img *ngIf="a.logoUrl" [src]="a.logoUrl" class="bank-logo" onerror="this.style.display='none'" />
+          <div class="bank-logo-placeholder" *ngIf="!a.logoUrl" [style.background]="a.color || '#3b82f6'">
+            {{ (a.bankName || a.name || 'B').charAt(0).toUpperCase() }}
+          </div>
+        </div>
+        <div class="acc-info">
           <div class="acc-name">{{ a.name }}</div>
-          <div class="acc-bank text-muted">{{ a.bankName }}</div>
+          <div class="acc-bank">{{ a.bankName || '—' }}</div>
         </div>
         <div class="acc-actions">
-          <button class="icon-btn" (click)="openHistory(a)" title="Histórico">📋</button>
+          <button class="icon-btn" (click)="openHistory(a)" title="Ver histórico">📋</button>
           <button class="icon-btn" (click)="openEdit(a)" title="Editar">✏️</button>
           <button class="icon-btn danger" (click)="delete(a.id)" title="Excluir">🗑️</button>
         </div>
       </div>
-      <div class="acc-balance">{{ fmt(a.balance) }}</div>
-      <div class="acc-number text-muted" *ngIf="a.accountNumber">Ag/Conta: {{ a.accountNumber }}</div>
+
+      <div class="acc-balance" [style.color]="a.color || 'var(--accent-blue)'">
+        {{ fmt(a.balance) }}
+      </div>
+
+      <div class="acc-footer">
+        <span class="acc-number" *ngIf="a.accountNumber">{{ a.accountNumber }}</span>
+        <span class="badge" [class.badge-green]="a.balance>0" [class.badge-red]="a.balance<0" [class.badge-gray]="a.balance===0">
+          {{ a.balance > 0 ? 'Positivo' : a.balance < 0 ? 'Negativo' : 'Zerado' }}
+        </span>
+      </div>
+
+      <div class="acc-bar-wrap" *ngIf="totalBalance() > 0">
+        <div class="acc-bar-fill"
+             [style.width]="(a.balance / totalBalance() * 100) + '%'"
+             [style.background]="a.color || '#3b82f6'">
+        </div>
+        <span class="acc-bar-pct">{{ (a.balance / totalBalance() * 100 | number:'1.0-0') }}%</span>
+      </div>
+
     </div>
   </div>
+
 </div>
 
-<!-- Edit Modal -->
+<!-- MODAL CRIAR/EDITAR -->
 <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
   <div class="modal" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h2>{{ editMode ? '✏️ Editar' : '➕ Nova' }} Conta</h2>
+      <h2>{{ editMode ? 'Editar' : 'Nova' }} Conta</h2>
       <button class="close-btn" (click)="closeModal()">×</button>
     </div>
     <div class="form-row">
       <div class="form-group"><label>Nome *</label><input type="text" [(ngModel)]="form.name" placeholder="Minha Conta" /></div>
-      <div class="form-group"><label>Banco *</label><input type="text" [(ngModel)]="form.bankName" placeholder="Nubank" /></div>
+      <div class="form-group"><label>Banco *</label><input type="text" [(ngModel)]="form.bankName" placeholder="Nubank, Itaú..." /></div>
     </div>
     <div class="form-row mt-1">
-      <div class="form-group"><label>Saldo Atual (R$)</label><input type="number" [(ngModel)]="form.balance" /></div>
-      <div class="form-group"><label>Cor</label><input type="color" [(ngModel)]="form.color" /></div>
+      <div class="form-group"><label>Saldo Atual (R$)</label><input type="number" [(ngModel)]="form.balance" step="0.01" /></div>
+      <div class="form-group">
+        <label>Cor de Identificação</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="color" [(ngModel)]="form.color" style="width:48px;height:38px;padding:2px;border-radius:8px;cursor:pointer" />
+          <span style="font-size:12px;color:var(--text-muted)">{{ form.color }}</span>
+        </div>
+      </div>
     </div>
     <div class="form-row mt-1">
-      <div class="form-group"><label>URL Logo</label><input type="text" [(ngModel)]="form.logoUrl" placeholder="https://..." /></div>
-      <div class="form-group"><label>Agência/Conta</label><input type="text" [(ngModel)]="form.accountNumber" /></div>
+      <div class="form-group"><label>URL Logo (opcional)</label><input type="text" [(ngModel)]="form.logoUrl" placeholder="https://..." /></div>
+      <div class="form-group"><label>Agência / Conta</label><input type="text" [(ngModel)]="form.accountNumber" placeholder="0001 / 12345-6" /></div>
     </div>
     <div class="form-group mt-1"><label>Notas</label><textarea rows="2" [(ngModel)]="form.notes" style="resize:vertical"></textarea></div>
     <div class="modal-actions">
       <button class="btn-secondary" (click)="closeModal()">Cancelar</button>
-      <button class="btn-primary" (click)="save()">{{ editMode ? 'Atualizar' : 'Criar' }}</button>
+      <button class="btn-primary" (click)="save()">{{ editMode ? '✓ Atualizar' : '+ Criar' }}</button>
     </div>
   </div>
 </div>
 
-<!-- History Modal -->
+<!-- MODAL HISTÓRICO -->
 <div class="modal-overlay" *ngIf="historyAccount" (click)="historyAccount = null">
   <div class="modal modal-lg" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h2>📋 Histórico — {{ historyAccount.name }}</h2>
+      <h2>Histórico — {{ historyAccount.name }}</h2>
       <button class="close-btn" (click)="historyAccount = null">×</button>
     </div>
-    <table>
-      <thead><tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Valor</th><th>Status</th></tr></thead>
-      <tbody>
-        <tr *ngFor="let t of historyTxs">
-          <td>{{ t.date | date:'dd/MM/yy' }}</td><td>{{ t.description }}</td>
-          <td><span class="badge badge-blue">{{ t.type }}</span></td>
-          <td [class.text-green]="t.type==='INCOME'" [class.text-red]="t.type==='EXPENSE'">{{ fmt(t.amount) }}</td>
-          <td><span class="badge" [class.badge-green]="t.status==='PAID'" [class.badge-yellow]="t.status==='PENDING'" [class.badge-red]="t.status==='OVERDUE'">{{ t.status }}</span></td>
-        </tr>
-        <tr *ngIf="historyTxs.length===0"><td colspan="5" style="text-align:center;padding:30px;color:#475569">Sem histórico</td></tr>
-      </tbody>
-    </table>
+    <div class="table-wrapper" style="max-height:480px;overflow-y:auto">
+      <table>
+        <thead>
+          <tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Valor</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let t of historyTxs">
+            <td style="white-space:nowrap">{{ t.date | date:'dd/MM/yy' }}</td>
+            <td>{{ t.description }}</td>
+            <td><span class="badge badge-blue">{{ t.type }}</span></td>
+            <td style="font-weight:700" [class.text-green]="t.type==='INCOME'" [class.text-red]="t.type==='EXPENSE'">{{ fmt(t.amount) }}</td>
+            <td><span class="badge" [class.badge-green]="t.status==='PAID'" [class.badge-yellow]="t.status==='PENDING'" [class.badge-red]="t.status==='OVERDUE'">{{ t.status }}</span></td>
+          </tr>
+          <tr *ngIf="historyTxs.length===0">
+            <td colspan="5">
+              <div class="empty-state" style="padding:40px">
+                <div class="empty-icon">📋</div>
+                <div class="empty-title">Nenhuma transação encontrada</div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>

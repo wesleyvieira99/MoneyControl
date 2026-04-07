@@ -1,51 +1,135 @@
-<div class="page">
-  <div class="page-header">
-    <h1>🧑‍⚖️ IR / Chat com IA Financeira</h1>
-    <button class="btn-secondary" (click)="clearHistory()">🗑️ Limpar</button>
+<div class="chat-page">
+
+  <!-- HEADER -->
+  <div class="chat-header">
+    <div class="chat-header-left">
+      <div class="ai-avatar">✦</div>
+      <div>
+        <h1>Chat com IA Financeira</h1>
+        <div class="chat-status">
+          <span class="status-dot green"></span>
+          <span>GPT-4o · Especialista em IR & Finanças</span>
+        </div>
+      </div>
+    </div>
+    <div class="chat-header-right">
+      <span class="msg-count">{{ messages.length }} mensagens</span>
+      <button class="btn-secondary" (click)="clearHistory()">🗑️ Limpar</button>
+    </div>
   </div>
 
-  <div class="chat-layout">
-    <!-- Quick Prompts -->
-    <div class="quick-prompts glass-card">
-      <div class="qp-title">💡 Sugestões Rápidas</div>
-      <button class="qp-btn" *ngFor="let q of quickPrompts" (click)="send(q)">{{ q }}</button>
+  <div class="chat-body">
+
+    <!-- SIDEBAR DE PROMPTS -->
+    <div class="prompts-panel glass-card">
+      <div class="prompts-header">💡 Sugestões</div>
+
+      <div class="category-tabs">
+        <button *ngFor="let cat of quickCategories; let i = index"
+                class="cat-tab"
+                [class.active]="selectedCategory === i"
+                (click)="selectedCategory = i">
+          {{ cat.label.split(' ')[0] }}
+        </button>
+      </div>
+
+      <div class="category-label">{{ quickCategories[selectedCategory].label }}</div>
+
+      <div class="prompt-list">
+        <button class="prompt-btn"
+                *ngFor="let p of quickCategories[selectedCategory].prompts"
+                (click)="send(p)">
+          <span class="prompt-arrow">›</span>
+          <span>{{ p }}</span>
+        </button>
+      </div>
+
+      <div class="prompts-footer">
+        <div class="api-info">Powered by <strong>OpenAI GPT-4o</strong></div>
+      </div>
     </div>
 
-    <!-- Chat Window -->
+    <!-- CHAT WINDOW -->
     <div class="chat-window glass-card">
-      <div class="messages">
-        <div *ngFor="let m of messages" class="message" [class.user]="m.role==='user'" [class.assistant]="m.role==='assistant'">
-          <div class="avatar">{{ m.role === 'user' ? '👤' : '🤖' }}</div>
-          <div class="bubble">
-            <div class="text">{{ m.content }}</div>
-            <div class="time">{{ m.time | date:'HH:mm' }}</div>
+
+      <!-- Messages -->
+      <div class="messages-area" #messagesArea>
+
+        <div *ngFor="let m of messages; let i = index"
+             class="message-row"
+             [class.user-row]="m.role==='user'"
+             [class.ai-row]="m.role==='assistant'">
+
+          <div class="msg-avatar" *ngIf="m.role==='assistant'">
+            <div class="ai-msg-avatar">✦</div>
           </div>
+
+          <div class="msg-bubble" [class.user-bubble]="m.role==='user'" [class.ai-bubble]="m.role==='assistant'">
+            <div class="msg-content" [innerHTML]="formatMessage(m.content)"></div>
+            <div class="msg-meta">
+              <span class="msg-time">{{ m.time | date:'HH:mm' }}</span>
+              <span class="msg-role">{{ m.role === 'user' ? 'Você' : 'IA' }}</span>
+            </div>
+          </div>
+
+          <div class="msg-avatar" *ngIf="m.role==='user'">
+            <div class="user-msg-avatar">U</div>
+          </div>
+
         </div>
 
-        <div class="message assistant" *ngIf="loading">
-          <div class="avatar">🤖</div>
-          <div class="bubble typing">
-            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <!-- Typing indicator -->
+        <div class="message-row ai-row" *ngIf="loading">
+          <div class="msg-avatar">
+            <div class="ai-msg-avatar typing-avatar">✦</div>
+          </div>
+          <div class="msg-bubble ai-bubble typing-bubble">
+            <div class="typing-dots">
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+            <div class="typing-text">IA está analisando seus dados...</div>
           </div>
         </div>
 
         <div #messagesEnd></div>
       </div>
 
-      <div class="error-banner" *ngIf="error">⚠️ {{ error }}</div>
-
-      <div class="input-area">
-        <textarea
-          [(ngModel)]="inputText"
-          (keydown)="onKeyDown($event)"
-          placeholder="Digite sua dúvida sobre IR... (Enter para enviar, Shift+Enter nova linha)"
-          rows="2"
-          [disabled]="loading"
-        ></textarea>
-        <button class="send-btn" (click)="send()" [disabled]="loading || !inputText.trim()">
-          {{ loading ? '⏳' : '📤' }}
-        </button>
+      <!-- Error -->
+      <div class="error-bar" *ngIf="error">
+        <span>⚠️ {{ error }}</span>
+        <button (click)="error=''">×</button>
       </div>
+
+      <!-- Input Area -->
+      <div class="input-wrap">
+        <div class="input-area">
+          <textarea
+            #inputRef
+            [(ngModel)]="inputText"
+            (keydown)="onKeyDown($event)"
+            (input)="onInput($event)"
+            placeholder="Pergunte sobre IR, investimentos, planejamento financeiro... (Enter para enviar)"
+            rows="1"
+            [disabled]="loading"
+            class="chat-input"
+          ></textarea>
+          <div class="input-actions">
+            <span class="char-count" [class.warn]="charCount > 800">{{ charCount }}/1000</span>
+            <button class="send-btn"
+                    (click)="send()"
+                    [disabled]="loading || !inputText.trim()"
+                    [class.ready]="inputText.trim() && !loading">
+              <span *ngIf="!loading">▶</span>
+              <span *ngIf="loading" class="spinner-sm"></span>
+            </button>
+          </div>
+        </div>
+        <div class="input-hint">Enter para enviar · Shift+Enter para nova linha</div>
+      </div>
+
     </div>
+
   </div>
 </div>

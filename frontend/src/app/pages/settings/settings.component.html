@@ -1,56 +1,227 @@
 <div class="page">
   <div class="page-header">
-    <h1>⚙️ Configurações</h1>
+    <div>
+      <h1>⚙️ Configurações</h1>
+      <p class="page-subtitle">Personalize o MoneyControl</p>
+    </div>
+    <span class="version-badge">✅ v2.0.0</span>
   </div>
 
-  <div class="settings-sections">
-    <!-- API Config -->
-    <div class="glass-card section">
-      <h3 class="section-title">🔑 Configuração da IA (OpenAI)</h3>
-      <p class="section-desc">A chave da API OpenAI deve ser configurada no servidor via variável de ambiente <code>OPENAI_API_KEY</code>. Não armazenamos sua chave no frontend por segurança.</p>
-      <div class="glass-card" style="background:rgba(245,158,11,0.08);border-color:rgba(245,158,11,0.3);padding:14px 18px;margin-top:12px">
-        <strong style="color:#f59e0b">⚠️ Segurança:</strong>
-        <p style="color:#94a3b8;font-size:13px;margin-top:6px">Nunca exponha sua chave API no código-fonte ou frontend. Configure via: <br/>
-        <code style="background:rgba(0,0,0,0.3);padding:4px 8px;border-radius:6px;font-size:12px">export OPENAI_API_KEY=sk-proj-...</code><br/>
-        e reinicie o backend.</p>
+  <div class="settings-layout">
+    <!-- Sidebar Nav -->
+    <nav class="settings-nav">
+      <div class="settings-nav-item" [class.active]="activeSection === 'categories'" (click)="activeSection = 'categories'">
+        <span class="nav-icon">🏷️</span> Categorias
       </div>
-    </div>
+      <div class="settings-nav-item" [class.active]="activeSection === 'stats'" (click)="activeSection = 'stats'">
+        <span class="nav-icon">📊</span> Estatísticas
+      </div>
+      <div class="settings-nav-item" [class.active]="activeSection === 'api'" (click)="activeSection = 'api'">
+        <span class="nav-icon">🔑</span> Chave IA
+      </div>
+      <div class="settings-nav-item" [class.active]="activeSection === 'about'" (click)="activeSection = 'about'">
+        <span class="nav-icon">ℹ️</span> Sobre
+      </div>
+    </nav>
 
-    <!-- Categories -->
-    <div class="glass-card section">
-      <div class="d-flex justify-between align-center" style="margin-bottom:20px">
-        <h3 class="section-title" style="margin-bottom:0">🏷️ Categorias</h3>
-        <button class="btn-primary" (click)="openNewCat()">+ Categoria</button>
+    <!-- Content -->
+    <div class="settings-content">
+
+      <!-- Categories Section -->
+      <div class="section-card" *ngIf="activeSection === 'categories'">
+        <div class="section-head">
+          <div class="section-head-left">
+            <div class="section-icon green">🏷️</div>
+            <div>
+              <div class="section-title">Categorias</div>
+              <div class="section-desc-sm">{{ categories.length }} categorias cadastradas</div>
+            </div>
+          </div>
+          <button class="btn-primary" (click)="openNewCat()">+ Categoria</button>
+        </div>
+        <div class="section-body">
+          <div class="cat-type-section" *ngFor="let type of catTypes">
+            <div class="cat-type-header" *ngIf="byType(type).length > 0">
+              <span>{{ typeIcon(type) }}</span>
+              <span>{{ typeLabel(type) }}</span>
+              <span class="cat-count">{{ byType(type).length }}</span>
+            </div>
+            <div class="cat-grid" *ngIf="byType(type).length > 0">
+              <div class="cat-chip" *ngFor="let c of byType(type)" [style.border-color]="c.color + '55'">
+                <span class="cat-chip-icon">{{ c.icon }}</span>
+                <span class="cat-chip-name">{{ c.name }}</span>
+                <div class="cat-chip-actions">
+                  <button class="cat-chip-btn" (click)="openEditCat(c)" title="Editar">✏️</button>
+                  <button class="cat-chip-btn del" (click)="deleteCat(c.id)" title="Excluir">✕</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="categories.length === 0" style="text-align:center;padding:40px;color:var(--text-secondary);font-size:14px">
+            Nenhuma categoria. Clique em "+ Categoria" para começar.
+          </div>
+        </div>
       </div>
 
-      <div *ngFor="let type of catTypes">
-        <div class="type-header" *ngIf="byType(type).length > 0">{{ typeIcon(type) }} {{ typeLabel(type) }}</div>
-        <div class="cat-grid" *ngIf="byType(type).length > 0">
-          <div class="cat-chip" *ngFor="let c of byType(type)" [style.border-color]="c.color">
-            <span>{{ c.icon }} {{ c.name }}</span>
-            <div class="cat-actions">
-              <button class="icon-btn" (click)="openEditCat(c)">✏️</button>
-              <button class="icon-btn" (click)="deleteCat(c.id)">🗑️</button>
+      <!-- Stats Section -->
+      <div class="section-card" *ngIf="activeSection === 'stats'">
+        <div class="section-head">
+          <div class="section-head-left">
+            <div class="section-icon blue">📊</div>
+            <div>
+              <div class="section-title">Estatísticas do Sistema</div>
+              <div class="section-desc-sm">Visão geral dos seus dados cadastrados</div>
+            </div>
+          </div>
+        </div>
+        <div class="section-body">
+          <!-- Stats KPIs -->
+          <div class="stats-kpis">
+            <div class="stat-kpi blue">
+              <div class="sk-icon">🏦</div>
+              <div class="sk-value">{{ totalAccounts }}</div>
+              <div class="sk-label">Contas</div>
+            </div>
+            <div class="stat-kpi green">
+              <div class="sk-icon">⇄</div>
+              <div class="sk-value">{{ totalTransactions }}</div>
+              <div class="sk-label">Transações</div>
+            </div>
+            <div class="stat-kpi purple">
+              <div class="sk-icon">📈</div>
+              <div class="sk-value">{{ totalInvestments }}</div>
+              <div class="sk-label">Investimentos</div>
+            </div>
+            <div class="stat-kpi gold">
+              <div class="sk-icon">💳</div>
+              <div class="sk-value">{{ totalCards }}</div>
+              <div class="sk-label">Cartões</div>
+            </div>
+            <div class="stat-kpi red">
+              <div class="sk-icon">📉</div>
+              <div class="sk-value">{{ totalDebts }}</div>
+              <div class="sk-label">Dívidas</div>
+            </div>
+            <div class="stat-kpi cyan">
+              <div class="sk-icon">🏷️</div>
+              <div class="sk-value">{{ categories.length }}</div>
+              <div class="sk-label">Categorias</div>
+            </div>
+          </div>
+          <!-- Activity chart -->
+          <div class="chart-container" style="margin-top:20px;padding:20px">
+            <div class="chart-header">
+              <div class="chart-title">📅 Atividade Mensal — Transações</div>
+              <div class="chart-subtitle">Últimos 12 meses</div>
+            </div>
+            <div echarts [options]="activityChart" style="height:180px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Key Section -->
+      <div class="section-card" *ngIf="activeSection === 'api'">
+        <div class="section-head">
+          <div class="section-head-left">
+            <div class="section-icon yellow">🔑</div>
+            <div>
+              <div class="section-title">Configuração da IA (OpenAI)</div>
+              <div class="section-desc-sm">Chave configurada no servidor</div>
+            </div>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="api-info-box">
+            <div class="api-info-title">⚠️ Segurança</div>
+            <div class="api-info-text">
+              Nunca exponha sua chave API no código-fonte ou frontend.<br/>
+              Configure via variável de ambiente no servidor:<br/><br/>
+              <code>export OPENAI_API_KEY=sk-proj-...</code><br/><br/>
+              E reinicie o backend Spring Boot para aplicar.
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:12px">
+              <span style="font-size:20px">✅</span>
+              <div>
+                <div style="font-size:14px;font-weight:600;color:var(--accent-green)">Backend seguro</div>
+                <div style="font-size:12px;color:var(--text-secondary)">Chave API processada exclusivamente no servidor</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:12px">
+              <span style="font-size:20px">🤖</span>
+              <div>
+                <div style="font-size:14px;font-weight:600;color:var(--accent-blue)">Modelo: GPT-4o</div>
+                <div style="font-size:12px;color:var(--text-secondary)">Chat fiscal e análises via OpenAI gpt-4o</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:12px">
+              <span style="font-size:20px">🗄️</span>
+              <div>
+                <div style="font-size:14px;font-weight:600;color:var(--accent-purple)">H2 Console</div>
+                <a href="http://localhost:8080/h2-console" target="_blank" style="font-size:12px;color:var(--accent-blue)">
+                  Abrir console do banco de dados →
+                </a>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Info -->
-    <div class="glass-card section">
-      <h3 class="section-title">ℹ️ Sobre o MoneyControl</h3>
-      <div class="about-grid">
-        <div class="about-item"><span class="about-label">Versão</span><span>1.0.0</span></div>
-        <div class="about-item"><span class="about-label">Backend</span><span>Spring Boot 3.x + H2</span></div>
-        <div class="about-item"><span class="about-label">Frontend</span><span>Angular 17 + ngx-echarts</span></div>
-        <div class="about-item"><span class="about-label">IA</span><span>OpenAI gpt-4o</span></div>
-        <div class="about-item"><span class="about-label">H2 Console</span><a href="http://localhost:8080/h2-console" target="_blank" style="color:var(--accent-blue)">Abrir Console</a></div>
+      <!-- About Section -->
+      <div class="section-card" *ngIf="activeSection === 'about'">
+        <div class="section-head">
+          <div class="section-head-left">
+            <div class="section-icon blue">ℹ️</div>
+            <div>
+              <div class="section-title">Sobre o MoneyControl</div>
+              <div class="section-desc-sm">Informações do sistema</div>
+            </div>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="about-grid">
+            <div class="about-item">
+              <div class="about-item-label">Versão</div>
+              <div class="about-item-value">1.0.0 <span style="color:var(--accent-green);font-size:12px">● Estável</span></div>
+            </div>
+            <div class="about-item">
+              <div class="about-item-label">Backend</div>
+              <div class="about-item-value">Spring Boot 3.x</div>
+            </div>
+            <div class="about-item">
+              <div class="about-item-label">Banco de Dados</div>
+              <div class="about-item-value">H2 (Embarcado)</div>
+            </div>
+            <div class="about-item">
+              <div class="about-item-label">Frontend</div>
+              <div class="about-item-value">Angular 17</div>
+            </div>
+            <div class="about-item">
+              <div class="about-item-label">UI Library</div>
+              <div class="about-item-value">ngx-echarts 17</div>
+            </div>
+            <div class="about-item">
+              <div class="about-item-label">Inteligência Artificial</div>
+              <div class="about-item-value">OpenAI gpt-4o</div>
+            </div>
+            <div class="about-item">
+              <div class="about-item-label">ML / Previsões</div>
+              <div class="about-item-value">Regressão Linear</div>
+            </div>
+            <div class="about-item">
+              <div class="about-item-label">Design System</div>
+              <div class="about-item-value">Apple Glass UI</div>
+            </div>
+          </div>
+        </div>
       </div>
+
     </div>
   </div>
 </div>
 
+<!-- Category Modal -->
 <div class="modal-overlay" *ngIf="showCatModal" (click)="closeCatModal()">
   <div class="modal" (click)="$event.stopPropagation()">
     <div class="modal-header">
@@ -58,7 +229,7 @@
       <button class="close-btn" (click)="closeCatModal()">×</button>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Nome *</label><input type="text" [(ngModel)]="catForm.name" placeholder="Alimentação" /></div>
+      <div class="form-group"><label>Nome *</label><input type="text" [(ngModel)]="catForm.name" placeholder="Ex: Alimentação" /></div>
       <div class="form-group"><label>Tipo *</label>
         <select [(ngModel)]="catForm.type">
           <option *ngFor="let t of catTypes" [value]="t">{{ typeIcon(t) }} {{ typeLabel(t) }}</option>
@@ -67,10 +238,13 @@
     </div>
     <div class="form-row mt-1">
       <div class="form-group"><label>Cor</label><input type="color" [(ngModel)]="catForm.color" /></div>
-      <div class="form-group"><label>Ícone</label>
-        <select [(ngModel)]="catForm.icon">
-          <option *ngFor="let i of catIcons" [value]="i">{{ i }}</option>
-        </select>
+      <div class="form-group">
+        <label>Ícone — selecionado: {{ catForm.icon }}</label>
+        <div class="icon-picker">
+          <button class="icon-option" *ngFor="let i of catIcons"
+            [class.selected]="catForm.icon === i"
+            (click)="catForm.icon = i">{{ i }}</button>
+        </div>
       </div>
     </div>
     <div class="modal-actions">
