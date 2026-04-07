@@ -3,7 +3,7 @@
 # ║           MoneyControl — Launcher Premium v2.0              ║
 # ╚══════════════════════════════════════════════════════════════╝
 
-ROOT="/Users/wesleyvieira/Documents/MoneyControl/MoneyControl"
+ROOT="/Users/wesleyvieira/Documents/MoneyControl"
 BACKEND_PORT=8080
 FRONTEND_PORT=4200
 MAX_WAIT=120   # segundos máximos aguardando backend
