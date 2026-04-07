@@ -295,3 +295,23 @@
 
 /* ─── Treemap / Heatmap ──────────────────────── */
 .treemap-section { display:flex; flex-direction:column; gap:1rem; }
+
+/* ─── Missing utilities ─────────────────────── */
+.ph-left { flex: 1; }
+
+.tab-label { font-size: 0.82rem; }
+
+.recurring-section { display: flex; flex-direction: column; gap: 1rem; }
+
+.ct-net {
+  font-weight: 700; font-size: 0.85rem;
+  &.good { color: var(--accent-green); }
+  &.bad  { color: var(--accent-red); }
+}
+
+.ct-savings {
+  font-weight: 700; font-size: 0.82rem; color: var(--text-muted);
+  &.good { color: var(--accent-green); }
+}
+
+.anomalies-section { display: flex; flex-direction: column; gap: 1rem; }

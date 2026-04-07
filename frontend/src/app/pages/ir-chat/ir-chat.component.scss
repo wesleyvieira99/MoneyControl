@@ -126,6 +126,7 @@ h1 {
 .message-row {
   display:flex; gap:.75rem; align-items:flex-end; animation:slideUp .3s ease;
   &.user-row { flex-direction:row-reverse; }
+  &.ai-row { flex-direction:row; }
 }
 
 .msg-avatar { flex-shrink:0; }

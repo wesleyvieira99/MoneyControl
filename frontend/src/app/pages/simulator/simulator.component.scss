@@ -108,6 +108,7 @@
 }
 .rc-item {
   display:flex; justify-content:space-between; align-items:center; gap:.5rem;
+  &.highlight { background: var(--glass-bg); border-radius: var(--radius-sm); padding: 0.5rem 0.75rem; border: 1px solid var(--glass-border); }
   .rc-label { font-size:.8rem; color:var(--text-muted); font-weight:600; }
   .rc-val { font-size:.9rem; font-weight:800; text-align:right;
     &.big { font-size:1.25rem; color:#00c9a7; }
