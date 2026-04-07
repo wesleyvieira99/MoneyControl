@@ -1,4 +1,5 @@
 /Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/repository/InvestmentTransactionRepository.java
+/Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/repository/MonthlyBudgetRepository.java
 /Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/model/InstallmentGroup.java
 /Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/model/BankAccount.java
 /Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/controller/DashboardController.java
@@ -23,16 +24,20 @@
 /Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/model/InvestmentTransaction.java
 /Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/controller/TransactionController.java
 /Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/config/DataSeeder.java
+/Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/service/InsightService.java
+/Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/controller/BudgetController.java
 /Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/repository/FinancialGoalRepository.java
 /Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/controller/ProfitDistributionController.java
 /Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/model/Investment.java
 /Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/model/InvestmentTransactionType.java
 /Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/model/ProfitDistributionRule.java
+/Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/controller/AnalyticsController.java
 /Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/model/CreditCard.java
 /Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/controller/BankAccountController.java
 /Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/model/TransactionStatus.java
 /Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/repository/BankAccountRepository.java
 /Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/controller/DebtController.java
+/Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/model/MonthlyBudget.java
 /Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/repository/DebtReorganizationRepository.java
 /Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/controller/FinancialGoalController.java
 /Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/src/main/java/com/moneycontrol/model/Transaction.java

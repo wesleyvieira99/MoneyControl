@@ -204,6 +204,19 @@ export class InvestmentsComponent implements OnInit {
   gainPct(inv: any) { return inv.initialAmount > 0 ? ((+inv.currentValue - +inv.initialAmount) / +inv.initialAmount * 100).toFixed(1) : '0.0'; }
   totalPortfolio() { return this.investments.reduce((s, i) => s + +i.currentValue, 0); }
   totalGain() { return this.investments.reduce((s, i) => s + (+i.currentValue - +i.initialAmount), 0); }
+  totalInvested() { return this.investments.reduce((s, i) => s + +i.initialAmount, 0); }
+  gainPctTotal() { 
+    const invested = this.totalInvested();
+    return invested > 0 ? ((this.totalGain() / invested) * 100).toFixed(1) : '0.0';
+  }
+  bestAsset() {
+    if (this.investments.length === 0) return null;
+    return this.investments.reduce((best, curr) => {
+      const currGain = this.gain(curr);
+      const bestGain = this.gain(best);
+      return currGain > bestGain ? curr : best;
+    });
+  }
   typeTotal(type: string) { return this.getByType(type).reduce((s: number, i: any) => s + +i.currentValue, 0); }
   getProgressWidth(inv: any) { const pct = inv.initialAmount > 0 ? (+inv.currentValue / +inv.initialAmount) * 100 : 0; return Math.min(100, Math.max(0, pct)); }
   fmt(v: number) { return v?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) ?? ''; }

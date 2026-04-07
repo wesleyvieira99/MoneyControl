@@ -82,6 +82,10 @@ export class ApiService {
     const url = month ? `${BASE}/dashboard/category-breakdown?month=${month}` : `${BASE}/dashboard/category-breakdown`;
     return this.http.get<any[]>(url);
   }
+  getInsights(month?: string) {
+    const url = month ? `${BASE}/dashboard/insights?month=${month}` : `${BASE}/dashboard/insights`;
+    return this.http.get<any[]>(url);
+  }
 
   // Forecast
   getForecast(months = 6) {
@@ -92,4 +96,26 @@ export class ApiService {
   aiChat(messages: any[]) {
     return this.http.post<any>(`${BASE}/ai/chat`, { messages });
   }
+
+  // Analytics
+  getFinancialScore() { return this.http.get<any>(`${BASE}/analytics/score`); }
+  getCashFlow() { return this.http.get<any>(`${BASE}/analytics/cashflow`); }
+  getRecurring() { return this.http.get<any[]>(`${BASE}/analytics/recurring`); }
+  getMonthlyComparison(months = 6) { return this.http.get<any[]>(`${BASE}/analytics/monthly-comparison?months=${months}`); }
+  getSpendingPatterns() { return this.http.get<any>(`${BASE}/analytics/patterns`); }
+  getIndependencePoint() { return this.http.get<any>(`${BASE}/analytics/independence`); }
+  getAnomalies() { return this.http.get<any[]>(`${BASE}/analytics/anomalies`); }
+  getTreemap(month?: string) {
+    const url = month ? `${BASE}/analytics/treemap?month=${month}` : `${BASE}/analytics/treemap`;
+    return this.http.get<any[]>(url);
+  }
+
+  // Budget
+  getBudgets(month?: string) {
+    const url = month ? `${BASE}/budget?month=${month}` : `${BASE}/budget`;
+    return this.http.get<any[]>(url);
+  }
+  createBudget(b: any) { return this.http.post<any>(`${BASE}/budget`, b); }
+  updateBudget(id: number, b: any) { return this.http.put<any>(`${BASE}/budget/${id}`, b); }
+  deleteBudget(id: number) { return this.http.delete(`${BASE}/budget/${id}`); }
 }

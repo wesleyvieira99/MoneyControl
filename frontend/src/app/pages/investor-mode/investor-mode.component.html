@@ -1,0 +1,179 @@
+<div class="page investor-page">
+
+  <!-- ─── HERO HEADER ─────────────────────────────────────────── -->
+  <div class="inv-hero">
+    <div class="inv-hero-bg"></div>
+    <div class="inv-hero-content">
+      <div class="inv-hero-left">
+        <div class="inv-hero-icon">📊</div>
+        <div>
+          <h1 class="inv-hero-title">Modo Investidor</h1>
+          <div class="inv-hero-subtitle">
+            <span class="inv-hero-badge">{{ investments.length }} ativos</span>
+            <span class="inv-hero-dot">·</span>
+            <span>Dashboard Bloomberg-style</span>
+            <span class="inv-hero-dot">·</span>
+            <span class="inv-hero-live">
+              <span class="pulse-dot"></span>
+              <span>Tempo real</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="loading-screen" *ngIf="loading">
+    <div class="load-anim">📊<br/><span>Carregando carteira...</span></div>
+  </div>
+
+  <ng-container *ngIf="!loading">
+
+    <!-- ─── MEGA KPI BANNER ─────────────────────────────────────── -->
+    <div class="inv-mega-banner">
+      <div class="inv-mega-card mega-main" style="animation-delay:.05s">
+        <div class="mega-glow mega-glow-purple"></div>
+        <div class="mega-icon">💼</div>
+        <div class="mega-content">
+          <div class="mega-label">Total Investido</div>
+          <div class="mega-value">{{ fmt(totalInvested) }}</div>
+          <div class="mega-sub">
+            <span class="mega-badge-label">Capital alocado</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="inv-mega-card mega-main" style="animation-delay:.1s">
+        <div class="mega-glow mega-glow-blue"></div>
+        <div class="mega-icon">💰</div>
+        <div class="mega-content">
+          <div class="mega-label">Valor Atual</div>
+          <div class="mega-value">{{ fmt(totalCurrent) }}</div>
+          <div class="mega-sub">
+            <span class="mega-badge-label">Valorização da carteira</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="inv-mega-card mega-main" style="animation-delay:.15s">
+        <div class="mega-glow" [class.mega-glow-green]="totalGain >= 0" [class.mega-glow-red]="totalGain < 0"></div>
+        <div class="mega-icon">{{ totalGain >= 0 ? '📈' : '📉' }}</div>
+        <div class="mega-content">
+          <div class="mega-label">Ganho/Perda</div>
+          <div class="mega-value" [style.color]="totalGain >= 0 ? '#34d399' : '#f87171'">
+            {{ totalGain >= 0 ? '+' : '' }}{{ fmt(totalGain) }}
+          </div>
+          <div class="mega-sub">
+            <span class="mega-badge" [class.mega-badge-green]="gainPct >= 0" [class.mega-badge-red]="gainPct < 0">
+              {{ gainPct >= 0 ? '+' : '' }}{{ fmtPct(gainPct) }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="inv-mega-card mega-main" style="animation-delay:.2s" *ngIf="bestPerformer">
+        <div class="mega-glow mega-glow-gold"></div>
+        <div class="mega-icon">🏆</div>
+        <div class="mega-content">
+          <div class="mega-label">Melhor Ativo</div>
+          <div class="mega-value-sm">{{ bestPerformer.name }}</div>
+          <div class="mega-sub">
+            <span class="mega-badge mega-badge-gold">{{ fmtPct(invGainPct(bestPerformer)) }}</span>
+            <span class="mega-badge-label">retorno</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── CHARTS ROW ──────────────────────────────────────────── -->
+    <div class="inv-charts-row">
+      <div class="inv-chart-card" style="animation-delay:.05s">
+        <div class="inv-chart-header">
+          <div class="inv-chart-icon">🗂</div>
+          <div>
+            <div class="inv-chart-title">Alocação por Classe</div>
+            <div class="inv-chart-subtitle">Distribuição percentual dos ativos</div>
+          </div>
+        </div>
+        <div #allocChart class="chart-area"></div>
+      </div>
+
+      <div class="inv-chart-card" style="animation-delay:.1s">
+        <div class="inv-chart-header">
+          <div class="inv-chart-icon">📈</div>
+          <div>
+            <div class="inv-chart-title">Performance por Ativo</div>
+            <div class="inv-chart-subtitle">Top 10 retornos percentuais</div>
+          </div>
+        </div>
+        <div #perfChart class="chart-area-tall"></div>
+      </div>
+    </div>
+
+    <!-- ─── RISK CHART ──────────────────────────────────────────── -->
+    <div class="inv-chart-card inv-chart-full" style="animation-delay:.15s">
+      <div class="inv-chart-header">
+        <div class="inv-chart-icon">🎯</div>
+        <div>
+          <div class="inv-chart-title">Risco × Retorno</div>
+          <div class="inv-chart-subtitle">Cada bolha representa um ativo — tamanho = valor investido</div>
+        </div>
+      </div>
+      <div #riskChart class="chart-area"></div>
+    </div>
+
+    <!-- ─── HOLDINGS BY TYPE ────────────────────────────────────── -->
+    <div class="inv-holdings-section" style="animation-delay:.2s">
+      <div class="inv-holdings-header">
+        <div class="inv-holdings-icon">📋</div>
+        <div>
+          <div class="inv-holdings-title">Holdings por Classe de Ativo</div>
+          <div class="inv-holdings-subtitle">Detalhamento completo da carteira</div>
+        </div>
+      </div>
+
+      <div class="inv-type-group" *ngFor="let group of byType(); trackBy: trackByLabel">
+        <div class="inv-tg-header">
+          <div class="inv-tg-left">
+            <span class="inv-tg-dot" [style.background]="group.color"></span>
+            <span class="inv-tg-label">{{ group.label }}</span>
+          </div>
+          <div class="inv-tg-right">
+            <span class="inv-tg-total">{{ fmt(group.total) }}</span>
+            <span class="inv-tg-gain" [class.good]="group.gain >= 0" [class.bad]="group.gain < 0">
+              {{ group.gain >= 0 ? '+' : '' }}{{ fmt(group.gain) }}
+            </span>
+          </div>
+        </div>
+
+        <div class="inv-tg-table">
+          <div class="inv-tt-header">
+            <span>Ativo</span>
+            <span>Aportado</span>
+            <span>Atual</span>
+            <span>Ganho</span>
+            <span>Retorno</span>
+          </div>
+          <div class="inv-tt-row" *ngFor="let inv of group.items; trackBy: trackByName">
+            <span class="inv-tt-name">{{ inv.name }}</span>
+            <span class="inv-tt-initial">{{ fmt(inv.initialAmount) }}</span>
+            <span class="inv-tt-current">{{ fmt(inv.currentValue) }}</span>
+            <span class="inv-tt-gain" [class.good]="invGain(inv) >= 0" [class.bad]="invGain(inv) < 0">
+              {{ invGain(inv) >= 0 ? '+' : '' }}{{ fmt(invGain(inv)) }}
+            </span>
+            <span class="inv-tt-pct" [class.good]="invGainPct(inv) >= 0" [class.bad]="invGainPct(inv) < 0">
+              {{ invGainPct(inv) >= 0 ? '+' : '' }}{{ fmtPct(invGainPct(inv)) }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inv-empty-state" *ngIf="!investments.length">
+      <div class="inv-es-icon">📊</div>
+      <div class="inv-es-title">Nenhum investimento cadastrado</div>
+      <div class="inv-es-subtitle">Acesse a seção de Investimentos para adicionar seus ativos</div>
+    </div>
+
+  </ng-container>
+</div>

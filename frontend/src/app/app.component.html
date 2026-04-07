@@ -37,6 +37,12 @@
     </nav>
 
     <div class="sb-footer">
+      <!-- ⌘K Command Palette trigger -->
+      <button class="cmd-trigger-btn" (click)="openCmd()" [title]="!sidebarOpen ? 'Command Palette ⌘K' : ''">
+        <span class="cmd-trigger-icon">⌘</span>
+        <span class="cmd-trigger-label" *ngIf="sidebarOpen">Command Palette</span>
+        <span class="cmd-trigger-hint" *ngIf="sidebarOpen">⌘K</span>
+      </button>
       <button class="theme-btn" (click)="toggleTheme()">
         <span class="theme-icon">{{ isDark ? '☀' : '◑' }}</span>
         <span class="theme-label" *ngIf="sidebarOpen">{{ isDark ? 'Modo Claro' : 'Modo Escuro' }}</span>
@@ -51,6 +57,49 @@
   </main>
 
 </div>
+
+<!-- ── COMMAND PALETTE ── -->
+<div class="cmd-overlay" *ngIf="cmdOpen" (click)="closeCmd()">
+  <div class="cmd-box" (click)="$event.stopPropagation()">
+    <div class="cmd-header">
+      <span class="cmd-search-icon">⌘</span>
+      <input
+        #cmdInput
+        class="cmd-input"
+        type="text"
+        placeholder="Buscar página, ação, atalho..."
+        [(ngModel)]="cmdQuery"
+        (input)="onCmdInput()"
+        autofocus
+      />
+      <kbd class="cmd-esc-hint">Esc</kbd>
+    </div>
+    <div class="cmd-list">
+      <div class="cmd-list-label" *ngIf="!cmdQuery">Navegação Rápida</div>
+      <div class="cmd-list-label" *ngIf="cmdQuery && cmdFiltered.length === 0">Nenhum resultado para "{{ cmdQuery }}"</div>
+      <button
+        *ngFor="let item of cmdFiltered; let i = index"
+        class="cmd-item"
+        [class.selected]="cmdSelected === i"
+        (mouseenter)="cmdSelected = i"
+        (click)="navigateCmd(item)"
+      >
+        <span class="cmd-item-icon">{{ item.icon }}</span>
+        <span class="cmd-item-label">{{ item.label }}</span>
+        <span class="cmd-item-path">{{ item.path }}</span>
+        <span class="cmd-item-enter" *ngIf="cmdSelected === i">↵</span>
+      </button>
+    </div>
+    <div class="cmd-footer">
+      <span><kbd>↑↓</kbd> Navegar</span>
+      <span><kbd>↵</kbd> Abrir</span>
+      <span><kbd>Esc</kbd> Fechar</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST NOTIFICATIONS ── -->
+<app-toast></app-toast>
 
 <!-- ── TICKER FOOTER (fixed, full-width) ── -->
 <footer class="ticker-bar" *ngIf="ticker.length > 0">

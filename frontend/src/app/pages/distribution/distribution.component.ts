@@ -26,6 +26,7 @@ export class DistributionComponent implements OnInit {
   colors = ['#3b82f6','#8b5cf6','#10b981','#ef4444','#f59e0b','#06b6d4','#ec4899'];
   destTypes = ['SAVINGS','INVESTMENT','POCKET','EXPENSE','EMERGENCY','CHARITY'];
   destLabels: any = { SAVINGS: '💾 Poupança', INVESTMENT: '📈 Investimento', POCKET: '👜 Bolso', EXPENSE: '💸 Despesas', EMERGENCY: '🆘 Emergência', CHARITY: '❤️ Caridade' };
+  destIcons: any = { SAVINGS: '💾', INVESTMENT: '📈', POCKET: '👜', EXPENSE: '💸', EMERGENCY: '🆘', CHARITY: '❤️' };
 
   constructor(private api: ApiService) {}
 

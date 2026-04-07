@@ -1,0 +1,180 @@
+<div class="goals-page">
+
+  <!-- Confetti -->
+  <div class="confetti-layer" *ngIf="confettiParticles.length">
+    <div *ngFor="let p of confettiParticles" class="confetti-dot"
+      [style.left.%]="p.x" [style.top.%]="p.y"
+      [style.background]="p.color"
+      [style.width.px]="p.size" [style.height.px]="p.size"
+      [style.animation-delay.s]="p.delay"></div>
+  </div>
+
+  <div class="page-header">
+    <div class="ph-left">
+      <h1>🎯 Metas Financeiras</h1>
+      <p class="ph-sub">Defina, acompanhe e conquiste seus objetivos</p>
+    </div>
+    <button class="btn-primary" (click)="openAdd()">＋ Nova Meta</button>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-grid" *ngIf="loading">
+    <div class="skeleton-card" *ngFor="let i of [1,2,3,4,5,6]"></div>
+  </div>
+
+  <!-- Empty -->
+  <div class="empty-state" *ngIf="!loading && goals.length === 0">
+    <div class="es-icon">🎯</div>
+    <h3>Nenhuma meta criada</h3>
+    <p>Crie sua primeira meta financeira e comece a acompanhar seu progresso</p>
+    <button class="btn-primary" (click)="openAdd()">Criar primeira meta</button>
+  </div>
+
+  <!-- Goals Grid -->
+  <div class="goals-grid" *ngIf="!loading && goals.length > 0">
+    <div class="goal-card" *ngFor="let g of goals; trackBy: trackById"
+         [class.completed]="pct(g) >= 100"
+         [class.urgent]="urgency(g) === 'urgent'"
+         [class.overdue]="urgency(g) === 'overdue'">
+
+      <!-- Glow border based on color -->
+      <div class="gc-glow" [style.background]="g.color"></div>
+
+      <div class="gc-header">
+        <div class="gc-icon-wrap" [style.background]="g.color + '22'">
+          <span class="gc-icon">{{ g.icon }}</span>
+        </div>
+        <div class="gc-info">
+          <h3 class="gc-name">{{ g.name }}</h3>
+          <div class="gc-badges">
+            <span class="badge-deadline" *ngIf="g.deadline" [class]="urgency(g)">
+              <ng-container *ngIf="urgency(g) === 'overdue'">⚠ Vencida</ng-container>
+              <ng-container *ngIf="urgency(g) === 'urgent'">🔥 {{ daysLeft(g) }} dias</ng-container>
+              <ng-container *ngIf="urgency(g) === 'soon'">⏳ {{ daysLeft(g) }} dias</ng-container>
+              <ng-container *ngIf="urgency(g) === 'normal'">📅 {{ daysLeft(g) }} dias</ng-container>
+            </span>
+            <span class="badge-done" *ngIf="pct(g) >= 100">🏆 Concluída!</span>
+          </div>
+        </div>
+        <div class="gc-actions">
+          <button class="icon-btn" (click)="openEdit(g)" title="Editar">✏️</button>
+          <button class="icon-btn danger" (click)="delete(g.id!)"
+            [class.confirm-delete]="deleteConfirm === g.id"
+            [title]="deleteConfirm === g.id ? 'Clique novamente para confirmar' : 'Excluir'">
+            {{ deleteConfirm === g.id ? '⚠' : '🗑' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Progress Ring -->
+      <div class="gc-ring-wrap">
+        <svg class="gc-ring" viewBox="0 0 120 120">
+          <circle class="ring-bg" cx="60" cy="60" r="50" />
+          <circle class="ring-fill" cx="60" cy="60" r="50"
+            [style.stroke]="g.color"
+            [style.stroke-dasharray]="314"
+            [style.stroke-dashoffset]="314 - (pct(g) / 100 * 314)" />
+        </svg>
+        <div class="ring-label">
+          <span class="ring-pct">{{ pct(g) }}%</span>
+          <span class="ring-sub">concluído</span>
+        </div>
+      </div>
+
+      <!-- Amounts -->
+      <div class="gc-amounts">
+        <div class="amount-row">
+          <span class="ar-label">Acumulado</span>
+          <span class="ar-value current">{{ fmt(g.currentAmount) }}</span>
+        </div>
+        <div class="amount-row">
+          <span class="ar-label">Meta</span>
+          <span class="ar-value target">{{ fmt(g.targetAmount) }}</span>
+        </div>
+        <div class="amount-row" *ngIf="remaining(g) > 0">
+          <span class="ar-label">Faltam</span>
+          <span class="ar-value remaining">{{ fmt(remaining(g)) }}</span>
+        </div>
+      </div>
+
+      <!-- Bar -->
+      <div class="gc-bar">
+        <div class="gc-bar-fill" [style.width.%]="pct(g)" [style.background]="g.color"></div>
+      </div>
+
+      <!-- Notes -->
+      <p class="gc-notes" *ngIf="g.notes">{{ g.notes }}</p>
+
+      <!-- Contribute -->
+      <button class="btn-contribute" (click)="contribute(g)" [style.border-color]="g.color" [style.color]="g.color"
+        *ngIf="pct(g) < 100">
+        ＋ Adicionar aporte
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ editMode ? '✏️ Editar Meta' : '🎯 Nova Meta' }}</h2>
+      <button class="modal-close" (click)="closeModal()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-row">
+        <label>Nome da meta</label>
+        <input type="text" [(ngModel)]="form.name" placeholder="Ex: Casa própria, Viagem, Aposentadoria..." />
+      </div>
+
+      <div class="form-row-2">
+        <div class="form-row">
+          <label>Valor alvo (R$)</label>
+          <input type="number" [(ngModel)]="form.targetAmount" min="0" step="100" />
+        </div>
+        <div class="form-row">
+          <label>Valor atual (R$)</label>
+          <input type="number" [(ngModel)]="form.currentAmount" min="0" step="100" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>Prazo</label>
+        <input type="date" [(ngModel)]="form.deadline" />
+      </div>
+
+      <div class="form-row">
+        <label>Ícone</label>
+        <div class="icon-picker">
+          <button *ngFor="let ic of icons"
+            class="icon-opt" [class.selected]="form.icon === ic"
+            (click)="form.icon = ic">{{ ic }}</button>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>Cor</label>
+        <div class="color-picker">
+          <button *ngFor="let c of colors"
+            class="color-opt" [class.selected]="form.color === c"
+            [style.background]="c"
+            (click)="form.color = c"></button>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>Notas (opcional)</label>
+        <textarea [(ngModel)]="form.notes" rows="2" placeholder="Observações..."></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeModal()">Cancelar</button>
+      <button class="btn-primary" (click)="save()" [disabled]="saving || !form.name">
+        {{ saving ? 'Salvando...' : (editMode ? 'Salvar' : 'Criar Meta') }}
+      </button>
+    </div>
+  </div>
+</div>

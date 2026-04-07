@@ -2,6 +2,7 @@ package com.moneycontrol.controller;
 
 import com.moneycontrol.model.*;
 import com.moneycontrol.repository.*;
+import com.moneycontrol.service.InsightService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
@@ -16,6 +17,7 @@ public class DashboardController {
     private final TransactionRepository txRepo;
     private final BankAccountRepository accountRepo;
     private final InvestmentRepository investRepo;
+    private final InsightService insightService;
 
     @GetMapping("/summary")
     public Map<String, Object> getSummary(@RequestParam(defaultValue = "") String month) {
@@ -86,5 +88,46 @@ public class DashboardController {
         return grouped.entrySet().stream()
                 .map(e -> Map.<String, Object>of("category", e.getKey(), "amount", e.getValue()))
                 .collect(Collectors.toList());
+    }
+
+    @GetMapping("/insights")
+    public List<Map<String, String>> getInsights(@RequestParam(defaultValue = "") String month) {
+        YearMonth ym = month.isEmpty() ? YearMonth.now() : YearMonth.parse(month);
+        LocalDate start = ym.atDay(1);
+        LocalDate end = ym.atEndOfMonth();
+        
+        // Coleta dados financeiros
+        List<Transaction> txs = txRepo.findByDateBetweenOrderByDateDesc(start, end);
+        BigDecimal income = txs.stream().filter(t -> t.getType() == TransactionType.INCOME)
+                .map(Transaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal expense = txs.stream().filter(t -> t.getType() == TransactionType.EXPENSE)
+                .map(Transaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalBalance = accountRepo.findAll().stream()
+                .map(BankAccount::getBalance).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalInvested = investRepo.findAll().stream()
+                .map(Investment::getCurrentValue).reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        // Top categorias
+        Map<String, BigDecimal> catMap = new LinkedHashMap<>();
+        txs.stream().filter(t -> t.getType() == TransactionType.EXPENSE && t.getCategory() != null)
+                .forEach(t -> catMap.merge(t.getCategory().getName(), t.getAmount(), BigDecimal::add));
+        List<Map<String, Object>> topCategories = catMap.entrySet().stream()
+                .sorted((a, b) -> b.getValue().compareTo(a.getValue()))
+                .limit(3)
+                .map(e -> Map.<String, Object>of("name", e.getKey(), "total", e.getValue()))
+                .collect(Collectors.toList());
+        
+        // Prepara dados para o GPT
+        Map<String, Object> financialData = new HashMap<>();
+        financialData.put("totalBalance", totalBalance);
+        financialData.put("monthlyIncome", income);
+        financialData.put("monthlyExpense", expense);
+        financialData.put("netWorth", totalBalance.add(totalInvested));
+        financialData.put("totalInvested", totalInvested);
+        financialData.put("netMonth", income.subtract(expense));
+        financialData.put("topCategories", topCategories);
+        
+        // Gera insights com GPT
+        return insightService.generateInsights(financialData);
     }
 }

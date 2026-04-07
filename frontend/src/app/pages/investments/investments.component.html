@@ -1,97 +1,191 @@
-<div class="page">
+<div class="page inv-page">
 
-  <div class="page-header">
-    <div>
-      <h1>Investimentos</h1>
-      <div style="font-size:13px;color:var(--text-muted);margin-top:2px">{{ investments.length }} ativos no portfólio</div>
-    </div>
-    <div class="page-header-actions">
-      <button class="btn-primary" (click)="openNew()">+ Novo Ativo</button>
-    </div>
-  </div>
-
-  <!-- PORTFOLIO SUMMARY -->
-  <div class="portfolio-summary">
-    <div class="portfolio-kpi animate-card">
-      <div class="portfolio-label">🏆 Portfólio Total</div>
-      <div class="portfolio-value">{{ fmt(totalPortfolio()) }}</div>
-      <div class="portfolio-sub d-flex gap-1 align-center">
-        <span class="badge" [class.badge-green]="totalGain()>=0" [class.badge-red]="totalGain()<0">
-          {{ totalGain() >= 0 ? '▲' : '▼' }} {{ fmt(Math.abs(totalGain())) }}
-        </span>
-        <span>resultado total</span>
-      </div>
-    </div>
-    <div class="chart-container animate-card" style="animation-delay:.1s">
-      <div class="chart-header">
-        <div class="chart-title">📊 Distribuição do Portfólio</div>
-      </div>
-      <div echarts [options]="portfolioChart" style="height:180px"></div>
-    </div>
-    <div class="chart-container animate-card" style="animation-delay:.2s">
-      <div class="chart-header">
-        <div class="chart-title">📈 Resultado por Ativo (top 8)</div>
-      </div>
-      <div echarts [options]="gainChart" style="height:180px"></div>
-    </div>
-  </div>
-
-  <!-- TYPES -->
-  <div class="type-sections">
-    <div *ngFor="let type of types">
-      <div *ngIf="getByType(type).length > 0">
-        <div class="type-section-header">
-          <span class="type-icon">{{ typeIcons[type] }}</span>
-          <span class="type-name">{{ typeLabels[type] }}</span>
-          <span class="type-count">{{ getByType(type).length }}</span>
-          <span class="type-total">{{ fmt(typeTotal(type)) }}</span>
+  <!-- ─── HERO HEADER ───────────────────────────────────────── -->
+  <div class="inv-hero">
+    <div class="inv-hero-bg"></div>
+    <div class="inv-hero-content">
+      <div class="inv-hero-left">
+        <div class="inv-hero-icon">💎</div>
+        <div>
+          <h1 class="inv-hero-title">Meus Investimentos</h1>
+          <div class="inv-hero-subtitle">
+            <span class="inv-hero-badge">{{ investments.length }} ativos</span>
+            <span class="inv-hero-dot">·</span>
+            <span>Portfólio Premium</span>
+            <span class="inv-hero-dot">·</span>
+            <span class="inv-hero-live"><span class="pulse-dot"></span>Atualizado agora</span>
+          </div>
         </div>
-        <div class="inv-grid">
-          <div class="inv-card animate-card"
-               *ngFor="let inv of getByType(type)"
+      </div>
+      <button class="inv-hero-btn" (click)="openNew()">
+        <span class="inv-hero-btn-icon">+</span>
+        <span>Adicionar Ativo</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ─── MEGA KPI BANNER ───────────────────────────────────── -->
+  <div class="inv-mega-banner">
+    <div class="inv-mega-card mega-main">
+      <div class="mega-glow mega-glow-purple"></div>
+      <div class="mega-icon">🏆</div>
+      <div class="mega-content">
+        <div class="mega-label">Patrimônio Total</div>
+        <div class="mega-value">{{ fmt(totalPortfolio()) }}</div>
+        <div class="mega-sub">
+          <span class="mega-badge" [class.mega-badge-green]="totalGain()>=0" [class.mega-badge-red]="totalGain()<0">
+            {{ totalGain() >= 0 ? '▲' : '▼' }} {{ fmt(Math.abs(totalGain())) }}
+          </span>
+          <span class="mega-badge-label">resultado</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="inv-mega-card">
+      <div class="mega-glow mega-glow-green"></div>
+      <div class="mega-icon">📈</div>
+      <div class="mega-content">
+        <div class="mega-label">Valorização</div>
+        <div class="mega-value" [class.text-green]="totalGain()>=0" [class.text-red]="totalGain()<0">
+          {{ gainPctTotal() }}%
+        </div>
+        <div class="mega-sub">
+          <span class="mega-badge-label">sobre investido</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="inv-mega-card">
+      <div class="mega-glow mega-glow-blue"></div>
+      <div class="mega-icon">💰</div>
+      <div class="mega-content">
+        <div class="mega-label">Capital Alocado</div>
+        <div class="mega-value">{{ fmt(totalInvested()) }}</div>
+        <div class="mega-sub">
+          <span class="mega-badge-label">{{ investments.length }} posições</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="inv-mega-card">
+      <div class="mega-glow mega-glow-gold"></div>
+      <div class="mega-icon">⚡</div>
+      <div class="mega-content">
+        <div class="mega-label">Melhor Ativo</div>
+        <div class="mega-value-sm">{{ bestAsset()?.name || '—' }}</div>
+        <div class="mega-sub">
+          <span class="mega-badge mega-badge-gold" *ngIf="bestAsset()">
+            +{{ gainPct(bestAsset()!) }}%
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── CHARTS ROW ────────────────────────────────────────── -->
+  <div class="inv-charts-row">
+    <div class="inv-chart-card" style="animation-delay:.05s">
+      <div class="inv-chart-header">
+        <div class="inv-chart-icon">🍰</div>
+        <div>
+          <div class="inv-chart-title">Composição do Portfólio</div>
+          <div class="inv-chart-subtitle">Distribuição por classe</div>
+        </div>
+      </div>
+      <div echarts [options]="portfolioChart" style="height:240px"></div>
+    </div>
+
+    <div class="inv-chart-card" style="animation-delay:.1s">
+      <div class="inv-chart-header">
+        <div class="inv-chart-icon">📊</div>
+        <div>
+          <div class="inv-chart-title">Performance Individual</div>
+          <div class="inv-chart-subtitle">Top 8 ativos por ganho</div>
+        </div>
+      </div>
+      <div echarts [options]="gainChart" style="height:240px"></div>
+    </div>
+  </div>
+
+  <!-- ─── ASSET GRID BY TYPE ────────────────────────────────── -->
+  <div class="inv-types-wrapper">
+    <div class="inv-type-section" *ngFor="let type of types">
+      <div *ngIf="getByType(type).length > 0" class="inv-type-block">
+        
+        <div class="inv-type-header">
+          <div class="inv-type-header-left">
+            <span class="inv-type-icon">{{ typeIcons[type] }}</span>
+            <span class="inv-type-name">{{ typeLabels[type] }}</span>
+            <span class="inv-type-count">{{ getByType(type).length }}</span>
+          </div>
+          <div class="inv-type-total">{{ fmt(typeTotal(type)) }}</div>
+        </div>
+
+        <div class="inv-asset-grid">
+          <div class="inv-asset-card" *ngFor="let inv of getByType(type); let idx = index"
+               [style.animation-delay]="(idx * 0.03) + 's'"
                (click)="openDetail(inv)">
 
-            <div class="inv-header">
-              <img *ngIf="inv.logoUrl" [src]="inv.logoUrl" class="inv-logo" onerror="this.style.display='none'" />
-              <div class="inv-logo-placeholder" *ngIf="!inv.logoUrl">{{ typeIcons[inv.type] }}</div>
-              <div class="inv-info">
-                <div class="inv-name">{{ inv.name }}</div>
-                <div class="inv-ticker">{{ inv.ticker || typeLabels[inv.type] }}</div>
+            <!-- Glow Effect -->
+            <div class="inv-asset-glow"></div>
+
+            <!-- Header with Logo -->
+            <div class="inv-asset-header">
+              <div class="inv-asset-logo-wrap">
+                <img *ngIf="inv.logoUrl" [src]="inv.logoUrl" class="inv-asset-logo" onerror="this.style.display='none'" />
+                <div class="inv-asset-logo-placeholder" *ngIf="!inv.logoUrl">{{ typeIcons[inv.type] }}</div>
               </div>
-              <div class="inv-actions" (click)="$event.stopPropagation()">
-                <button class="icon-btn" (click)="openEdit(inv)" title="Editar">✏️</button>
-                <button class="icon-btn danger" (click)="delete(inv.id)" title="Excluir">🗑️</button>
+              <div class="inv-asset-info">
+                <div class="inv-asset-name">{{ inv.name }}</div>
+                <div class="inv-asset-ticker">{{ inv.ticker || typeLabels[inv.type] }}</div>
+              </div>
+              <div class="inv-asset-actions" (click)="$event.stopPropagation()">
+                <button class="inv-icon-btn" (click)="openEdit(inv)" title="Editar">✏️</button>
+                <button class="inv-icon-btn inv-icon-btn-danger" (click)="delete(inv.id)" title="Excluir">🗑️</button>
               </div>
             </div>
 
-            <div class="inv-value-row">
-              <div class="inv-value">{{ fmt(inv.currentValue) }}</div>
-              <div class="inv-pct-badge" [class.positive]="gain(inv)>=0" [class.negative]="gain(inv)<0">
-                {{ gain(inv) >= 0 ? '▲' : '▼' }} {{ gainPct(inv) }}%
+            <!-- Current Value & Badge -->
+            <div class="inv-asset-value-row">
+              <div class="inv-asset-value">{{ fmt(inv.currentValue) }}</div>
+              <div class="inv-asset-badge" [class.badge-up]="gain(inv)>=0" [class.badge-down]="gain(inv)<0">
+                <span class="badge-arrow">{{ gain(inv) >= 0 ? '▲' : '▼' }}</span>
+                <span class="badge-pct">{{ gainPct(inv) }}%</span>
               </div>
             </div>
 
-            <div class="inv-gain" [class.text-green]="gain(inv)>=0" [class.text-red]="gain(inv)<0">
+            <!-- Gain Amount -->
+            <div class="inv-asset-gain" [class.gain-positive]="gain(inv)>=0" [class.gain-negative]="gain(inv)<0">
               {{ gain(inv) >= 0 ? '+' : '' }}{{ fmt(gain(inv)) }}
             </div>
 
-            <div class="inv-progress">
-              <div class="progress-wrap">
-                <div class="progress-fill"
-                     [class.green]="gain(inv)>=0"
-                     [class.red]="gain(inv)<0"
+            <!-- Progress Bar -->
+            <div class="inv-asset-progress">
+              <div class="inv-progress-bar">
+                <div class="inv-progress-fill"
+                     [class.fill-positive]="gain(inv)>=0"
+                     [class.fill-negative]="gain(inv)<0"
                      [style.width]="getProgressWidth(inv) + '%'">
                 </div>
               </div>
             </div>
 
-            <div class="inv-meta">
-              <span>Investido: {{ fmt(inv.initialAmount) }}</span>
-              <span>{{ inv.startDate | date:'MM/yyyy' }}</span>
+            <!-- Meta Info -->
+            <div class="inv-asset-meta">
+              <div class="inv-meta-item">
+                <span class="inv-meta-label">Investido</span>
+                <span class="inv-meta-value">{{ fmt(inv.initialAmount) }}</span>
+              </div>
+              <div class="inv-meta-divider"></div>
+              <div class="inv-meta-item">
+                <span class="inv-meta-label">Desde</span>
+                <span class="inv-meta-value">{{ inv.startDate | date:'MM/yyyy' }}</span>
+              </div>
             </div>
 
           </div>
         </div>
+
       </div>
     </div>
   </div>

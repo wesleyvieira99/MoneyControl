@@ -1,0 +1,254 @@
+<div class="simulator-page">
+
+  <div class="page-header">
+    <div>
+      <h1>🧮 Simulador Financeiro</h1>
+      <p class="ph-sub">Juros compostos, Monte Carlo e quitação de dívidas</p>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn" [class.active]="activeTab==='compound'" (click)="setTab('compound')">
+      📈 Juros Compostos
+    </button>
+    <button class="tab-btn" [class.active]="activeTab==='montecarlo'" (click)="setTab('montecarlo')">
+      🎲 Monte Carlo
+    </button>
+    <button class="tab-btn" [class.active]="activeTab==='debt'" (click)="setTab('debt')">
+      💳 Quitação de Dívida
+    </button>
+  </div>
+
+  <!-- ── COMPOUND ── -->
+  <div class="sim-layout" *ngIf="activeTab === 'compound'">
+    <div class="params-panel">
+      <h3>⚙️ Parâmetros</h3>
+
+      <div class="param-group">
+        <label>Capital Inicial</label>
+        <div class="param-input-wrap">
+          <span class="pi-prefix">R$</span>
+          <input type="number" [(ngModel)]="principal" (ngModelChange)="simulate()" min="0" step="1000"/>
+        </div>
+      </div>
+
+      <div class="param-group">
+        <label>Aporte Mensal</label>
+        <div class="param-input-wrap">
+          <span class="pi-prefix">R$</span>
+          <input type="number" [(ngModel)]="monthly" (ngModelChange)="simulate()" min="0" step="100"/>
+        </div>
+      </div>
+
+      <div class="param-group">
+        <label>Taxa de Retorno Anual: <strong>{{ rateYearly }}%</strong></label>
+        <input type="range" [(ngModel)]="rateYearly" (ngModelChange)="simulate()" min="1" max="30" step="0.5" class="slider"/>
+        <div class="range-labels"><span>1%</span><span>30%</span></div>
+      </div>
+
+      <div class="param-group">
+        <label>Período: <strong>{{ years }} anos</strong></label>
+        <input type="range" [(ngModel)]="years" (ngModelChange)="simulate()" min="1" max="40" class="slider"/>
+        <div class="range-labels"><span>1a</span><span>40a</span></div>
+      </div>
+
+      <!-- Result card -->
+      <div class="result-card" *ngIf="result">
+        <div class="rc-item highlight">
+          <span class="rc-label">💰 Patrimônio Final</span>
+          <span class="rc-val big">{{ fmt(result.finalAmount) }}</span>
+        </div>
+        <div class="rc-divider"></div>
+        <div class="rc-item">
+          <span class="rc-label">📥 Total Investido</span>
+          <span class="rc-val">{{ fmt(result.totalInvested) }}</span>
+        </div>
+        <div class="rc-item">
+          <span class="rc-label">✨ Rendimentos</span>
+          <span class="rc-val good">{{ fmt(result.earnings) }}</span>
+        </div>
+        <div class="rc-item">
+          <span class="rc-label">📈 Multiplicou</span>
+          <span class="rc-val good">{{ result.earningsPct }}%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-panel">
+      <div class="chart-card">
+        <h3>Evolução Patrimonial — 3 Cenários</h3>
+        <div #simChart class="chart-area"></div>
+      </div>
+      <div class="scenarios-legend" *ngIf="scenarios.length">
+        <div class="sl-item" *ngFor="let s of scenarios">
+          <span class="sl-dot" [style.background]="s.color"></span>
+          <span class="sl-label">{{ s.label }}</span>
+          <span class="sl-val">{{ fmt(s.data[s.data.length-1]) }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MONTE CARLO ── -->
+  <div class="sim-layout" *ngIf="activeTab === 'montecarlo'">
+    <div class="params-panel">
+      <h3>⚙️ Parâmetros</h3>
+
+      <div class="param-group">
+        <label>Capital Inicial</label>
+        <div class="param-input-wrap">
+          <span class="pi-prefix">R$</span>
+          <input type="number" [(ngModel)]="mc_initial" min="0" step="1000"/>
+        </div>
+      </div>
+      <div class="param-group">
+        <label>Aporte Mensal</label>
+        <div class="param-input-wrap">
+          <span class="pi-prefix">R$</span>
+          <input type="number" [(ngModel)]="mc_monthly" min="0" step="100"/>
+        </div>
+      </div>
+      <div class="param-group">
+        <label>Retorno Esperado: <strong>{{ mc_expectedReturn }}% a.a.</strong></label>
+        <input type="range" [(ngModel)]="mc_expectedReturn" min="1" max="25" class="slider"/>
+      </div>
+      <div class="param-group">
+        <label>Volatilidade: <strong>{{ mc_volatility }}% a.a.</strong></label>
+        <input type="range" [(ngModel)]="mc_volatility" min="1" max="40" class="slider"/>
+      </div>
+      <div class="param-group">
+        <label>Período: <strong>{{ mc_years }} anos</strong></label>
+        <input type="range" [(ngModel)]="mc_years" min="1" max="40" class="slider"/>
+      </div>
+      <div class="param-group">
+        <label>Simulações: <strong>{{ mc_simulations }}</strong></label>
+        <input type="range" [(ngModel)]="mc_simulations" min="100" max="1000" step="100" class="slider"/>
+      </div>
+
+      <button class="btn-run" (click)="runMonteCarlo()" [disabled]="mcRunning">
+        {{ mcRunning ? '⏳ Simulando...' : '▶ Rodar Simulação' }}
+      </button>
+
+      <div class="result-card mc-result" *ngIf="mcResult && !mcRunning">
+        <div class="mc-percentiles">
+          <div class="mc-pct-item pessimist">
+            <span class="mc-pct-label">10% pior</span>
+            <span class="mc-pct-val">{{ fmt(mcResult.p10) }}</span>
+          </div>
+          <div class="mc-pct-item median">
+            <span class="mc-pct-label">Mediana</span>
+            <span class="mc-pct-val">{{ fmt(mcResult.p50) }}</span>
+          </div>
+          <div class="mc-pct-item optimist">
+            <span class="mc-pct-label">10% melhor</span>
+            <span class="mc-pct-val">{{ fmt(mcResult.p90) }}</span>
+          </div>
+        </div>
+        <div class="mc-prob">
+          <span class="mp-icon">🎯</span>
+          <span class="mp-text">{{ mcResult.probPositive }}% de probabilidade de superar o total investido</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-panel">
+      <div class="chart-card">
+        <h3>🎲 Monte Carlo — {{ mc_simulations }} Simulações de {{ mc_years }} anos</h3>
+        <div #monteCarlo class="chart-area-tall"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DEBT ── -->
+  <div class="sim-layout" *ngIf="activeTab === 'debt'">
+    <div class="params-panel">
+      <h3>⚙️ Parâmetros da Dívida</h3>
+
+      <div class="param-group">
+        <label>Saldo Devedor</label>
+        <div class="param-input-wrap">
+          <span class="pi-prefix">R$</span>
+          <input type="number" [(ngModel)]="debtBalance" (ngModelChange)="calcDebt()" min="0" step="1000"/>
+        </div>
+      </div>
+      <div class="param-group">
+        <label>Taxa de Juros Mensal: <strong>{{ debtRate }}%</strong></label>
+        <input type="range" [(ngModel)]="debtRate" (ngModelChange)="calcDebt()" min="0.1" max="15" step="0.1" class="slider danger"/>
+        <div class="range-labels"><span>0.1%</span><span>15%</span></div>
+      </div>
+      <div class="param-group">
+        <label>Pagamento Mensal</label>
+        <div class="param-input-wrap">
+          <span class="pi-prefix">R$</span>
+          <input type="number" [(ngModel)]="debtPayment" (ngModelChange)="calcDebt()" min="0" step="100"/>
+        </div>
+      </div>
+
+      <div class="debt-result" *ngIf="debtResult">
+        <div class="dr-impossible" *ngIf="debtResult.impossible">
+          ⚠️ O pagamento de {{ fmt(debtPayment) }} não cobre os juros mensais de {{ fmt(debtResult.minPayment) }}.
+          Aumente o valor para pelo menos {{ fmt(debtResult.minPayment + 1) }}.
+        </div>
+        <ng-container *ngIf="!debtResult.impossible">
+          <div class="result-card">
+            <div class="rc-item">
+              <span class="rc-label">⏳ Tempo para quitar</span>
+              <span class="rc-val big">{{ debtResult.months }}m ({{ debtResult.years }} anos)</span>
+            </div>
+            <div class="rc-divider"></div>
+            <div class="rc-item">
+              <span class="rc-label">💸 Total pago</span>
+              <span class="rc-val">{{ fmt(debtResult.totalPaid) }}</span>
+            </div>
+            <div class="rc-item">
+              <span class="rc-label">🔥 Juros totais</span>
+              <span class="rc-val bad">{{ fmt(debtResult.totalInterest) }}</span>
+            </div>
+            <div class="rc-item">
+              <span class="rc-label">% pago em juros</span>
+              <span class="rc-val bad">{{ debtResult.interestPct }}%</span>
+            </div>
+          </div>
+          <div class="debt-tip">
+            💡 Dobrando o pagamento para {{ fmt(debtPayment * 2) }} reduziria muito o tempo e os juros pagos.
+          </div>
+        </ng-container>
+      </div>
+    </div>
+
+    <div class="chart-panel debt-visual" *ngIf="debtResult && !debtResult.impossible">
+      <div class="dv-donut">
+        <svg viewBox="0 0 120 120" class="donut-svg">
+          <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="16"/>
+          <circle cx="60" cy="60" r="50" fill="none" stroke="#ff6b6b" stroke-width="16"
+            stroke-linecap="round"
+            [style.stroke-dasharray]="314"
+            [style.stroke-dashoffset]="314 - (debtResult.totalInterest / debtResult.totalPaid * 314)"
+            style="transform:rotate(-90deg);transform-origin:center"/>
+          <circle cx="60" cy="60" r="50" fill="none" stroke="#6c63ff" stroke-width="16"
+            stroke-linecap="round"
+            [style.stroke-dasharray]="314"
+            [style.stroke-dashoffset]="314 - (debtBalance / debtResult.totalPaid * 314)"
+            style="transform:rotate(calc(-90deg + {{ 360 * debtResult.totalInterest / debtResult.totalPaid }}deg));transform-origin:center"/>
+        </svg>
+        <div class="donut-center">
+          <span class="dc-val">{{ fmt(debtResult.totalPaid) }}</span>
+          <span class="dc-label">Total pago</span>
+        </div>
+      </div>
+      <div class="dv-legend">
+        <div class="dvl-item">
+          <span class="dvl-dot" style="background:#6c63ff"></span>
+          <span class="dvl-text">Saldo da dívida</span>
+          <span class="dvl-val">{{ fmt(debtBalance) }}</span>
+        </div>
+        <div class="dvl-item">
+          <span class="dvl-dot" style="background:#ff6b6b"></span>
+          <span class="dvl-text">Juros totais</span>
+          <span class="dvl-val bad">{{ fmt(debtResult.totalInterest) }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

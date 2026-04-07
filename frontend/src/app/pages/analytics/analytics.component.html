@@ -1,0 +1,284 @@
+<div class="analytics-page">
+
+  <div class="page-header">
+    <div class="ph-left">
+      <h1>🧠 Analytics & Inteligência</h1>
+      <p class="ph-sub">Análises profundas sobre sua saúde financeira</p>
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button *ngFor="let t of tabs" class="tab-btn" [class.active]="activeTab === t.key"
+      (click)="setTab($any(t.key))">
+      <span class="tab-icon">{{ t.icon }}</span>
+      <span class="tab-label">{{ t.label }}</span>
+    </button>
+  </div>
+
+  <div class="tab-content">
+
+    <!-- ── SCORE ── -->
+    <ng-container *ngIf="activeTab === 'score'">
+      <div class="loading-pulse" *ngIf="loading['score']">Carregando score...</div>
+      <div class="score-section" *ngIf="!loading['score'] && score">
+
+        <div class="score-hero">
+          <svg class="score-ring" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="10"/>
+            <circle cx="60" cy="60" r="54" fill="none"
+              [style.stroke]="scoreColor(score.total)"
+              stroke-width="10" stroke-linecap="round"
+              [style.stroke-dasharray]="2 * 3.14159 * 54"
+              [style.stroke-dashoffset]="dashOffset(score.total)"
+              style="transform:rotate(-90deg);transform-origin:center;transition:stroke-dashoffset 1.5s ease"/>
+          </svg>
+          <div class="score-center">
+            <span class="score-emoji">{{ score.emoji }}</span>
+            <span class="score-num">{{ score.total }}</span>
+            <span class="score-tier">{{ score.tier }}</span>
+          </div>
+        </div>
+
+        <div class="score-pillars">
+          <div class="pillar-card" *ngFor="let p of [
+            {label:'Poupança', val: score.savingsScore, max:250, icon:'💰', sub: fmtPct(score.savingsRate) + ' da renda'},
+            {label:'Dívidas', val: score.debtScore, max:250, icon:'🏦', sub: 'Proporção: ' + fmtPct(score.debtRatio)},
+            {label:'Investimentos', val: score.investmentScore, max:250, icon:'📈', sub: 'Taxa de alocação'},
+            {label:'Reserva', val: score.emergencyScore, max:250, icon:'🛡', sub: '6 meses = 250pts'}
+          ]">
+            <div class="pc-icon">{{ p.icon }}</div>
+            <div class="pc-body">
+              <div class="pc-label">{{ p.label }}</div>
+              <div class="pc-bar"><div class="pc-fill" [style.width.%]="(p.val/p.max)*100"></div></div>
+              <div class="pc-score">{{ p.val }} / {{ p.max }}</div>
+              <div class="pc-sub">{{ p.sub }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="score-kpis">
+          <div class="skpi">
+            <span class="skpi-label">Renda Mensal</span>
+            <span class="skpi-val">{{ fmt(score.monthlyIncome) }}</span>
+          </div>
+          <div class="skpi">
+            <span class="skpi-label">Despesa Mensal</span>
+            <span class="skpi-val">{{ fmt(score.monthlyExpense) }}</span>
+          </div>
+          <div class="skpi">
+            <span class="skpi-label">Taxa de Poupança</span>
+            <span class="skpi-val" [class.good]="score.savingsRate >= 20" [class.bad]="score.savingsRate < 10">
+              {{ fmtPct(score.savingsRate) }}</span>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- ── CASH FLOW ── -->
+    <ng-container *ngIf="activeTab === 'cashflow'">
+      <div class="loading-pulse" *ngIf="loading['cashflow']">Carregando fluxo de caixa...</div>
+      <div class="cashflow-section" *ngIf="!loading['cashflow'] && cashflow">
+        <div class="cf-kpis">
+          <div class="cf-kpi">
+            <span class="cfk-label">Saldo Atual</span>
+            <span class="cfk-val">{{ fmt(cashflow.currentBalance) }}</span>
+          </div>
+          <div class="cf-kpi">
+            <span class="cfk-label">Projeção 30d</span>
+            <span class="cfk-val" [class.good]="cashflow.projectedBalance30 > 0" [class.bad]="cashflow.projectedBalance30 < 0">
+              {{ fmt(cashflow.projectedBalance30) }}</span>
+          </div>
+          <div class="cf-kpi">
+            <span class="cfk-label">Projeção 60d</span>
+            <span class="cfk-val" [class.good]="cashflow.projectedBalance60 > 0" [class.bad]="cashflow.projectedBalance60 < 0">
+              {{ fmt(cashflow.projectedBalance60) }}</span>
+          </div>
+          <div class="cf-kpi">
+            <span class="cfk-label">Projeção 90d</span>
+            <span class="cfk-val" [class.good]="cashflow.projectedBalance90 > 0" [class.bad]="cashflow.projectedBalance90 < 0">
+              {{ fmt(cashflow.projectedBalance90) }}</span>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Projeção de Saldo (90 dias)</h3>
+          <div #cashflowChart class="chart-area"></div>
+        </div>
+        <div class="empty-msg" *ngIf="!cashflow.days?.length">
+          Nenhuma transação pendente para projeção. Adicione transações com status "Pendente".
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- ── RECURRING ── -->
+    <ng-container *ngIf="activeTab === 'recurring'">
+      <div class="loading-pulse" *ngIf="loading['recurring']">Analisando padrões recorrentes...</div>
+      <div class="recurring-section" *ngIf="!loading['recurring']">
+        <div class="empty-msg" *ngIf="!recurring.length">Nenhum gasto recorrente detectado nos últimos 3 meses.</div>
+        <div class="recurring-list" *ngIf="recurring.length">
+          <div class="rec-card" *ngFor="let r of recurring">
+            <div class="rec-icon">🔁</div>
+            <div class="rec-body">
+              <div class="rec-desc">{{ r.description }}</div>
+              <div class="rec-meta">
+                <span class="rec-cat">{{ r.category }}</span>
+                <span class="rec-occ">{{ r.occurrences }}× nos últimos 90 dias</span>
+                <span class="rec-last">Última: {{ r.lastDate }}</span>
+              </div>
+            </div>
+            <div class="rec-amount">{{ fmt(r.avgAmount) }}<span class="rec-avg-label">/mês</span></div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- ── COMPARISON ── -->
+    <ng-container *ngIf="activeTab === 'comparison'">
+      <div class="loading-pulse" *ngIf="loading['comparison']">Comparando meses...</div>
+      <div class="comparison-section" *ngIf="!loading['comparison'] && comparison.length">
+        <div class="chart-card">
+          <h3>Comparativo Mensal — Receita vs Despesa</h3>
+          <div #compChart class="chart-area"></div>
+        </div>
+        <div class="comp-table">
+          <div class="ct-header">
+            <span>Mês</span><span>Receita</span><span>Despesa</span><span>Líquido</span><span>Poupança</span>
+          </div>
+          <div class="ct-row" *ngFor="let m of comparison"
+               [class.positive]="m.net > 0" [class.negative]="m.net < 0">
+            <span class="ct-month">{{ m.monthLabel }}</span>
+            <span class="ct-income">{{ fmt(m.income) }}</span>
+            <span class="ct-expense">{{ fmt(m.expense) }}</span>
+            <span class="ct-net" [class.good]="m.net > 0" [class.bad]="m.net < 0">{{ fmt(m.net) }}</span>
+            <span class="ct-savings" [class.good]="m.savingsRate > 0">{{ fmtPct(m.savingsRate) }}</span>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- ── PATTERNS ── -->
+    <ng-container *ngIf="activeTab === 'patterns'">
+      <div class="loading-pulse" *ngIf="loading['patterns']">Detectando padrões...</div>
+      <div class="patterns-section" *ngIf="!loading['patterns'] && patterns">
+        <div class="chart-card">
+          <h3>Gasto Médio por Dia da Semana</h3>
+          <div #patternsChart class="chart-area"></div>
+        </div>
+        <div class="top-cats" *ngIf="patterns.topCategories?.length">
+          <h3>🏆 Top Categorias (90 dias)</h3>
+          <div class="tc-list">
+            <div class="tc-item" *ngFor="let c of patterns.topCategories; let i = index">
+              <span class="tc-rank">#{{ i+1 }}</span>
+              <span class="tc-name">{{ c.category }}</span>
+              <span class="tc-val">{{ fmt(c.total) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- ── INDEPENDENCE ── -->
+    <ng-container *ngIf="activeTab === 'independence'">
+      <div class="loading-pulse" *ngIf="loading['independence']">Calculando independência financeira...</div>
+      <div class="fire-section" *ngIf="!loading['independence'] && independence">
+
+        <div class="fire-hero">
+          <span class="fire-icon-big">🔥</span>
+          <h2>Ponto de Independência Financeira</h2>
+          <p class="fire-sub">Baseado na Regra dos 4% (FIRE Method)</p>
+        </div>
+
+        <div class="fire-progress-wrap">
+          <div class="fire-progress-bar">
+            <div class="fpb-fill" [style.width.%]="independence.progressPct"></div>
+          </div>
+          <span class="fpb-pct">{{ fmtPct(independence.progressPct) }}</span>
+        </div>
+
+        <div class="fire-kpis">
+          <div class="fkpi fire-number">
+            <span class="fk-label">🎯 Número FIRE</span>
+            <span class="fk-val highlight">{{ fmt(independence.fireNumber) }}</span>
+            <span class="fk-sub">25× despesa anual</span>
+          </div>
+          <div class="fkpi">
+            <span class="fk-label">💰 Patrimônio Atual</span>
+            <span class="fk-val">{{ fmt(independence.currentWealth) }}</span>
+          </div>
+          <div class="fkpi">
+            <span class="fk-label">📉 Gap Restante</span>
+            <span class="fk-val bad">{{ fmt(independence.gap) }}</span>
+          </div>
+          <div class="fkpi">
+            <span class="fk-label">💸 Superávit Mensal</span>
+            <span class="fk-val" [class.good]="independence.monthlySurplus > 0" [class.bad]="independence.monthlySurplus <= 0">
+              {{ fmt(independence.monthlySurplus) }}</span>
+          </div>
+          <div class="fkpi">
+            <span class="fk-label">📅 Despesa Mensal</span>
+            <span class="fk-val">{{ fmt(independence.monthlyExpense) }}</span>
+          </div>
+          <div class="fkpi">
+            <span class="fk-label">📆 Despesa Anual</span>
+            <span class="fk-val">{{ fmt(independence.annualExpense) }}</span>
+          </div>
+        </div>
+
+        <div class="fire-eta" *ngIf="independence.monthsToFI < 9999">
+          <div class="fire-eta-inner">
+            <span class="eta-icon">🏁</span>
+            <div class="eta-text">
+              <strong>{{ independence.yearsToFI }} anos</strong> para a independência financeira
+              <br/><small>Previsão: ano {{ independence.fiYear }} (assumindo 10% a.a. de retorno)</small>
+            </div>
+          </div>
+        </div>
+        <div class="fire-eta achieved" *ngIf="independence.monthsToFI === 0">
+          <div class="fire-eta-inner">
+            <span class="eta-icon">🏆</span>
+            <div class="eta-text"><strong>Você já atingiu a Independência Financeira!</strong></div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- ── ANOMALIES ── -->
+    <ng-container *ngIf="activeTab === 'anomalies'">
+      <div class="loading-pulse" *ngIf="loading['anomalies']">Detectando anomalias...</div>
+      <div class="anomalies-section" *ngIf="!loading['anomalies']">
+        <div class="empty-msg" *ngIf="!anomalies.length">
+          ✅ Nenhuma anomalia detectada. Seus gastos estão dentro dos padrões históricos.
+        </div>
+        <div class="anomalies-list" *ngIf="anomalies.length">
+          <div class="anom-card" *ngFor="let a of anomalies"
+               [class.high]="a.severity === 'HIGH'" [class.medium]="a.severity === 'MEDIUM'">
+            <div class="anom-sev" [style.color]="anomalySeverityColor(a.severity)">
+              {{ a.severity === 'HIGH' ? '🔴 ALTO' : '🟡 MÉDIO' }}
+            </div>
+            <div class="anom-body">
+              <span class="anom-cat">{{ a.category }}</span>
+              <span class="anom-msg">gasto {{ a.deviation > 0 ? '+' : '' }}{{ fmtPct(a.deviation * 100) }} acima da média</span>
+            </div>
+            <div class="anom-amounts">
+              <span class="aa-this">{{ fmt(a.amount) }}</span>
+              <span class="aa-avg">Média: {{ fmt(a.avg) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- ── TREEMAP ── -->
+    <ng-container *ngIf="activeTab === 'treemap'">
+      <div class="loading-pulse" *ngIf="loading['treemap']">Construindo treemap...</div>
+      <div class="treemap-section" *ngIf="!loading['treemap']">
+        <div class="empty-msg" *ngIf="!treemap.length">Nenhum dado de despesas disponível para o período.</div>
+        <div class="chart-card tall" *ngIf="treemap.length">
+          <h3>🗂 Distribuição de Gastos — Treemap</h3>
+          <div #treemapChart class="chart-area-tall"></div>
+        </div>
+      </div>
+    </ng-container>
+
+  </div>
+</div>

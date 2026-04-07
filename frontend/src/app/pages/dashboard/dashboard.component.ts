@@ -1,10 +1,12 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgxEchartsDirective } from 'ngx-echarts';
 import { ApiService } from '../../core/services/api.service';
 import { catchError, forkJoin, of } from 'rxjs';
 import type { EChartsOption } from 'echarts';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { IsolatedIframeDirective } from '../../core/directives/isolated-iframe.directive';
 
 interface InsightCard {
   icon: string;
@@ -16,11 +18,14 @@ interface InsightCard {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgxEchartsDirective],
+  imports: [CommonModule, FormsModule, NgxEchartsDirective, IsolatedIframeDirective],
   templateUrl: './dashboard.component.html',
-  styleUrls: ['./dashboard.component.scss']
+  styleUrls: ['./dashboard.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DashboardComponent implements OnInit, OnDestroy {
+  @ViewChild('tvScreen') tvScreen?: ElementRef;
+
   summary: any = {};
   loading = true;
   error = false;
@@ -33,6 +38,56 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // Card flip animation
   flippedCard: string | null = null;
   cardAnimating = false;
+
+  // TV Channels
+  currentChannelIndex = 0;
+  tvMuted = false;
+  showAddChannelModal = false;
+  showEditChannelModal = false;
+  editingChannelIndex = -1;
+  tvReady = true;
+  currentTvUrl: SafeResourceUrl = this.sanitizer.bypassSecurityTrustResourceUrl('');
+  
+  tvChannels = [
+    { 
+      name: 'GBN', 
+      url: 'https://www.youtube.com/watch?v=QliL4CGc7iY', 
+      initial: 'G',
+      color: '#0047AB' 
+    },
+    { 
+      name: 'ABC News', 
+      url: 'https://www.youtube.com/watch?v=w_Ma8oQLmSM', 
+      initial: 'A',
+      color: '#FFD500' 
+    },
+    { 
+      name: 'France 24', 
+      url: 'https://www.youtube.com/watch?v=Ap-UM1O9RBU', 
+      initial: 'F',
+      color: '#E4002B' 
+    },
+    { 
+      name: 'FOX News', 
+      url: 'https://www.youtube.com/watch?v=ADXWeM9wsDw', 
+      initial: 'F',
+      color: '#003366' 
+    },
+    { 
+      name: 'Sky News', 
+      url: 'https://www.youtube.com/watch?v=9Auq9mYxFEE',
+      initial: 'S',
+      color: '#0072C6' 
+    },
+    { 
+      name: 'Bloomberg', 
+      url: 'https://www.youtube.com/watch?v=dp8PhLsUcFE',
+      initial: 'B',
+      color: '#000000' 
+    }
+  ];
+  newChannel = { name: '', url: '', initial: '', color: '#3b82f6' };
+  editingChannel = { name: '', url: '', initial: '', color: '#3b82f6' };
 
   // News section
   activeNewsSource = 0;
@@ -62,8 +117,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   netWorthOption: EChartsOption = {};
   dailyOption: EChartsOption = {};
 
-  constructor(private api: ApiService) {}
-  ngOnInit() { this.loadData(); }
+  constructor(private api: ApiService, private sanitizer: DomSanitizer, private cdr: ChangeDetectorRef) {}
+  
+  ngOnInit() { 
+    this.loadData();
+    this.updateTvUrl();
+  }
+  
   ngOnDestroy() { clearInterval(this.insightTimer); }
 
   /* ── Mock fallback data ── */
@@ -107,7 +167,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       history:    this.api.getBalanceHistory(12).pipe(catchError(() => of(null))),
       categories: this.api.getCategoryBreakdown(this.selectedMonth).pipe(catchError(() => of(null))),
       heatmap:    this.api.getHeatmap(this.selectedMonth.slice(0, 4)).pipe(catchError(() => of(null))),
-    }).subscribe(({ summary, history, categories, heatmap }) => {
+      insights:   this.api.getInsights(this.selectedMonth).pipe(catchError(() => of(null))),
+    }).subscribe(({ summary, history, categories, heatmap, insights }) => {
       const usedMock = !summary || (!history?.length && !categories?.length);
       this.isMockData = usedMock;
       this.summary   = summary   ?? this.mockSummary;
@@ -117,14 +178,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
       this.rawHeatData = heat;
       this.heatmapYear = this.selectedMonth.slice(0, 4);
-      this.buildInsights(hist, cats);
+      
+      // Usa insights do GPT se disponíveis, senão gera localmente
+      if (insights && insights.length > 0) {
+        this.insights = insights;
+      } else {
+        this.buildInsights(hist, cats);
+      }
+      
       this.buildBalanceChart(hist);
       this.buildDonutChart(cats);
       this.buildHeatmap(heat);
       this.loading = false;
+      this.cdr.markForCheck();
 
       this.insightTimer = setInterval(() => {
         this.insightIndex = (this.insightIndex + 1) % this.insights.length;
+        this.cdr.markForCheck();
       }, 4500);
     });
   }
@@ -664,5 +734,144 @@ export class DashboardComponent implements OnInit, OnDestroy {
   expensePct() {
     if (!this.summary.monthlyIncome || this.summary.monthlyIncome <= 0) return 0;
     return Math.round((this.summary.monthlyExpense / this.summary.monthlyIncome) * 100);
+  }
+
+  // ═══ TV METHODS ════════════════════════════════════════════
+  private updateTvUrl() {
+    const ch = this.tvChannels[this.currentChannelIndex];
+    if (!ch) return;
+    
+    let videoId = '';
+    const url = ch.url;
+    if (url.includes('youtube.com/watch?v=')) {
+      videoId = url.split('v=')[1]?.split('&')[0] || '';
+    } else if (url.includes('youtu.be/')) {
+      videoId = url.split('youtu.be/')[1]?.split('?')[0] || '';
+    } else if (url.includes('youtube.com/embed/')) {
+      videoId = url.split('embed/')[1]?.split('?')[0] || '';
+    }
+    
+    const muteParam = this.tvMuted ? 1 : 0;
+    const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=${muteParam}&controls=1&rel=0&modestbranding=1&iv_load_policy=3`;
+    this.currentTvUrl = this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl);
+  }
+
+  onTvLoad() {
+    this.tvReady = true;
+  }
+
+  switchChannel(index: number) {
+    if (index !== this.currentChannelIndex) {
+      this.tvReady = false;
+      this.currentChannelIndex = index;
+      setTimeout(() => {
+        this.updateTvUrl();
+        this.tvReady = true;
+        this.cdr.detectChanges();
+      }, 100);
+    }
+  }
+
+  toggleTvMute() {
+    this.tvMuted = !this.tvMuted;
+    this.tvReady = false;
+    setTimeout(() => {
+      this.updateTvUrl();
+      this.tvReady = true;
+      this.cdr.detectChanges();
+    }, 100);
+  }
+
+  toggleTvFullscreen() {
+    const elem = this.tvScreen?.nativeElement;
+    if (elem) {
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+      } else if ((elem as any).webkitRequestFullscreen) {
+        (elem as any).webkitRequestFullscreen();
+      }
+    }
+  }
+
+  openAddChannelModal() {
+    this.showAddChannelModal = true;
+    this.newChannel = { name: '', url: '', initial: '', color: '#3b82f6' };
+    this.cdr.markForCheck();
+  }
+
+  closeAddChannelModal() {
+    this.showAddChannelModal = false;
+    this.cdr.markForCheck();
+  }
+
+  addNewChannel() {
+    if (this.newChannel.name && this.newChannel.url) {
+      this.tvChannels.push({ ...this.newChannel });
+      this.newChannel = { name: '', url: '', initial: '', color: '#3b82f6' };
+      this.closeAddChannelModal();
+      localStorage.setItem('customTvChannels', JSON.stringify(this.tvChannels));
+      this.cdr.markForCheck();
+    }
+  }
+
+  // ═══ EDIT CHANNEL MODAL ═══════════════════════════════════
+  openEditChannelModal(index: number) {
+    this.editingChannelIndex = index;
+    this.editingChannel = { ...this.tvChannels[index] };
+    this.showEditChannelModal = true;
+    this.cdr.markForCheck();
+  }
+
+  closeEditChannelModal() {
+    this.showEditChannelModal = false;
+    this.editingChannelIndex = -1;
+    this.cdr.markForCheck();
+  }
+
+  saveEditedChannel() {
+    if (this.editingChannel.name && this.editingChannel.url && this.editingChannelIndex >= 0) {
+      this.tvChannels[this.editingChannelIndex] = { ...this.editingChannel };
+      
+      // Se estava assistindo o canal editado, atualiza a URL
+      if (this.currentChannelIndex === this.editingChannelIndex) {
+        this.tvReady = false;
+        setTimeout(() => {
+          this.updateTvUrl();
+          this.tvReady = true;
+          this.cdr.detectChanges();
+        }, 100);
+      }
+      
+      this.closeEditChannelModal();
+      localStorage.setItem('customTvChannels', JSON.stringify(this.tvChannels));
+      this.cdr.markForCheck();
+    }
+  }
+
+  deleteChannel() {
+    if (this.editingChannelIndex >= 0 && confirm(`Tem certeza que deseja excluir o canal "${this.tvChannels[this.editingChannelIndex].name}"?`)) {
+      this.tvChannels.splice(this.editingChannelIndex, 1);
+      
+      // Ajusta o índice do canal atual se necessário
+      if (this.currentChannelIndex === this.editingChannelIndex) {
+        this.currentChannelIndex = 0;
+        this.updateTvUrl();
+      } else if (this.currentChannelIndex > this.editingChannelIndex) {
+        this.currentChannelIndex--;
+      }
+      
+      this.closeEditChannelModal();
+      localStorage.setItem('customTvChannels', JSON.stringify(this.tvChannels));
+      this.cdr.markForCheck();
+    }
+  }
+
+  // ═══ TRACKBY FUNCTIONS (Performance) ══════════════════════
+  trackByIndex(index: number): number {
+    return index;
+  }
+
+  trackByChannelName(index: number, channel: any): string {
+    return channel.name + index;
   }
 }

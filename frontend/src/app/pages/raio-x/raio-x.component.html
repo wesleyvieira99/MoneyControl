@@ -1,0 +1,150 @@
+<div class="raiox-page">
+
+  <div class="page-header">
+    <div>
+      <h1>🩻 Raio-X Financeiro</h1>
+      <p class="ph-sub">Diagnóstico completo da sua saúde financeira em uma página</p>
+    </div>
+  </div>
+
+  <div class="loading-screen" *ngIf="loading">
+    <div class="scan-anim">
+      <div class="scan-icon">🩻</div>
+      <div class="scan-line"></div>
+      <p>Escaneando suas finanças...</p>
+    </div>
+  </div>
+
+  <ng-container *ngIf="!loading && score">
+
+    <!-- Score gauge + radar -->
+    <div class="top-row">
+
+      <div class="gauge-card">
+        <div class="gc-title">Score Global</div>
+        <div #gaugeChart class="gauge-chart"></div>
+        <div class="gauge-badges">
+          <span class="gb-badge" *ngFor="let p of pillars">
+            {{ p.icon }} {{ score[p.key] }}/{{ p.max }}
+          </span>
+        </div>
+      </div>
+
+      <div class="radar-card">
+        <div class="rc-title">Perfil por Pilar</div>
+        <div #radarChart class="radar-chart"></div>
+      </div>
+
+      <!-- Right summary -->
+      <div class="summary-col">
+
+        <div class="status-card" [style.border-color]="scoreColor(score.total) + '55'">
+          <div class="sc-emoji">{{ score.emoji }}</div>
+          <div class="sc-body">
+            <div class="sc-tier">{{ score.tier }}</div>
+            <div class="sc-num" [style.color]="scoreColor(score.total)">{{ score.total }} / 1000</div>
+          </div>
+          <div class="sc-trend" [class]="getTrend()">
+            {{ getTrend() === 'up' ? '↑ Melhorando' : getTrend() === 'down' ? '↓ Atenção' : '→ Estável' }}
+          </div>
+        </div>
+
+        <div class="fire-mini" *ngIf="independence">
+          <div class="fm-header">🔥 Independência Financeira</div>
+          <div class="fire-bar">
+            <div class="fb-fill" [style.width.%]="independence.progressPct"></div>
+          </div>
+          <div class="fm-detail">
+            <span>{{ fmtPct(independence.progressPct) }} concluído</span>
+            <span *ngIf="independence.monthsToFI > 0">{{ independence.yearsToFI }}a restantes</span>
+            <span *ngIf="independence.monthsToFI === 0" class="good">✅ Atingido!</span>
+          </div>
+          <div class="fm-numbers">
+            <div class="fmn-item">
+              <span class="fmn-label">FIRE Number</span>
+              <span class="fmn-val">{{ fmt(independence.fireNumber) }}</span>
+            </div>
+            <div class="fmn-item">
+              <span class="fmn-label">Patrimônio</span>
+              <span class="fmn-val">{{ fmt(independence.currentWealth) }}</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Benchmarks row -->
+    <div class="benchmarks-row">
+      <h2>📐 Benchmarks vs Recomendado</h2>
+      <div class="benchmarks-grid">
+        <div class="bm-card" *ngFor="let b of benchmarks" [class.ok]="b.good(getBenchmarkValue(b.key))" [class.nok]="!b.good(getBenchmarkValue(b.key))">
+          <div class="bm-icon">{{ b.icon }}</div>
+          <div class="bm-body">
+            <div class="bm-label">{{ b.label }}</div>
+            <div class="bm-val" [class.good]="b.good(getBenchmarkValue(b.key))" [class.bad]="!b.good(getBenchmarkValue(b.key))">
+              {{ getBenchmarkValue(b.key).toFixed(1) }}{{ b.suffix }}
+            </div>
+            <div class="bm-target">Meta: {{ b.target }}{{ b.suffix }}</div>
+          </div>
+          <div class="bm-status">
+            {{ b.good(getBenchmarkValue(b.key)) ? '✅' : '⚠️' }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pillars detail -->
+    <div class="pillars-detail">
+      <h2>🏗️ Detalhamento por Pilar</h2>
+      <div class="pillars-grid">
+        <div class="pillar-block" *ngFor="let p of pillars">
+          <div class="pb-header">
+            <span class="pb-icon">{{ p.icon }}</span>
+            <span class="pb-label">{{ p.label }}</span>
+            <span class="pb-score">{{ score[p.key] }}/{{ p.max }}</span>
+          </div>
+          <div class="pb-bar">
+            <div class="pb-fill" [style.width.%]="pillarPct(p.key, p.max)"
+                 [class.high]="pillarPct(p.key, p.max) >= 80"
+                 [class.mid]="pillarPct(p.key, p.max) >= 50 && pillarPct(p.key, p.max) < 80"
+                 [class.low]="pillarPct(p.key, p.max) < 50"></div>
+          </div>
+          <div class="pb-pct">{{ pillarPct(p.key, p.max) }}%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Anomalies alert -->
+    <div class="anomalies-alert" *ngIf="anomalies.length > 0">
+      <div class="aa-header">⚠️ {{ anomalies.length }} Anomalia(s) Detectada(s)</div>
+      <div class="aa-list">
+        <div class="aa-item" *ngFor="let a of anomalies.slice(0,5)" [class.high]="a.severity === 'HIGH'">
+          <span class="aa-cat">{{ a.category }}</span>
+          <span class="aa-msg">gasto {{ a.deviation > 0 ? '+' : '' }}{{ (a.deviation * 100).toFixed(0) }}% acima da média ({{ fmt(a.avg) }})</span>
+          <span class="aa-val">{{ fmt(a.amount) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="no-anomalies" *ngIf="anomalies.length === 0">
+      ✅ Nenhuma anomalia detectada nos últimos 6 meses. Seus gastos estão dentro dos padrões.
+    </div>
+
+    <!-- Monthly snapshot -->
+    <div class="monthly-snapshot" *ngIf="comparison.length">
+      <h2>📅 Snapshot Mensal</h2>
+      <div class="ms-grid">
+        <div class="ms-card" *ngFor="let m of comparison">
+          <div class="msc-month">{{ m.monthLabel }}</div>
+          <div class="msc-income">{{ fmt(m.income) }}</div>
+          <div class="msc-expense">{{ fmt(m.expense) }}</div>
+          <div class="msc-net" [class.good]="m.net > 0" [class.bad]="m.net < 0">
+            {{ m.net > 0 ? '▲' : '▼' }} {{ fmt(Math.abs(m.net)) }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

@@ -1,77 +1,146 @@
-<div class="page">
-  <div class="page-header">
-    <div>
-      <h1>⚖️ Distribuição de Renda</h1>
-      <p class="page-subtitle">Defina como alocar sua renda automaticamente</p>
-    </div>
-    <button class="btn-primary" (click)="openNew()">+ Nova Regra</button>
-  </div>
+<div class="page dist-page">
 
-  <!-- Top: Chart + Simulation -->
-  <div class="dist-top">
-    <!-- Donut -->
-    <div class="donut-card glass-card">
-      <div class="donut-header">
-        <div class="chart-title">📊 Distribuição Atual</div>
-        <div class="pct-indicator" [class.over]="totalPct() !== 100">
-          {{ totalPct() }}% {{ totalPct() === 100 ? '✅ Balanceado' : '⚠️ Desbalanceado' }}
+  <!-- ─── HERO HEADER ─────────────────────────────────────────── -->
+  <div class="dist-hero">
+    <div class="dist-hero-bg"></div>
+    <div class="dist-hero-content">
+      <div class="dist-hero-left">
+        <div class="dist-hero-icon">⚖️</div>
+        <div>
+          <h1 class="dist-hero-title">Distribuição de Renda</h1>
+          <div class="dist-hero-subtitle">
+            <span class="dist-hero-badge">{{ rules.length }} regras ativas</span>
+            <span class="dist-hero-dot">·</span>
+            <span>Alocação inteligente de recursos</span>
+            <span class="dist-hero-dot">·</span>
+            <span [class.dist-hero-balanced]="totalPct()===100" [class.dist-hero-unbalanced]="totalPct()!==100">
+              {{ totalPct() === 100 ? '✅ Balanceado' : '⚠️ ' + totalPct() + '%' }}
+            </span>
+          </div>
         </div>
       </div>
-      <div echarts [options]="chartOption" style="height:280px;flex:1"></div>
-    </div>
-
-    <!-- Simulation -->
-    <div class="sim-card glass-card">
-      <div class="chart-title" style="margin-bottom:16px">🧮 Simulador de Distribuição</div>
-      <div class="sim-income-row">
-        <span class="sim-income-label">💰 Renda mensal:</span>
-        <input type="number" [(ngModel)]="simulationIncome" placeholder="R$ 10.000" />
-      </div>
-      <div class="sim-list">
-        <div class="sim-item" *ngFor="let r of rules; let i = index"
-          [style.border-left-color]="colors[i % colors.length]">
-          <span class="sim-name">{{ destLabels[r.destinationType] || r.destinationType }} {{ r.name }}</span>
-          <span class="badge badge-purple">{{ r.percentage }}%</span>
-          <span class="sim-amount">{{ simAmount(r) }}</span>
-        </div>
-        <div *ngIf="rules.length === 0" style="text-align:center;color:var(--text-secondary);padding:30px 0;font-size:13px">
-          Adicione regras para simular a distribuição
-        </div>
-      </div>
+      <button class="dist-hero-btn" (click)="openNew()">
+        <span class="dist-hero-btn-icon">+</span>
+        <span>Nova Regra</span>
+      </button>
     </div>
   </div>
 
-  <!-- Rules Grid -->
-  <div class="rules-section-title">📋 Regras de Distribuição ({{ rules.length }})</div>
-  <div class="rules-grid">
-    <div class="rule-card glass-card" *ngFor="let r of rules; let i = index"
-      [style.border-left-color]="colors[i % colors.length]">
-      <div class="rule-top">
-        <div class="rule-name">{{ r.name }}</div>
-        <div class="rule-actions">
-          <button class="icon-btn" (click)="openEdit(r)">✏️</button>
-          <button class="icon-btn danger" (click)="delete(r.id)">🗑️</button>
+  <!-- ─── CHARTS ROW ──────────────────────────────────────────── -->
+  <div class="dist-charts-row">
+    
+    <!-- Donut Chart -->
+    <div class="dist-chart-card" style="animation-delay:.05s">
+      <div class="dist-chart-header">
+        <div class="dist-chart-icon">🍩</div>
+        <div>
+          <div class="dist-chart-title">Distribuição Atual</div>
+          <div class="dist-chart-subtitle">Alocação percentual por destino</div>
         </div>
       </div>
-      <div class="rule-type-badge">{{ destLabels[r.destinationType] || r.destinationType }}</div>
-      <div class="rule-pct-row">
-        <div class="rule-pct" [style.color]="colors[i % colors.length]">{{ r.percentage }}</div>
-        <div class="rule-pct-label">%</div>
+      <div class="dist-chart-pct-badge" [class.balanced]="totalPct()===100" [class.unbalanced]="totalPct()!==100">
+        {{ totalPct() }}%
       </div>
-      <div class="rule-bar">
-        <div class="rule-bar-fill"
-          [style.width]="r.percentage + '%'"
-          [style.background]="colors[i % colors.length]">
+      <div echarts [options]="chartOption" style="height:300px"></div>
+    </div>
+
+    <!-- Simulator Card -->
+    <div class="dist-sim-card" style="animation-delay:.1s">
+      <div class="dist-chart-header">
+        <div class="dist-chart-icon">🧮</div>
+        <div>
+          <div class="dist-chart-title">Simulador de Distribuição</div>
+          <div class="dist-chart-subtitle">Veja quanto vai para cada destino</div>
+        </div>
+      </div>
+      
+      <div class="dist-sim-income">
+        <label class="dist-sim-label">💰 Renda mensal (R$)</label>
+        <input type="number" [(ngModel)]="simulationIncome" placeholder="10000" class="dist-sim-input" />
+      </div>
+
+      <div class="dist-sim-list">
+        <div class="dist-sim-item" *ngFor="let r of rules; let i = index"
+             [style.border-left-color]="colors[i % colors.length]">
+          <div class="dist-sim-item-left">
+            <span class="dist-sim-item-icon">{{ destIcons[r.destinationType] || '📌' }}</span>
+            <div class="dist-sim-item-info">
+              <div class="dist-sim-item-name">{{ r.name }}</div>
+              <div class="dist-sim-item-type">{{ destLabels[r.destinationType] }}</div>
+            </div>
+          </div>
+          <div class="dist-sim-item-right">
+            <div class="dist-sim-item-pct">{{ r.percentage }}%</div>
+            <div class="dist-sim-item-amount">{{ simAmount(r) }}</div>
+          </div>
+        </div>
+        
+        <div *ngIf="rules.length === 0" class="dist-sim-empty">
+          <span class="dist-sim-empty-icon">⚖️</span>
+          <div class="dist-sim-empty-text">Adicione regras para simular</div>
         </div>
       </div>
     </div>
 
-    <div class="rules-empty glass-card" *ngIf="rules.length === 0">
-      <span class="ei">⚖️</span>
-      <div class="et">Nenhuma regra criada</div>
-      <div class="es">Crie regras para distribuir sua renda automaticamente entre contas e objetivos</div>
+  </div>
+
+  <!-- ─── RULES GRID ──────────────────────────────────────────── -->
+  <div class="dist-rules-header">
+    <h2 class="dist-rules-title">📋 Regras de Distribuição</h2>
+    <span class="dist-rules-count">{{ rules.length }}</span>
+  </div>
+
+  <div class="dist-rules-grid">
+    <div class="dist-rule-card" *ngFor="let r of rules; let i = index"
+         [style.animation-delay]="(i * 0.04) + 's'"
+         [style.border-left-color]="colors[i % colors.length]">
+      
+      <div class="dist-rule-glow" [style.background]="'radial-gradient(circle, ' + colors[i % colors.length] + '33, transparent)'"></div>
+      
+      <div class="dist-rule-header">
+        <div class="dist-rule-icon" [style.background]="colors[i % colors.length] + '22'">
+          {{ destIcons[r.destinationType] || '📌' }}
+        </div>
+        <div class="dist-rule-info">
+          <div class="dist-rule-name">{{ r.name }}</div>
+          <div class="dist-rule-type">{{ destLabels[r.destinationType] }}</div>
+        </div>
+        <div class="dist-rule-actions">
+          <button class="dist-icon-btn" (click)="openEdit(r)" title="Editar">✏️</button>
+          <button class="dist-icon-btn dist-icon-btn-danger" (click)="delete(r.id)" title="Excluir">🗑️</button>
+        </div>
+      </div>
+
+      <div class="dist-rule-pct-row">
+        <div class="dist-rule-pct" [style.color]="colors[i % colors.length]">{{ r.percentage }}</div>
+        <div class="dist-rule-pct-label">%</div>
+        <div class="dist-rule-sim" *ngIf="simulationIncome > 0">
+          = {{ simAmount(r) }}
+        </div>
+      </div>
+
+      <div class="dist-rule-progress">
+        <div class="dist-rule-progress-bar">
+          <div class="dist-rule-progress-fill"
+               [style.width]="r.percentage + '%'"
+               [style.background]="'linear-gradient(90deg, ' + colors[i % colors.length] + ', ' + colors[i % colors.length] + 'bb)'">
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Empty State -->
+    <div class="dist-empty-card" *ngIf="rules.length === 0">
+      <div class="dist-empty-icon">⚖️</div>
+      <div class="dist-empty-title">Nenhuma regra criada</div>
+      <div class="dist-empty-text">Crie regras para distribuir sua renda automaticamente</div>
+      <button class="dist-empty-btn" (click)="openNew()">
+        <span>+</span> Criar primeira regra
+      </button>
     </div>
   </div>
+
 </div>
 
 <!-- Modal -->

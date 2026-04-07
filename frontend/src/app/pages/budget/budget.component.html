@@ -1,0 +1,176 @@
+<div class="budget-page">
+
+  <div class="page-header">
+    <div class="ph-left">
+      <h1>💰 Orçamento por Envelope</h1>
+      <p class="ph-sub">Controle seus gastos por categoria com limites definidos</p>
+    </div>
+    <button class="btn-primary" (click)="openAdd()">＋ Novo Envelope</button>
+  </div>
+
+  <!-- Month navigator -->
+  <div class="month-nav">
+    <button class="mn-btn" (click)="changeMonth(-1)">‹</button>
+    <span class="mn-label">{{ monthLabel(selectedMonth) }}</span>
+    <button class="mn-btn" (click)="changeMonth(1)">›</button>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="summary-row" *ngIf="summary">
+    <div class="sum-card">
+      <span class="sc-icon">📊</span>
+      <div>
+        <div class="sc-label">Total Orçado</div>
+        <div class="sc-value">{{ fmt(summary.totalBudget) }}</div>
+      </div>
+    </div>
+    <div class="sum-card" [class.over]="summary.totalSpent > summary.totalBudget">
+      <span class="sc-icon">💸</span>
+      <div>
+        <div class="sc-label">Total Gasto</div>
+        <div class="sc-value">{{ fmt(summary.totalSpent) }}</div>
+      </div>
+    </div>
+    <div class="sum-card" [class.positive]="summary.totalRemaining >= 0" [class.negative]="summary.totalRemaining < 0">
+      <span class="sc-icon">{{ summary.totalRemaining >= 0 ? '✅' : '⚠️' }}</span>
+      <div>
+        <div class="sc-label">Saldo do Orçamento</div>
+        <div class="sc-value">{{ fmt(summary.totalRemaining) }}</div>
+      </div>
+    </div>
+    <div class="sum-card">
+      <span class="sc-icon">🎯</span>
+      <div>
+        <div class="sc-label">Utilização Geral</div>
+        <div class="sc-value pct" [class.over]="summary.overallPct > 100">{{ fmtPct(summary.overallPct) }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overall bar -->
+  <div class="overall-bar-wrap" *ngIf="summary">
+    <div class="ob-header">
+      <span>Orçamento total utilizado</span>
+      <span>{{ fmt(summary.totalSpent) }} / {{ fmt(summary.totalBudget) }}</span>
+    </div>
+    <div class="overall-bar">
+      <div class="ob-fill" [class]="summary.overallPct >= 100 ? 'critical' : summary.overallPct >= 80 ? 'warning' : 'good'"
+           [style.width.%]="Math.min(100, summary.overallPct)"></div>
+    </div>
+    <div class="ob-alert" *ngIf="summary.overBudgetCount > 0">
+      ⚠️ {{ summary.overBudgetCount }} categoria(s) ultrapassaram o orçamento
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-grid" *ngIf="loading">
+    <div class="skeleton-card" *ngFor="let i of [1,2,3,4,5,6]"></div>
+  </div>
+
+  <!-- Empty -->
+  <div class="empty-state" *ngIf="!loading && budgets.length === 0">
+    <div class="es-icon">💰</div>
+    <h3>Nenhum envelope criado</h3>
+    <p>Defina limites de gasto por categoria para controlar seu orçamento</p>
+    <button class="btn-primary" (click)="openAdd()">Criar primeiro envelope</button>
+  </div>
+
+  <!-- Envelopes grid -->
+  <div class="envelopes-grid" *ngIf="!loading && budgets.length > 0">
+    <div class="envelope-card" *ngFor="let b of budgets; trackBy: trackById"
+         [class]="statusLabel(b)">
+      <div class="env-glow" [style.background]="b.categoryColor"></div>
+
+      <div class="env-header">
+        <div class="env-icon-wrap" [style.background]="b.categoryColor + '22'">
+          <span class="env-icon">{{ b.categoryIcon }}</span>
+        </div>
+        <div class="env-info">
+          <h3 class="env-name">{{ b.categoryName }}</h3>
+          <span class="env-status-badge" [class]="statusLabel(b)">
+            <ng-container *ngIf="statusLabel(b) === 'good'">✅ No controle</ng-container>
+            <ng-container *ngIf="statusLabel(b) === 'caution'">🟡 Atenção</ng-container>
+            <ng-container *ngIf="statusLabel(b) === 'warning'">🔶 Quase no limite</ng-container>
+            <ng-container *ngIf="statusLabel(b) === 'critical'">🔴 Limite ultrapassado</ng-container>
+          </span>
+        </div>
+        <div class="env-actions">
+          <button class="icon-btn" (click)="openEdit(b)" title="Editar">✏️</button>
+          <button class="icon-btn danger" (click)="delete(b.id!)"
+            [class.confirm]="deleteConfirm === b.id">
+            {{ deleteConfirm === b.id ? '⚠' : '🗑' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="env-bar">
+        <div class="env-bar-fill" [class]="statusLabel(b)"
+             [style.width.%]="Math.min(100, b.percentUsed ?? 0)"
+             [style.background]="statusLabel(b) === 'good' ? b.categoryColor : undefined"></div>
+      </div>
+      <div class="env-pct-label">{{ fmtPct(b.percentUsed ?? 0) }} utilizado</div>
+
+      <!-- Amounts -->
+      <div class="env-amounts">
+        <div class="ea-item">
+          <span class="ea-label">Gasto</span>
+          <span class="ea-val spent">{{ fmt(b.spentAmount ?? 0) }}</span>
+        </div>
+        <div class="ea-divider"></div>
+        <div class="ea-item">
+          <span class="ea-label">Orçado</span>
+          <span class="ea-val budget">{{ fmt(b.budgetAmount) }}</span>
+        </div>
+        <div class="ea-divider"></div>
+        <div class="ea-item">
+          <span class="ea-label">{{ (b.remainingAmount ?? 0) >= 0 ? 'Restante' : 'Excesso' }}</span>
+          <span class="ea-val" [class.positive]="(b.remainingAmount ?? 0) >= 0" [class.negative]="(b.remainingAmount ?? 0) < 0">
+            {{ fmt(Math.abs(b.remainingAmount ?? 0)) }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ editMode ? '✏️ Editar Envelope' : '💰 Novo Envelope' }}</h2>
+      <button class="modal-close" (click)="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label>Categoria</label>
+        <input type="text" [(ngModel)]="form.categoryName" placeholder="Ex: Alimentação, Moradia..." />
+      </div>
+      <div class="form-row">
+        <label>Valor do orçamento (R$)</label>
+        <input type="number" [(ngModel)]="form.budgetAmount" min="0" step="50" />
+      </div>
+      <div class="form-row">
+        <label>Ícone</label>
+        <div class="icon-picker">
+          <button *ngFor="let ic of icons" class="icon-opt" [class.selected]="form.categoryIcon === ic"
+            (click)="form.categoryIcon = ic">{{ ic }}</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Cor</label>
+        <div class="color-picker">
+          <button *ngFor="let c of colors" class="color-opt" [class.selected]="form.categoryColor === c"
+            [style.background]="c" (click)="form.categoryColor = c"></button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeModal()">Cancelar</button>
+      <button class="btn-primary" (click)="save()" [disabled]="saving || !form.categoryName">
+        {{ saving ? 'Salvando...' : (editMode ? 'Salvar' : 'Criar') }}
+      </button>
+    </div>
+  </div>
+</div>

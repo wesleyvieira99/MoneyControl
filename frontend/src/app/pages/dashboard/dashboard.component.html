@@ -164,7 +164,8 @@
     <button class="tab-btn" [class.active]="activeTab==='categories'" (click)="activeTab='categories'">🏷️ Categorias</button>
     <button class="tab-btn" [class.active]="activeTab==='heatmap'" (click)="activeTab='heatmap'">🔥 Heatmap</button>
     <button class="tab-btn" [class.active]="activeTab==='savings'" (click)="activeTab='savings'">💡 Economia</button>
-    <button class="tab-btn" [class.active]="activeTab==='news'" (click)="activeTab='news'">📰 Notícias</button>
+    <button class="tab-btn" [class.active]="activeTab==='tv'" (click)="activeTab='tv'">📺 TV ao Vivo</button>
+    <button class="tab-btn" [class.active]="activeTab==='markets'" (click)="activeTab='markets'">📈 Mercados</button>
   </div>
 
   <!-- TAB: OVERVIEW -->
@@ -327,37 +328,180 @@
     </div>
   </div>
 
-  <!-- TAB: NOTICIAS -->
-  <div *ngIf="activeTab==='news'" class="news-tab">
+  <!-- TAB: TV AO VIVO -->
+  <div *ngIf="activeTab==='tv'" class="tv-tab">
 
-    <div class="news-header">
-      <div class="news-header-left">
-        <div class="news-title">📰 Central de Notícias &amp; Mercados</div>
-        <div class="news-subtitle">Dados em tempo real · TradingView · 100% gratuito</div>
+    <div class="tv-header">
+      <div class="tv-header-left">
+        <div class="tv-title">📺 TV News ao Vivo</div>
+        <div class="tv-subtitle">Canais 24h · Tempo real · Transmissão global</div>
       </div>
-      <div class="news-live-badge"><span class="news-dot"></span><span>AO VIVO</span></div>
+      <div class="tv-header-actions">
+        <button class="tv-add-btn" (click)="openAddChannelModal()">
+          <span class="tv-add-icon">+</span>
+          <span>Adicionar Canal</span>
+        </button>
+        <div class="tv-live-badge"><span class="tv-dot"></span><span>AO VIVO</span></div>
+      </div>
+    </div>
+
+    <!-- ═══ PREMIUM TV LAYOUT (SEM WIDGETS) ═══════════════════ -->
+    <div class="tv-container-isolated">
+      
+      <!-- TV Screen com Glass Morphism -->
+      <div class="tv-screen-wrapper">
+        <div class="tv-screen-glow"></div>
+        <div class="tv-screen-bezel">
+          <div class="tv-screen-top-bar">
+            <div class="tv-channel-info">
+              <div class="tv-channel-logo-initial" [style.background]="'linear-gradient(135deg, ' + tvChannels[currentChannelIndex].color + ', ' + tvChannels[currentChannelIndex].color + 'dd)'">
+                {{ tvChannels[currentChannelIndex].initial }}
+              </div>
+              <div class="tv-channel-details">
+                <div class="tv-channel-name">{{ tvChannels[currentChannelIndex].name }}</div>
+                <div class="tv-channel-status">
+                  <span class="tv-live-dot"></span>
+                  <span>Ao vivo</span>
+                </div>
+              </div>
+            </div>
+            <div class="tv-screen-controls">
+              <button class="tv-ctrl-btn" (click)="toggleTvMute()" [title]="tvMuted ? 'Ativar som' : 'Silenciar'">
+                {{ tvMuted ? '🔇' : '🔊' }}
+              </button>
+              <button class="tv-ctrl-btn" (click)="toggleTvFullscreen()" title="Tela cheia">
+                ⛶
+              </button>
+            </div>
+          </div>
+          
+          <div class="tv-screen" #tvScreen>
+            <div class="tv-loading" *ngIf="!tvReady">
+              <div class="tv-spinner"></div>
+              <span>Carregando canal...</span>
+            </div>
+            <iframe 
+              *ngIf="tvReady"
+              [src]="currentTvUrl"
+              width="100%" 
+              height="100%"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+              (load)="onTvLoad()"
+              [title]="tvChannels[currentChannelIndex]?.name">
+            </iframe>
+          </div>
+        </div>
+      </div>
+
+      <!-- Channel Selector Buttons -->
+      <div class="tv-channels-bar">
+        <div class="tv-channels-scroll">
+          <button 
+            *ngFor="let ch of tvChannels; let i = index; trackBy: trackByChannelName"
+            class="tv-channel-btn"
+            [class.active]="i === currentChannelIndex"
+            [style.animation-delay]="(i * 0.05) + 's'">
+            <div class="tv-channel-btn-glow" [style.background]="ch.color + '40'"></div>
+            <div class="tv-channel-btn-logo-initial" [style.background]="'linear-gradient(135deg, ' + ch.color + ', ' + ch.color + 'dd)'">
+              {{ ch.initial }}
+            </div>
+            <div class="tv-channel-btn-info" (click)="switchChannel(i)">
+              <div class="tv-channel-btn-name">{{ ch.name }}</div>
+              <div class="tv-channel-btn-status">
+                <span class="tv-btn-live-dot"></span>
+                <span>Live</span>
+              </div>
+            </div>
+            <button class="tv-channel-edit-btn" (click)="openEditChannelModal(i); $event.stopPropagation()" title="Editar canal">
+              ✏️
+            </button>
+            <div class="tv-channel-btn-border" [style.background]="ch.color"></div>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="tv-footer">
+      <span>📺 Transmissões ao vivo · 24 horas · Cobertura global</span>
+    </div>
+
+  </div>
+
+  <!-- TAB: MERCADOS -->
+  <div *ngIf="activeTab==='markets'" class="markets-tab">
+
+    <div class="markets-header">
+      <div class="markets-header-left">
+        <div class="markets-title">📈 Mercados Financeiros</div>
+        <div class="markets-subtitle">Cotações em tempo real · Análises · Calendário econômico</div>
+      </div>
+      <div class="markets-live-badge"><span class="markets-dot"></span><span>TEMPO REAL</span></div>
+    </div>
+
+    <!-- WIDGETS SIDEBAR (AGORA NA ABA MERCADOS) -->
+    <div class="markets-widgets-row">
+      <div class="market-widget-card">
+        <div class="market-widget-header">
+          <span class="market-widget-icon">📈</span>
+          <span class="market-widget-title">IBOVESPA</span>
+          <span class="market-widget-badge">B3</span>
+        </div>
+        <iframe
+          src="https://s.tradingview.com/embed-widget/mini-symbol-overview/?locale=pt_BR#%7B%22symbol%22%3A%22BMFBOVESPA%3AIBOV%22%2C%22dateRange%22%3A%221D%22%2C%22colorTheme%22%3A%22dark%22%2C%22isTransparent%22%3Atrue%2C%22autosize%22%3Atrue%2C%22largeChartUrl%22%3A%22%22%7D"
+          width="100%" height="220" frameborder="0" scrolling="no"
+          sandbox="allow-scripts allow-same-origin">
+        </iframe>
+      </div>
+      <div class="market-widget-card">
+        <div class="market-widget-header">
+          <span class="market-widget-icon">₿</span>
+          <span class="market-widget-title">Bitcoin</span>
+          <span class="market-widget-badge market-badge-gold">Crypto</span>
+        </div>
+        <iframe
+          src="https://s.tradingview.com/embed-widget/mini-symbol-overview/?locale=pt_BR#%7B%22symbol%22%3A%22BITSTAMP%3ABTCUSD%22%2C%22dateRange%22%3A%221D%22%2C%22colorTheme%22%3A%22dark%22%2C%22isTransparent%22%3Atrue%2C%22autosize%22%3Atrue%7D"
+          width="100%" height="220" frameborder="0" scrolling="no"
+          sandbox="allow-scripts allow-same-origin">
+        </iframe>
+      </div>
+      <div class="market-widget-card">
+        <div class="market-widget-header">
+          <span class="market-widget-icon">📊</span>
+          <span class="market-widget-title">S&P 500</span>
+          <span class="market-widget-badge market-badge-blue">US</span>
+        </div>
+        <iframe
+          src="https://s.tradingview.com/embed-widget/mini-symbol-overview/?locale=pt_BR#%7B%22symbol%22%3A%22FOREXCOM%3ASPXUSD%22%2C%22dateRange%22%3A%221D%22%2C%22colorTheme%22%3A%22dark%22%2C%22isTransparent%22%3Atrue%2C%22autosize%22%3Atrue%7D"
+          width="100%" height="220" frameborder="0" scrolling="no"
+          sandbox="allow-scripts allow-same-origin">
+        </iframe>
+      </div>
+    </div>
+
+    <!-- LIVE TICKER -->
+    <div class="news-card news-card-full">
+      <div class="news-card-header">
+        <span class="nch-icon">📡</span>
+        <span class="nch-title">Mercados em Tempo Real</span>
+        <span class="nch-badge">Ticker</span>
+      </div>
+      <div class="news-card-body ncp-zero">
+        <iframe
+          src="https://s.tradingview.com/embed-widget/tickers/?locale=pt_BR#%7B%22symbols%22%3A%5B%7B%22proName%22%3A%22BMFBOVESPA%3AIBOV%22%2C%22title%22%3A%22IBOVESPA%22%7D%2C%7B%22proName%22%3A%22FOREXCOM%3ASPXUSD%22%2C%22title%22%3A%22S%26P+500%22%7D%2C%7B%22proName%22%3A%22FOREXCOM%3ANSXUSD%22%2C%22title%22%3A%22Nasdaq%22%7D%2C%7B%22proName%22%3A%22FX_IDC%3AUSDBRL%22%2C%22title%22%3A%22USD%2FBRL%22%7D%2C%7B%22proName%22%3A%22BITSTAMP%3ABTCUSD%22%2C%22title%22%3A%22Bitcoin%22%7D%2C%7B%22proName%22%3A%22COMEX%3AGC1%21%22%2C%22title%22%3A%22Ouro%22%7D%5D%2C%22colorTheme%22%3A%22dark%22%2C%22isTransparent%22%3Atrue%2C%22showSymbolLogo%22%3Atrue%2C%22width%22%3A%22100%25%22%2C%22height%22%3A%2272%22%7D"
+          width="100%" height="72" frameborder="0" scrolling="no"
+          title="TradingView Tickers" sandbox="allow-scripts allow-same-origin">
+        </iframe>
+      </div>
     </div>
 
     <div class="news-grid">
 
-      <div class="news-card news-card-full">
-        <div class="news-card-header">
-          <span class="nch-icon">📡</span>
-          <span class="nch-title">Mercados em Tempo Real</span>
-          <span class="nch-badge">Ticker</span>
-        </div>
-        <div class="news-card-body ncp-zero">
-          <iframe
-            src="https://s.tradingview.com/embed-widget/tickers/?locale=pt_BR#%7B%22symbols%22%3A%5B%7B%22proName%22%3A%22BMFBOVESPA%3AIBOV%22%2C%22title%22%3A%22IBOVESPA%22%7D%2C%7B%22proName%22%3A%22FOREXCOM%3ASPXUSD%22%2C%22title%22%3A%22S%26P+500%22%7D%2C%7B%22proName%22%3A%22FOREXCOM%3ANSXUSD%22%2C%22title%22%3A%22Nasdaq%22%7D%2C%7B%22proName%22%3A%22FX_IDC%3AUSDBRL%22%2C%22title%22%3A%22USD%2FBRL%22%7D%2C%7B%22proName%22%3A%22BITSTAMP%3ABTCUSD%22%2C%22title%22%3A%22Bitcoin%22%7D%2C%7B%22proName%22%3A%22COMEX%3AGC1%21%22%2C%22title%22%3A%22Ouro%22%7D%5D%2C%22colorTheme%22%3A%22dark%22%2C%22isTransparent%22%3Atrue%2C%22showSymbolLogo%22%3Atrue%2C%22width%22%3A%22100%25%22%2C%22height%22%3A%2272%22%7D"
-            width="100%" height="72" frameborder="0" scrolling="no"
-            title="TradingView Tickers" sandbox="allow-scripts allow-same-origin">
-          </iframe>
-        </div>
-      </div>
-
       <div class="news-card news-card-half">
         <div class="news-card-header">
-          <span class="nch-icon">��</span>
+          <span class="nch-icon">💱</span>
           <span class="nch-title">Câmbio — Taxas Cruzadas</span>
           <span class="nch-badge">Ao vivo</span>
         </div>
@@ -450,9 +594,128 @@
     <div class="news-footer">
       <span>Dados por </span>
       <a href="https://www.tradingview.com" target="_blank" rel="noopener" class="news-footer-link">TradingView</a>
-      <span> · Widgets gratuitos · Tempo real</span>
+      <span> · Canais ao vivo 24h · Tempo real</span>
     </div>
 
   </div>
 
+</div>
+
+<!-- ═══ MODAL: ADD CHANNEL ═══════════════════════════════════ -->
+<div class="modal-overlay" *ngIf="showAddChannelModal" (click)="closeAddChannelModal()">
+  <div class="modal modal-add-channel" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>📺 Adicionar Novo Canal</h2>
+      <button class="close-btn" (click)="closeAddChannelModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Nome do Canal</label>
+        <input type="text" [(ngModel)]="newChannel.name" placeholder="Ex: CNN, BBC News..." class="form-input" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">URL do YouTube (Embed ou Watch)</label>
+        <input type="text" [(ngModel)]="newChannel.url" placeholder="https://www.youtube.com/watch?v=..." class="form-input" />
+        <small class="form-hint">Cole a URL completa do vídeo ao vivo</small>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Inicial do Canal (1 letra)</label>
+        <input type="text" [(ngModel)]="newChannel.initial" placeholder="Ex: C, B, F..." class="form-input" maxlength="1" style="text-transform: uppercase;" />
+        <small class="form-hint">Uma letra para representar o canal no ícone</small>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cor do Tema</label>
+        <div class="color-picker-row">
+          <input type="color" [(ngModel)]="newChannel.color" class="color-input" />
+          <input type="text" [(ngModel)]="newChannel.color" placeholder="#3b82f6" class="form-input color-text" />
+        </div>
+        <small class="form-hint">Cor para destacar o botão do canal</small>
+      </div>
+      <div class="channel-preview" *ngIf="newChannel.name || newChannel.initial">
+        <div class="channel-preview-label">👀 Preview do Botão:</div>
+        <div class="tv-channel-btn preview" [style.border-left-color]="newChannel.color">
+          <div class="tv-channel-btn-glow" [style.background]="newChannel.color + '40'"></div>
+          <div class="tv-channel-btn-logo-initial" [style.background]="'linear-gradient(135deg, ' + newChannel.color + ', ' + newChannel.color + 'dd)'">
+            {{ newChannel.initial || '?' }}
+          </div>
+          <div class="tv-channel-btn-info">
+            <div class="tv-channel-btn-name">{{ newChannel.name || 'Novo Canal' }}</div>
+            <div class="tv-channel-btn-status">
+              <span class="tv-btn-live-dot"></span>
+              <span>Live</span>
+            </div>
+          </div>
+          <div class="tv-channel-btn-border" [style.background]="newChannel.color"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" (click)="closeAddChannelModal()">Cancelar</button>
+      <button class="btn-save" (click)="addNewChannel()" [disabled]="!newChannel.name || !newChannel.url">
+        <span>+</span> Adicionar Canal
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: EDIT CHANNEL ══════════════════════════════════ -->
+<div class="modal-overlay" *ngIf="showEditChannelModal" (click)="closeEditChannelModal()">
+  <div class="modal modal-edit-channel" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>✏️ Editar Canal</h2>
+      <button class="close-btn" (click)="closeEditChannelModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Nome do Canal</label>
+        <input type="text" [(ngModel)]="editingChannel.name" placeholder="Ex: CNN, BBC News..." class="form-input" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">URL do YouTube (Embed ou Watch)</label>
+        <input type="text" [(ngModel)]="editingChannel.url" placeholder="https://www.youtube.com/watch?v=..." class="form-input" />
+        <small class="form-hint">Cole a URL completa do vídeo ao vivo</small>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Inicial do Canal (1 letra)</label>
+        <input type="text" [(ngModel)]="editingChannel.initial" placeholder="Ex: C, B, F..." class="form-input" maxlength="1" style="text-transform: uppercase;" />
+        <small class="form-hint">Uma letra para representar o canal no ícone</small>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cor do Tema</label>
+        <div class="color-picker-row">
+          <input type="color" [(ngModel)]="editingChannel.color" class="color-input" />
+          <input type="text" [(ngModel)]="editingChannel.color" placeholder="#3b82f6" class="form-input color-text" />
+        </div>
+        <small class="form-hint">Cor para destacar o botão do canal</small>
+      </div>
+      <div class="channel-preview" *ngIf="editingChannel.name || editingChannel.initial">
+        <div class="channel-preview-label">👀 Preview do Botão:</div>
+        <div class="tv-channel-btn preview" [style.border-left-color]="editingChannel.color">
+          <div class="tv-channel-btn-glow" [style.background]="editingChannel.color + '40'"></div>
+          <div class="tv-channel-btn-logo-initial" [style.background]="'linear-gradient(135deg, ' + editingChannel.color + ', ' + editingChannel.color + 'dd)'">
+            {{ editingChannel.initial || '?' }}
+          </div>
+          <div class="tv-channel-btn-info">
+            <div class="tv-channel-btn-name">{{ editingChannel.name || 'Canal Editado' }}</div>
+            <div class="tv-channel-btn-status">
+              <span class="tv-btn-live-dot"></span>
+              <span>Live</span>
+            </div>
+          </div>
+          <div class="tv-channel-btn-border" [style.background]="editingChannel.color"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions modal-actions-split">
+      <button class="btn-delete" (click)="deleteChannel()">
+        <span>🗑️</span> Excluir Canal
+      </button>
+      <div class="modal-actions-right">
+        <button class="btn-cancel" (click)="closeEditChannelModal()">Cancelar</button>
+        <button class="btn-save" (click)="saveEditedChannel()" [disabled]="!editingChannel.name || !editingChannel.url">
+          <span>✓</span> Salvar Alterações
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
