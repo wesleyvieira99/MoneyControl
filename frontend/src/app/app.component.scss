@@ -800,3 +800,249 @@ $transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     background: rgba(59, 130, 246, 0.04);
   }
 }
+
+/* ==================== SPLASH SCREEN ==================== */
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  background: #03040d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: splashFadeOut 0.6s ease-in-out 2.2s forwards;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% 50%, rgba(59,130,246,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 30% 30%, rgba(139,92,246,0.1) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 60% at 70% 70%, rgba(16,185,129,0.06) 0%, transparent 50%);
+  }
+}
+
+.splash-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  animation: splashContentIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+}
+
+.splash-logo-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.splash-logo {
+  width: 80px;
+  height: 80px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 40px rgba(59,130,246,0.5), 0 0 80px rgba(139,92,246,0.3);
+  animation: splashLogoFloat 2s ease-in-out infinite;
+  position: relative;
+  z-index: 2;
+}
+
+.splash-glyph {
+  color: white;
+  font-size: 36px;
+  font-weight: 900;
+  letter-spacing: -2px;
+}
+
+.splash-rings {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.splash-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid;
+  animation: splashRingPulse 2s ease-in-out infinite;
+
+  &.ring-1 {
+    width: 100px;
+    height: 100px;
+    border-color: rgba(59,130,246,0.3);
+    animation-delay: 0s;
+  }
+  &.ring-2 {
+    width: 130px;
+    height: 130px;
+    border-color: rgba(139,92,246,0.2);
+    animation-delay: 0.3s;
+  }
+  &.ring-3 {
+    width: 160px;
+    height: 160px;
+    border-color: rgba(16,185,129,0.15);
+    animation-delay: 0.6s;
+  }
+}
+
+.splash-title {
+  font-size: 2.5rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, #f0f4ff 0%, #a5b4fc 50%, #c4b5fd 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-align: center;
+}
+
+.splash-subtitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(148, 163, 184, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+.splash-loader {
+  width: 200px;
+  height: 3px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.splash-loader-bar {
+  width: 0;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #10b981);
+  animation: splashLoaderFill 2s cubic-bezier(0.4, 0, 0.2, 1) 0.3s forwards;
+}
+
+.splash-version {
+  font-size: 0.6875rem;
+  color: rgba(148, 163, 184, 0.4);
+  letter-spacing: 0.1em;
+  margin-top: 8px;
+}
+
+.splash-particles {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.splash-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(139, 92, 246, 0.4);
+  animation: splashParticle 3s ease-in-out infinite;
+
+  &:nth-child(1) { top: 20%; left: 15%; animation-delay: 0s; background: rgba(59,130,246,0.5); }
+  &:nth-child(2) { top: 30%; right: 20%; animation-delay: 0.4s; background: rgba(139,92,246,0.5); }
+  &:nth-child(3) { bottom: 25%; left: 25%; animation-delay: 0.8s; background: rgba(16,185,129,0.5); }
+  &:nth-child(4) { top: 15%; right: 35%; animation-delay: 1.2s; width: 3px; height: 3px; }
+  &:nth-child(5) { bottom: 35%; right: 15%; animation-delay: 0.6s; background: rgba(59,130,246,0.4); }
+  &:nth-child(6) { top: 50%; left: 10%; animation-delay: 1s; width: 5px; height: 5px; background: rgba(139,92,246,0.3); }
+  &:nth-child(7) { bottom: 15%; left: 40%; animation-delay: 1.4s; width: 3px; height: 3px; background: rgba(16,185,129,0.4); }
+  &:nth-child(8) { top: 40%; right: 10%; animation-delay: 0.2s; background: rgba(245,158,11,0.3); }
+}
+
+@keyframes splashFadeOut {
+  0% { opacity: 1; }
+  100% { opacity: 0; pointer-events: none; visibility: hidden; }
+}
+
+@keyframes splashContentIn {
+  from { opacity: 0; transform: translateY(30px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes splashLogoFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes splashRingPulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.1); opacity: 1; }
+}
+
+@keyframes splashLoaderFill {
+  0% { width: 0; }
+  100% { width: 100%; }
+}
+
+@keyframes splashParticle {
+  0%, 100% { opacity: 0; transform: translateY(0) scale(0.5); }
+  50% { opacity: 1; transform: translateY(-20px) scale(1); }
+}
+
+/* ==================== PDF FAB ==================== */
+.pdf-fab {
+  position: fixed;
+  bottom: 56px;
+  right: 20px;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, rgba(139,92,246,0.9), rgba(59,130,246,0.85));
+  border: 1px solid rgba(139,92,246,0.4);
+  border-radius: 16px;
+  color: white;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 32px rgba(139,92,246,0.3), 0 0 60px rgba(59,130,246,0.1);
+  backdrop-filter: blur(12px);
+  white-space: nowrap;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 16px 48px rgba(139,92,246,0.45), 0 0 80px rgba(59,130,246,0.2);
+    padding: 12px 22px;
+  }
+
+  &:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  @media (max-width: 768px) {
+    padding: 10px 14px;
+    font-size: 12px;
+    bottom: 52px;
+    right: 12px;
+  }
+}
+
+.pdf-fab-icon {
+  font-size: 16px;
+}
+
+.pdf-fab-label {
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
