@@ -42,7 +42,7 @@ h1 {
 .chat-header-right { display:flex; align-items:center; gap:.625rem; }
 .msg-count {
   font-size:.75rem; color:var(--text-muted); background:var(--glass-bg);
-  border:1px solid var(--border); padding:4px 10px; border-radius:99px;
+  border:1px solid var(--glass-border); padding:4px 10px; border-radius:99px;
 }
 
 /* ─── Body ───────────────────────────────────── */
@@ -51,7 +51,7 @@ h1 {
 /* ─── Prompts Panel ──────────────────────────── */
 .prompts-panel {
   width:265px; flex-shrink:0; display:flex; flex-direction:column; overflow:hidden;
-  background:var(--glass-bg); border:1px solid var(--border); border-radius:20px;
+  background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:20px;
   backdrop-filter:blur(24px); position:relative;
 
   &::before {
@@ -66,12 +66,12 @@ h1 {
 .prompts-header {
   font-size:.72rem; font-weight:800; color:var(--text-muted); text-transform:uppercase;
   letter-spacing:.08em; padding:1.125rem 1.125rem .625rem;
-  border-bottom:1px solid var(--border);
+  border-bottom:1px solid var(--glass-border);
 }
 
 .category-tabs { display:flex; gap:.25rem; padding:.625rem .75rem; flex-wrap:wrap; }
 .cat-tab {
-  background:rgba(255,255,255,.05); border:1px solid var(--border); border-radius:8px;
+  background:rgba(255,255,255,.05); border:1px solid var(--glass-border); border-radius:8px;
   color:var(--text-muted); cursor:pointer; font-family:inherit; font-size:.875rem;
   padding:5px 9px; transition:all .2s;
   &:hover { background:rgba(59,130,246,.12); color:#3b82f6; }
@@ -88,25 +88,25 @@ h1 {
 
 .prompt-btn {
   display:flex; align-items:flex-start; gap:.5rem; background:rgba(255,255,255,.04);
-  border:1px solid var(--border); border-radius:10px; color:var(--text-muted); cursor:pointer;
+  border:1px solid var(--glass-border); border-radius:10px; color:var(--text-muted); cursor:pointer;
   font-family:inherit; font-size:.78rem; line-height:1.45; padding:.625rem .75rem;
   text-align:left; transition:all .2s; width:100%;
 
   &:hover {
-    background:rgba(59,130,246,.1); color:var(--text); border-color:rgba(59,130,246,.28);
+    background:rgba(59,130,246,.1); color:var(--text-primary); border-color:rgba(59,130,246,.28);
     transform:translateX(3px);
     .prompt-arrow { color:#3b82f6; }
   }
 }
 .prompt-arrow { color:var(--text-muted); font-size:1rem; flex-shrink:0; margin-top:-1px; }
 
-.prompts-footer { padding:.75rem 1.125rem; border-top:1px solid var(--border); }
+.prompts-footer { padding:.75rem 1.125rem; border-top:1px solid var(--glass-border); }
 .api-info { font-size:.68rem; color:var(--text-muted); strong { color:#3b82f6; } }
 
 /* ─── Chat Window ────────────────────────────── */
 .chat-window {
   flex:1; display:flex; flex-direction:column; min-height:0; overflow:hidden;
-  background:var(--glass-bg); border:1px solid var(--border); border-radius:20px;
+  background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:20px;
   backdrop-filter:blur(24px); position:relative;
 
   &::before {
@@ -146,7 +146,7 @@ h1 {
 .msg-bubble { max-width:72%; padding:.875rem 1.125rem; border-radius:18px; position:relative; }
 
 .ai-bubble {
-  background:rgba(255,255,255,.05); border:1px solid var(--border); border-bottom-left-radius:4px;
+  background:rgba(255,255,255,.05); border:1px solid var(--glass-border); border-bottom-left-radius:4px;
   backdrop-filter:blur(16px);
 }
 .user-bubble {
@@ -155,7 +155,7 @@ h1 {
 }
 
 .msg-content {
-  font-size:.875rem; line-height:1.7; color:var(--text); white-space:pre-wrap; word-break:break-word;
+  font-size:.875rem; line-height:1.7; color:var(--text-primary); white-space:pre-wrap; word-break:break-word;
   strong { font-weight:800; }
   em { font-style:italic; color:var(--text-muted); }
   code {
@@ -189,11 +189,11 @@ h1 {
 }
 
 /* ─── Input Area ─────────────────────────────── */
-.input-wrap { border-top:1px solid var(--border); padding:.875rem 1rem; flex-shrink:0; }
+.input-wrap { border-top:1px solid var(--glass-border); padding:.875rem 1rem; flex-shrink:0; }
 
 .input-area {
   display:flex; gap:.625rem; align-items:flex-end; background:rgba(255,255,255,.04);
-  border:1px solid var(--border); border-radius:14px; padding:.625rem .875rem; transition:all .2s;
+  border:1px solid var(--glass-border); border-radius:14px; padding:.625rem .875rem; transition:all .2s;
 
   &:focus-within {
     border-color:#3b82f6; background:rgba(59,130,246,.06);
@@ -202,7 +202,7 @@ h1 {
 }
 
 .chat-input {
-  background:transparent; border:none; border-radius:0; color:var(--text); flex:1;
+  background:transparent; border:none; border-radius:0; color:var(--text-primary); flex:1;
   font-family:inherit; font-size:.875rem; line-height:1.5; max-height:140px; min-height:22px;
   outline:none; padding:0; resize:none; width:auto; box-shadow:none;
   &:focus { border:none; box-shadow:none; background:transparent; }
@@ -213,7 +213,7 @@ h1 {
 .char-count { font-size:.625rem; color:var(--text-muted); &.warn { color:#f59e0b; } }
 
 .send-btn {
-  width:36px; height:36px; background:rgba(255,255,255,.06); border:1px solid var(--border);
+  width:36px; height:36px; background:rgba(255,255,255,.06); border:1px solid var(--glass-border);
   border-radius:10px; color:var(--text-muted); cursor:pointer; display:flex; align-items:center;
   justify-content:center; font-size:.875rem; transition:all .2s; flex-shrink:0;
 
