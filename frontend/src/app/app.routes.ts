@@ -19,5 +19,6 @@ export const routes: Routes = [
   { path: 'simulator',     loadComponent: () => import('./pages/simulator/simulator.component').then(m => m.SimulatorComponent) },
   { path: 'raio-x',        loadComponent: () => import('./pages/raio-x/raio-x.component').then(m => m.RaioXComponent) },
   { path: 'investor-mode', loadComponent: () => import('./pages/investor-mode/investor-mode.component').then(m => m.InvestorModeComponent) },
+  { path: 'calendar',      loadComponent: () => import('./pages/calendar/calendar.component').then(m => m.CalendarComponent) },
   { path: '**', redirectTo: 'dashboard' },
 ];

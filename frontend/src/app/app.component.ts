@@ -46,6 +46,7 @@ export class AppComponent implements OnInit, OnDestroy {
     { label: 'Orçamento por Envelope',   icon: '💰', path: '/budget',        keywords: 'limite categoria gasto mensal' },
     { label: 'Analytics & Inteligência', icon: '🧠', path: '/analytics',     keywords: 'score analise padroes insights' },
     { label: 'Simulador Financeiro',     icon: '🧮', path: '/simulator',     keywords: 'juros compostos montecarlo calculos' },
+    { label: 'Calendário de Parcelas',   icon: '📅', path: '/calendar',      keywords: 'calendario vencimentos parcelas datas agenda alarme whatsapp' },
     { label: 'Raio-X Financeiro',        icon: '🔍', path: '/raio-x',        keywords: 'diagnostico saude financeira analise' },
     { label: 'Modo Investidor',          icon: '💹', path: '/investor-mode', keywords: 'bloomberg carteira ativos profissional' },
     { label: 'Previsões ML',             icon: '🔮', path: '/forecast',      keywords: 'previsao machine learning ai' },
@@ -82,9 +83,10 @@ export class AppComponent implements OnInit, OnDestroy {
     {
       group: 'Planejamento',
       items: [
-        { path: '/goals',    label: 'Metas',     icon: '🏆' },
-        { path: '/budget',   label: 'Orçamento', icon: '💰' },
-        { path: '/simulator', label: 'Simulador', icon: '🧮' },
+        { path: '/goals',     label: 'Metas',       icon: '🏆' },
+        { path: '/budget',    label: 'Orçamento',   icon: '💰' },
+        { path: '/simulator', label: 'Simulador',   icon: '🧮' },
+        { path: '/calendar',  label: 'Calendário',  icon: '📅' },
       ]
     },
     {

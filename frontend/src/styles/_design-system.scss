@@ -109,12 +109,19 @@
   h1 {
     font-size: 2rem;
     font-weight: 900;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.04em;
     margin: 0 0 8px 0;
-    background: linear-gradient(135deg, #e2e8f0 0%, #a5b4fc 60%, #c4b5fd 100%);
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    background: linear-gradient(135deg, #e2e8f0 0%, #a5b4fc 50%, #c4b5fd 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+
+    [data-theme="light"] & {
+      background: linear-gradient(135deg, #0f172a 0%, #3b82f6 50%, #7c3aed 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
   }
 
   .page-subtitle {

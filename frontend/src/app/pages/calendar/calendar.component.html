@@ -1,0 +1,254 @@
+<div class="page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1>📅 Calendário de Parcelas</h1>
+      <p class="page-subtitle">Visualize suas dívidas recorrentes e agende lembretes</p>
+    </div>
+    <button class="btn-primary" (click)="goToday()">
+      <span>📍</span> Hoje
+    </button>
+  </div>
+
+  <!-- Summary Banner -->
+  <div class="cal-banner">
+    <div class="banner-main">
+      <div class="banner-label">💰 Total do Mês</div>
+      <div class="banner-value">{{ fmt(totalAmountThisMonth) }}</div>
+    </div>
+    <div class="banner-stats">
+      <div class="banner-stat purple">
+        <div class="bstat-value">{{ totalInstallmentsThisMonth }}</div>
+        <div class="bstat-label">Parcelas</div>
+      </div>
+      <div class="banner-stat yellow">
+        <div class="bstat-value">{{ pendingThisMonth }}</div>
+        <div class="bstat-label">Pendentes</div>
+      </div>
+      <div class="banner-stat red">
+        <div class="bstat-value">{{ overdueThisMonth }}</div>
+        <div class="bstat-label">Atrasadas</div>
+      </div>
+      <div class="banner-stat blue">
+        <div class="bstat-value">{{ alarmsThisMonth }}</div>
+        <div class="bstat-label">Alarmes</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calendar Navigation -->
+  <div class="cal-nav">
+    <button class="cal-nav-btn" (click)="prevMonth()">
+      <span class="cal-nav-arrow">‹</span>
+    </button>
+    <div class="cal-nav-title">
+      <span class="cal-month">{{ monthNames[currentMonth] }}</span>
+      <span class="cal-year">{{ currentYear }}</span>
+    </div>
+    <button class="cal-nav-btn" (click)="nextMonth()">
+      <span class="cal-nav-arrow">›</span>
+    </button>
+  </div>
+
+  <!-- Calendar Grid -->
+  <div class="cal-container">
+    <!-- Week days header -->
+    <div class="cal-weekdays">
+      <div class="cal-weekday" *ngFor="let wd of weekDays">{{ wd }}</div>
+    </div>
+
+    <!-- Days grid -->
+    <div class="cal-grid">
+      <div
+        *ngFor="let day of calendarDays"
+        class="cal-day"
+        [class.other-month]="!day.isCurrentMonth"
+        [class.today]="day.isToday"
+        [class.has-debts]="day.debts.length > 0"
+        (click)="openDayModal(day)">
+
+        <div class="cal-day-number" [class.today-num]="day.isToday">{{ day.day }}</div>
+
+        <div class="cal-day-dots" *ngIf="day.debts.length > 0">
+          <div
+            *ngFor="let debt of day.debts; let i = index"
+            class="cal-dot"
+            [class.dot-paid]="debt.status === 'PAID'"
+            [class.dot-pending]="debt.status === 'PENDING'"
+            [class.dot-overdue]="debt.status === 'OVERDUE'"
+            [class.dot-alarm]="debt.alarmSet"
+            [title]="debt.description + ' - Parcela ' + debt.installmentNumber + '/' + debt.totalInstallments">
+          </div>
+        </div>
+
+        <div class="cal-day-preview" *ngIf="day.debts.length > 0 && day.isCurrentMonth">
+          <div class="cal-preview-item" *ngFor="let debt of day.debts.slice(0, 2)">
+            <span class="preview-status" [class]="statusClass(debt.status)">●</span>
+            <span class="preview-text">{{ debt.description | slice:0:12 }}</span>
+          </div>
+          <div class="cal-preview-more" *ngIf="day.debts.length > 2">
+            +{{ day.debts.length - 2 }} mais
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="cal-legend">
+    <div class="legend-item"><span class="legend-dot dot-paid"></span> Paga</div>
+    <div class="legend-item"><span class="legend-dot dot-pending"></span> Pendente</div>
+    <div class="legend-item"><span class="legend-dot dot-overdue"></span> Atrasada</div>
+    <div class="legend-item"><span class="legend-dot dot-alarm"></span> Com alarme</div>
+  </div>
+</div>
+
+<!-- ═══ DAY DETAIL MODAL ═══ -->
+<div class="modal-overlay" *ngIf="showDayModal && selectedDay" (click)="closeDayModal()">
+  <div class="day-modal" (click)="$event.stopPropagation()">
+    <!-- Glass header -->
+    <div class="day-modal-header">
+      <div class="day-modal-date">
+        <span class="day-modal-daynum">{{ selectedDay.day }}</span>
+        <div class="day-modal-datetext">
+          <span class="day-modal-month">{{ monthNames[currentMonth] }} {{ currentYear }}</span>
+          <span class="day-modal-weekday">{{ formatDate(selectedDay.date) }}</span>
+        </div>
+      </div>
+      <button class="close-btn" (click)="closeDayModal()">×</button>
+    </div>
+
+    <!-- Summary -->
+    <div class="day-modal-summary">
+      <div class="day-summary-item">
+        <span class="day-sum-label">Parcelas</span>
+        <span class="day-sum-value">{{ selectedDay.debts.length }}</span>
+      </div>
+      <div class="day-summary-item">
+        <span class="day-sum-label">Total</span>
+        <span class="day-sum-value accent">{{ fmt(selectedDayTotal()) }}</span>
+      </div>
+    </div>
+
+    <!-- Debt list -->
+    <div class="day-modal-list">
+      <div class="day-debt-card" *ngFor="let debt of selectedDay.debts" [class]="statusClass(debt.status)">
+        <div class="day-debt-header">
+          <div class="day-debt-info">
+            <div class="day-debt-name">{{ debt.description }}</div>
+            <div class="day-debt-source">{{ debt.source }}</div>
+          </div>
+          <span class="day-debt-badge" [class]="statusClass(debt.status)">
+            {{ statusLabel(debt.status) }}
+          </span>
+        </div>
+
+        <div class="day-debt-details">
+          <div class="day-detail">
+            <span class="detail-label">Parcela</span>
+            <span class="detail-value">{{ debt.installmentNumber }}/{{ debt.totalInstallments }}</span>
+          </div>
+          <div class="day-detail">
+            <span class="detail-label">Valor</span>
+            <span class="detail-value highlight">{{ fmt(debt.installmentAmount) }}</span>
+          </div>
+          <div class="day-detail">
+            <span class="detail-label">Total Original</span>
+            <span class="detail-value">{{ fmt(debt.originalAmount) }}</span>
+          </div>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="day-debt-progress">
+          <div class="day-progress-info">
+            <span>Progresso</span>
+            <span>{{ ((debt.installmentNumber / debt.totalInstallments) * 100).toFixed(0) }}%</span>
+          </div>
+          <div class="day-progress-bar">
+            <div class="day-progress-fill" [style.width]="((debt.installmentNumber / debt.totalInstallments) * 100) + '%'"></div>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="day-debt-notes" *ngIf="debt.notes">📝 {{ debt.notes }}</div>
+
+        <!-- Alarm actions -->
+        <div class="day-debt-alarm">
+          <button
+            *ngIf="!debt.alarmSet"
+            class="alarm-btn set"
+            (click)="openAlarmModal(debt, $event)">
+            <span>🔔</span> Agendar Lembrete WhatsApp
+          </button>
+          <button
+            *ngIf="debt.alarmSet"
+            class="alarm-btn active"
+            (click)="removeAlarm(debt, $event)">
+            <span>✅</span> Alarme Ativo — Clique para Remover
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ALARM SCHEDULE MODAL ═══ -->
+<div class="modal-overlay" *ngIf="showAlarmModal && alarmDebt" (click)="closeAlarmModal()">
+  <div class="alarm-modal" (click)="$event.stopPropagation()">
+    <div class="alarm-modal-header">
+      <div class="alarm-modal-icon">🔔</div>
+      <h2>Agendar Lembrete WhatsApp</h2>
+      <button class="close-btn" (click)="closeAlarmModal()">×</button>
+    </div>
+
+    <div class="alarm-modal-body">
+      <!-- Debt info summary -->
+      <div class="alarm-debt-info">
+        <div class="alarm-info-row">
+          <span class="alarm-label">Dívida</span>
+          <span class="alarm-value">{{ alarmDebt.description }}</span>
+        </div>
+        <div class="alarm-info-row">
+          <span class="alarm-label">Parcela</span>
+          <span class="alarm-value">{{ alarmDebt.installmentNumber }}/{{ alarmDebt.totalInstallments }}</span>
+        </div>
+        <div class="alarm-info-row">
+          <span class="alarm-label">Valor</span>
+          <span class="alarm-value highlight">{{ fmt(alarmDebt.installmentAmount) }}</span>
+        </div>
+        <div class="alarm-info-row">
+          <span class="alarm-label">Vencimento</span>
+          <span class="alarm-value">{{ alarmDebt.dueDate | date:'dd/MM/yyyy' }}</span>
+        </div>
+      </div>
+
+      <!-- Phone input -->
+      <div class="alarm-form-group">
+        <label>📱 Número WhatsApp</label>
+        <input
+          type="tel"
+          [(ngModel)]="alarmPhone"
+          placeholder="5511999999999"
+          class="alarm-input"
+        />
+        <small class="alarm-hint">Formato: código país + DDD + número (sem espaços)</small>
+      </div>
+
+      <!-- Info card -->
+      <div class="alarm-info-card">
+        <span class="info-icon">💡</span>
+        <div class="info-text">
+          <strong>Como funciona:</strong>
+          Ao confirmar, o WhatsApp será aberto com uma mensagem de lembrete pré-formatada para enviar 1 dia antes do vencimento da parcela.
+        </div>
+      </div>
+    </div>
+
+    <div class="alarm-modal-actions">
+      <button class="btn-secondary" (click)="closeAlarmModal()">Cancelar</button>
+      <button class="btn-whatsapp" (click)="scheduleAlarm()">
+        <span>📲</span> Enviar Lembrete via WhatsApp
+      </button>
+    </div>
+  </div>
+</div>
