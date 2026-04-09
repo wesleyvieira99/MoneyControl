@@ -29,6 +29,10 @@ export class ApiService {
   createCategory(c: any) { return this.http.post<any>(`${BASE}/categories`, c); }
   updateCategory(id: number, c: any) { return this.http.put<any>(`${BASE}/categories/${id}`, c); }
   deleteCategory(id: number) { return this.http.delete(`${BASE}/categories/${id}`); }
+  getCategoryUsage(id: number) { return this.http.get<any>(`${BASE}/categories/${id}/usage`); }
+  replaceAndDeleteCategory(id: number, replacementCategoryId: number) {
+    return this.http.post(`${BASE}/categories/${id}/replace-and-delete`, { replacementCategoryId });
+  }
 
   // Transactions
   getTransactions(params?: any) {

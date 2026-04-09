@@ -179,11 +179,36 @@
   background: rgba(59, 130, 246, 0.07);
   border: 1px solid rgba(59, 130, 246, 0.18);
   border-radius: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   font-size: 13px;
   .cbs-label { flex: 1; color: var(--text-secondary); }
   .cbs-pos { color: #10b981; font-weight: 800; }
   .cbs-neg { color: #ef4444; font-weight: 800; }
+}
+
+.accounts-list-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  margin-bottom: 12px;
+
+  .als-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    &:last-child { border-bottom: none; }
+  }
+  .als-name { color: var(--text-secondary); font-weight: 600; }
+  .als-balance { font-weight: 800; font-size: 12px; }
+  .als-pos { color: #10b981; }
+  .als-neg { color: #ef4444; }
 }
 
 .btn-danger {

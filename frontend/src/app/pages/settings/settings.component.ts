@@ -6,6 +6,16 @@ import { ApiService } from '../../core/services/api.service';
 import { catchError, forkJoin, of } from 'rxjs';
 import type { EChartsOption } from 'echarts';
 
+interface AffectedItem {
+  id: number;
+  type: 'TRANSACTION' | 'BUDGET';
+  description: string;
+  amount: number;
+  date?: string;
+  month?: string;
+  replacementCategoryId?: number;
+}
+
 @Component({
   selector: 'app-settings',
   standalone: true,
@@ -21,6 +31,14 @@ export class SettingsComponent implements OnInit {
   activeSection = 'categories';
   catTypes = ['INCOME', 'EXPENSE', 'INVESTMENT', 'TRANSFER'];
   catIcons = ['💰','💳','🏦','🛒','🚗','✈️','🎮','🏋️','💊','📱','🍔','☕','🎬','📚','🏠','⚡','💧','📡','🎓','💼','🎰','📈','🏥','🎁','🐾','🌿','🔧','📦','🎵','🎨'];
+
+  // Delete modal
+  showDeleteModal = false;
+  deleteLoading = false;
+  deleteCatTarget: any = null;
+  deleteAffectedItems: AffectedItem[] = [];
+  deleteReplacementId: number | null = null;
+  deleteHasAffected = false;
 
   // System stats
   totalAccounts = 0;
@@ -110,7 +128,60 @@ export class SettingsComponent implements OnInit {
   }
 
   deleteCat(id: number) {
-    if (confirm('Excluir categoria?')) this.api.deleteCategory(id).subscribe({ next: () => this.reloadCats(), error: () => {} });
+    const cat = this.categories.find(c => c.id === id);
+    if (!cat) return;
+    this.deleteCatTarget = cat;
+    this.deleteLoading = true;
+    this.deleteAffectedItems = [];
+    this.deleteReplacementId = null;
+    this.deleteHasAffected = false;
+    this.showDeleteModal = true;
+
+    this.api.getCategoryUsage(id).pipe(catchError(() => of({ transactions: [], budgets: [], totalAffected: 0 })))
+      .subscribe((usage: any) => {
+        this.deleteLoading = false;
+        const items: AffectedItem[] = [
+          ...(usage.transactions || []).map((t: any) => ({ ...t, type: 'TRANSACTION' as const })),
+          ...(usage.budgets || []).map((b: any) => ({ ...b, type: 'BUDGET' as const })),
+        ];
+        this.deleteAffectedItems = items;
+        this.deleteHasAffected = items.length > 0;
+      });
+  }
+
+  closeDeleteModal() {
+    this.showDeleteModal = false;
+    this.deleteCatTarget = null;
+    this.deleteAffectedItems = [];
+    this.deleteReplacementId = null;
+  }
+
+  get replacementCategories(): any[] {
+    if (!this.deleteCatTarget) return [];
+    return this.categories.filter(c => c.id !== this.deleteCatTarget.id);
+  }
+
+  get canConfirmDelete(): boolean {
+    if (!this.deleteHasAffected) return true;
+    return this.deleteReplacementId !== null;
+  }
+
+  confirmDelete() {
+    if (!this.deleteCatTarget) return;
+    const id = this.deleteCatTarget.id;
+
+    if (this.deleteHasAffected && this.deleteReplacementId) {
+      this.deleteLoading = true;
+      this.api.replaceAndDeleteCategory(id, this.deleteReplacementId).subscribe({
+        next: () => { this.closeDeleteModal(); this.reloadCats(); this.deleteLoading = false; },
+        error: () => { this.deleteLoading = false; }
+      });
+    } else {
+      this.api.deleteCategory(id).subscribe({
+        next: () => { this.closeDeleteModal(); this.reloadCats(); },
+        error: () => this.closeDeleteModal()
+      });
+    }
   }
 
   byType(type: string) { return this.categories.filter(c => c.type === type); }

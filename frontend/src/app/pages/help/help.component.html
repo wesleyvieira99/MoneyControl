@@ -1,0 +1,159 @@
+<div class="page-wrapper">
+  <!-- Hero -->
+  <section class="help-hero">
+    <div class="hero-glow"></div>
+    <div class="hero-content">
+      <span class="hero-badge">📖 Central de Ajuda</span>
+      <h1 class="hero-title">Como usar o <span class="gradient-text">MoneyControl</span></h1>
+      <p class="hero-subtitle">Guia completo com tudo que você precisa saber — {{ totalItems }} itens documentados em {{ sections.length }} módulos</p>
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" [(ngModel)]="searchQuery" placeholder="Buscar funcionalidade, dica ou conceito..." class="search-input" />
+        <span class="search-hint" *ngIf="!searchQuery">⌘K para Command Palette</span>
+        <button class="search-clear" *ngIf="searchQuery" (click)="searchQuery = ''">✕</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Stats -->
+  <section class="quick-stats">
+    <div class="stat-card" style="--accent: #3b82f6">
+      <span class="stat-icon">📦</span>
+      <span class="stat-value">{{ sections.length }}</span>
+      <span class="stat-label">Módulos</span>
+    </div>
+    <div class="stat-card" style="--accent: #10b981">
+      <span class="stat-icon">📄</span>
+      <span class="stat-value">{{ totalItems }}</span>
+      <span class="stat-label">Funcionalidades</span>
+    </div>
+    <div class="stat-card" style="--accent: #8b5cf6">
+      <span class="stat-icon">❓</span>
+      <span class="stat-value">{{ faqs.length }}</span>
+      <span class="stat-label">FAQs</span>
+    </div>
+    <div class="stat-card" style="--accent: #f59e0b">
+      <span class="stat-icon">🔗</span>
+      <span class="stat-value">{{ dataRelationships.length }}</span>
+      <span class="stat-label">Integrações</span>
+    </div>
+    <div class="stat-card" style="--accent: #ef4444">
+      <span class="stat-icon">⌨️</span>
+      <span class="stat-value">{{ shortcuts.length }}</span>
+      <span class="stat-label">Atalhos</span>
+    </div>
+  </section>
+
+  <!-- Shortcuts -->
+  <section class="shortcuts-section" *ngIf="!searchQuery">
+    <h2 class="section-title"><span class="section-icon">⌨️</span> Atalhos de Teclado</h2>
+    <div class="shortcuts-grid">
+      <div class="shortcut-card" *ngFor="let s of shortcuts">
+        <div class="shortcut-keys">
+          <kbd *ngFor="let k of s.keys">{{ k }}</kbd>
+        </div>
+        <span class="shortcut-desc">{{ s.desc }}</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Data Relationships -->
+  <section class="relationships-section" *ngIf="!searchQuery">
+    <h2 class="section-title"><span class="section-icon">🔗</span> Como os Dados se Relacionam</h2>
+    <p class="section-desc">O MoneyControl mantém seus dados sincronizados entre todos os módulos automaticamente.</p>
+    <div class="relationships-grid">
+      <div class="rel-card" *ngFor="let r of dataRelationships" [style.--rel-color]="r.color">
+        <div class="rel-header">
+          <span class="rel-icon">{{ r.icon }}</span>
+          <div class="rel-flow">
+            <span class="rel-from">{{ r.from }}</span>
+            <span class="rel-arrow">→</span>
+            <span class="rel-to">{{ r.to }}</span>
+          </div>
+        </div>
+        <p class="rel-desc">{{ r.desc }}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Sections -->
+  <section class="modules-section">
+    <h2 class="section-title" *ngIf="!searchQuery"><span class="section-icon">📦</span> Módulos do Sistema</h2>
+    <h2 class="section-title" *ngIf="searchQuery"><span class="section-icon">🔍</span> Resultados para "{{ searchQuery }}"</h2>
+
+    <div class="modules-list">
+      <div class="module-block" *ngFor="let sec of filteredSections; let i = index"
+           [class.expanded]="activeSection === sec.id || !!searchQuery"
+           [style.--module-color]="sec.color"
+           [style.animation-delay]="i * 50 + 'ms'">
+
+        <button class="module-header" (click)="toggleSection(sec.id)">
+          <div class="module-info">
+            <span class="module-icon">{{ sec.icon }}</span>
+            <div>
+              <h3 class="module-title">{{ sec.title }}</h3>
+              <p class="module-subtitle">{{ sec.subtitle }}</p>
+            </div>
+          </div>
+          <div class="module-meta">
+            <span class="module-count">{{ sec.items.length }} itens</span>
+            <span class="module-chevron" [class.rotated]="activeSection === sec.id || !!searchQuery">▾</span>
+          </div>
+        </button>
+
+        <div class="module-body" *ngIf="activeSection === sec.id || !!searchQuery">
+          <div class="items-grid">
+            <div class="help-item" *ngFor="let item of sec.items; let j = index"
+                 [style.animation-delay]="j * 30 + 'ms'">
+              <div class="item-header">
+                <span class="item-icon">{{ item.icon }}</span>
+                <h4 class="item-title">{{ item.title }}</h4>
+              </div>
+              <p class="item-desc">{{ item.desc }}</p>
+              <div class="item-tags" *ngIf="item.tags?.length">
+                <span class="item-tag" *ngFor="let tag of item.tags">{{ tag }}</span>
+              </div>
+              <div class="item-tip" *ngIf="item.tip">
+                <span class="tip-icon">💡</span> {{ item.tip }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="no-results" *ngIf="filteredSections.length === 0 && searchQuery">
+      <span class="no-results-icon">🔍</span>
+      <h3>Nenhum resultado encontrado</h3>
+      <p>Tente buscar por outro termo ou explore os módulos acima.</p>
+      <button class="btn-clear-search" (click)="searchQuery = ''">Limpar busca</button>
+    </div>
+  </section>
+
+  <!-- FAQs -->
+  <section class="faq-section">
+    <h2 class="section-title"><span class="section-icon">❓</span> Perguntas Frequentes</h2>
+    <div class="faq-list">
+      <div class="faq-item" *ngFor="let faq of filteredFaqs; let i = index"
+           [class.open]="expandedFaq === i">
+        <button class="faq-question" (click)="toggleFaq(i)">
+          <span class="faq-q">{{ faq.q }}</span>
+          <span class="faq-toggle" [class.rotated]="expandedFaq === i">▾</span>
+        </button>
+        <div class="faq-answer" *ngIf="expandedFaq === i">
+          <p>{{ faq.a }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer CTA -->
+  <section class="help-footer" *ngIf="!searchQuery">
+    <div class="footer-card">
+      <span class="footer-icon">🚀</span>
+      <h3>Pronto para começar?</h3>
+      <p>Explore o MoneyControl e tome controle total das suas finanças!</p>
+      <a routerLink="/dashboard" class="footer-btn">Ir para o Dashboard</a>
+    </div>
+  </section>
+</div>

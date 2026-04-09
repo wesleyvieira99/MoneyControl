@@ -7,4 +7,5 @@ import java.util.List;
 public interface MonthlyBudgetRepository extends JpaRepository<MonthlyBudget, Long> {
     List<MonthlyBudget> findByMonth(String month);
     List<MonthlyBudget> findByMonthOrderByCategoryNameAsc(String month);
+    List<MonthlyBudget> findByCategoryName(String categoryName);
 }

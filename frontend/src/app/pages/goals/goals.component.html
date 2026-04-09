@@ -140,9 +140,47 @@
         </div>
         <div class="form-row">
           <label>Valor atual (R$)</label>
-          <input type="number" [(ngModel)]="form.currentAmount" min="0" step="100" />
+          <input type="number" [(ngModel)]="form.currentAmount" min="0" [max]="!editMode && createAccountId ? maxInitialAmount : form.targetAmount" step="100" />
         </div>
       </div>
+
+      <!-- Saldo das contas (exibido na criação) -->
+      <ng-container *ngIf="!editMode">
+        <div class="contribute-balance-strip">
+          <span>🏦</span>
+          <span class="cbs-label">Saldo total nas contas:</span>
+          <strong [class.cbs-neg]="totalAccountBalance() < 0" [class.cbs-pos]="totalAccountBalance() >= 0">
+            {{ fmt(totalAccountBalance()) }}
+          </strong>
+        </div>
+
+        <div class="accounts-list-strip" *ngIf="accounts.length > 0">
+          <div class="als-item" *ngFor="let a of accounts">
+            <span class="als-name">{{ a.name }}</span>
+            <span class="als-balance" [class.als-pos]="+a.balance >= 0" [class.als-neg]="+a.balance < 0">{{ fmt(a.balance) }}</span>
+          </div>
+        </div>
+
+        <!-- Conta de origem quando currentAmount > 0 -->
+        <div class="form-row" *ngIf="+form.currentAmount > 0">
+          <label>🏦 Conta de origem (débito do valor atual)</label>
+          <select [(ngModel)]="createAccountId">
+            <option value="" disabled>Selecione uma conta...</option>
+            <option *ngFor="let a of accounts" [value]="a.id" [disabled]="+a.balance <= 0">
+              {{ a.name }} ({{ a.bankName }}) — {{ fmt(a.balance) }}
+            </option>
+          </select>
+          <span class="form-hint">O valor atual será debitado desta conta e registrado como transação de despesa</span>
+        </div>
+
+        <div class="contribute-balance-info" *ngIf="+form.currentAmount > 0 && selectedCreateAccount">
+          <span class="cbi-icon">💳</span>
+          <span>Saldo disponível: <strong>{{ fmt(selectedCreateAccount.balance) }}</strong></span>
+          <span *ngIf="maxInitialAmount < +form.currentAmount" style="color: #ef4444; font-size: 11px; margin-left: 8px;">
+            ⚠ Valor atual excede o saldo disponível
+          </span>
+        </div>
+      </ng-container>
 
       <div class="form-row">
         <label>Prazo</label>
@@ -176,7 +214,7 @@
 
     <div class="modal-footer">
       <button class="btn-secondary" (click)="closeModal()">Cancelar</button>
-      <button class="btn-primary" (click)="save()" [disabled]="saving || !form.name">
+      <button class="btn-primary" (click)="save()" [disabled]="saving || !canSaveGoal">
         {{ saving ? 'Salvando...' : (editMode ? 'Salvar' : 'Criar Meta') }}
       </button>
     </div>

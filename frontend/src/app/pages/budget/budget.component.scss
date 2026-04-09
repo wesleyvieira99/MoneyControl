@@ -643,12 +643,35 @@
   border: 1px solid rgba(59, 130, 246, 0.2);
   border-radius: 10px;
   padding: 10px 14px;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   font-size: 13px;
 
   .abs-icon { font-size: 16px; }
   .abs-label { color: var(--text-secondary); flex: 1; }
   .abs-value { font-weight: 800; font-size: 15px; }
+}
+
+.accounts-list-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  margin-bottom: 12px;
+
+  .als-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    &:last-child { border-bottom: none; }
+  }
+  .als-name { color: var(--text-secondary); font-weight: 600; }
+  .als-balance { font-weight: 800; font-size: 12px; }
 }
 
 .account-balance-badge {

@@ -253,3 +253,83 @@
     </div>
   </div>
 </div>
+
+<!-- Delete Category Modal -->
+<div class="modal-overlay" *ngIf="showDeleteModal" (click)="closeDeleteModal()">
+  <div class="modal delete-cat-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>🗑️ Excluir Categoria</h2>
+      <button class="close-btn" (click)="closeDeleteModal()">×</button>
+    </div>
+
+    <div class="delete-cat-body">
+      <!-- Target Category Info -->
+      <div class="delete-target" *ngIf="deleteCatTarget">
+        <span class="delete-target-icon" [style.background]="deleteCatTarget.color + '22'" [style.color]="deleteCatTarget.color">{{ deleteCatTarget.icon }}</span>
+        <div>
+          <strong>{{ deleteCatTarget.name }}</strong>
+          <span class="delete-target-type">{{ typeLabel(deleteCatTarget.type) }}</span>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div class="delete-loading" *ngIf="deleteLoading">
+        <div class="spinner-small"></div>
+        <span>Verificando itens vinculados...</span>
+      </div>
+
+      <!-- No affected items -->
+      <div class="delete-safe" *ngIf="!deleteLoading && !deleteHasAffected">
+        <span class="safe-icon">✅</span>
+        <p>Nenhum item usa esta categoria. É seguro excluir.</p>
+      </div>
+
+      <!-- Has affected items -->
+      <div class="delete-affected" *ngIf="!deleteLoading && deleteHasAffected">
+        <div class="affected-warning">
+          <span class="warning-icon">⚠️</span>
+          <div>
+            <strong>{{ deleteAffectedItems.length }} ite{{ deleteAffectedItems.length === 1 ? 'm' : 'ns' }} usa{{ deleteAffectedItems.length === 1 ? '' : 'm' }} esta categoria</strong>
+            <p>Selecione uma categoria substituta para mover todos os itens antes de excluir.</p>
+          </div>
+        </div>
+
+        <!-- Replacement selector -->
+        <div class="replacement-selector">
+          <label>Substituir por:</label>
+          <select [(ngModel)]="deleteReplacementId">
+            <option [ngValue]="null" disabled>Selecione uma categoria...</option>
+            <option *ngFor="let c of replacementCategories" [ngValue]="c.id">{{ c.icon }} {{ c.name }} ({{ typeLabel(c.type) }})</option>
+          </select>
+        </div>
+
+        <!-- Affected items list -->
+        <div class="affected-list">
+          <div class="affected-list-header">
+            <span>Itens afetados</span>
+          </div>
+          <div class="affected-items-scroll">
+            <div class="affected-item" *ngFor="let item of deleteAffectedItems">
+              <span class="ai-type-badge" [class.tx]="item.type === 'TRANSACTION'" [class.bg]="item.type === 'BUDGET'">
+                {{ item.type === 'TRANSACTION' ? '💳' : '💰' }}
+              </span>
+              <div class="ai-info">
+                <span class="ai-desc">{{ item.description }}</span>
+                <span class="ai-meta" *ngIf="item.type === 'TRANSACTION'">Transação · {{ item.date }}</span>
+                <span class="ai-meta" *ngIf="item.type === 'BUDGET'">Envelope · {{ item.month }}</span>
+              </div>
+              <span class="ai-amount" *ngIf="item.amount">R$ {{ item.amount | number:'1.2-2' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" (click)="closeDeleteModal()">Cancelar</button>
+      <button class="btn-danger" (click)="confirmDelete()" [disabled]="deleteLoading || !canConfirmDelete">
+        {{ deleteLoading ? 'Processando...' : (deleteHasAffected ? 'Substituir e Excluir' : 'Excluir') }}
+      </button>
+    </div>
+  </div>
+</div>

@@ -34,6 +34,9 @@ export class GoalsComponent implements OnInit {
   saving = false;
   deleteConfirm: number | null = null;
 
+  // Initial contribution on create
+  createAccountId = '';
+
   // Contribute modal
   showContributeModal = false;
   contributeGoal: Goal | null = null;
@@ -77,30 +80,108 @@ export class GoalsComponent implements OnInit {
     return { name:'', targetAmount:0, currentAmount:0, deadline:'', notes:'', color: this.colors[0], icon: this.icons[0] };
   }
 
-  openAdd() { this.form = this.emptyForm(); this.editMode = false; this.showModal = true; }
+  openAdd() { this.form = this.emptyForm(); this.createAccountId = ''; this.editMode = false; this.showModal = true; }
   openEdit(g: Goal) { this.form = { ...g }; this.editMode = true; this.showModal = true; }
   closeModal() { this.showModal = false; }
 
-  save() {
+  get selectedCreateAccount(): any {
+    return this.accounts.find(a => a.id === +this.createAccountId) || null;
+  }
+
+  get maxInitialAmount(): number {
+    const acc = this.selectedCreateAccount;
+    if (!acc) return +this.form.targetAmount || 0;
+    return Math.min(Math.max(0, +acc.balance), +this.form.targetAmount || Infinity);
+  }
+
+  get canSaveGoal(): boolean {
+    if (!this.form.name) return false;
+    if (!this.editMode && +this.form.currentAmount > 0 && !this.createAccountId) return false;
+    return true;
+  }
+
+  async save() {
     this.saving = true;
-    const obs = this.editMode
-      ? this.api.updateGoal(this.form.id!, this.form)
-      : this.api.createGoal(this.form);
-    obs.subscribe({
-      next: () => {
-        this.saving = false;
-        this.closeModal();
-        this.load();
-        this.toast.success(
-          this.editMode ? 'Meta atualizada!' : 'Meta criada!',
-          `"${this.form.name}" foi ${this.editMode ? 'atualizada' : 'adicionada'} com sucesso.`
-        );
-      },
-      error: () => {
-        this.saving = false;
-        this.toast.error('Erro ao salvar', 'Verifique os dados e tente novamente.');
+    try {
+      const isCreate = !this.editMode;
+      const hasInitialAmount = isCreate && +this.form.currentAmount > 0;
+
+      // Validate initial amount against account balance
+      if (hasInitialAmount) {
+        const account = this.accounts.find(a => a.id === +this.createAccountId);
+        if (!account) {
+          this.toast.error('Selecione uma conta', 'É necessário escolher a conta de origem.');
+          this.saving = false;
+          return;
+        }
+        if (+this.form.currentAmount > +account.balance) {
+          this.toast.error('Saldo insuficiente', `A conta "${account.name}" possui apenas ${this.fmt(account.balance)}.`);
+          this.saving = false;
+          return;
+        }
       }
-    });
+
+      // Save the goal
+      const savedGoal: any = await firstValueFrom(
+        this.editMode
+          ? this.api.updateGoal(this.form.id!, this.form)
+          : this.api.createGoal(this.form)
+      );
+
+      // Create initial transaction if creating with initial amount
+      if (hasInitialAmount) {
+        const amt = +this.form.currentAmount;
+        const accountId = +this.createAccountId;
+        const account = this.accounts.find(a => a.id === accountId)!;
+        const catName = 'Aporte Meta';
+
+        // Find or create category
+        let category = this.categories.find(c =>
+          c.type === 'EXPENSE' && c.name.toLowerCase() === catName.toLowerCase()
+        );
+        if (!category) {
+          category = await firstValueFrom(
+            this.api.createCategory({ name: catName, type: 'EXPENSE', color: this.form.color || '#ef4444', icon: this.form.icon || '🎯' })
+          );
+          this.loadCategories();
+        }
+
+        // Create the transaction
+        await firstValueFrom(this.api.createTransaction({
+          date: new Date().toISOString().slice(0, 10),
+          description: `Aporte inicial: ${this.form.name}`,
+          amount: amt,
+          type: 'EXPENSE',
+          status: 'PAID',
+          category: { id: category.id },
+          bankAccount: { id: accountId },
+          notes: `Aporte inicial meta "${this.form.name}" — categoria: ${catName}`
+        }));
+
+        // Update account balance
+        await firstValueFrom(this.api.updateAccount(accountId, {
+          ...account,
+          balance: +account.balance - amt
+        }));
+
+        this.sync.emit({ type: 'TRANSACTIONS_CHANGED' });
+        this.sync.emit({ type: 'ACCOUNTS_CHANGED' });
+        this.loadAccounts();
+      }
+
+      this.saving = false;
+      this.closeModal();
+      this.load();
+      this.toast.success(
+        this.editMode ? 'Meta atualizada!' : 'Meta criada!',
+        hasInitialAmount
+          ? `"${this.form.name}" criada com aporte inicial de ${this.fmt(this.form.currentAmount)}. Transação registrada.`
+          : `"${this.form.name}" foi ${this.editMode ? 'atualizada' : 'adicionada'} com sucesso.`
+      );
+    } catch {
+      this.saving = false;
+      this.toast.error('Erro ao salvar', 'Verifique os dados e tente novamente.');
+    }
   }
 
   delete(id: number) {

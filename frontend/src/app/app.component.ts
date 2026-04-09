@@ -62,6 +62,7 @@ export class AppComponent implements OnInit, OnDestroy {
     { label: 'Previsões ML',             icon: '🔮', path: '/forecast',      keywords: 'previsao machine learning ai' },
     { label: 'Chat IA',                  icon: '🤖', path: '/ir-chat',       keywords: 'imposto renda assistente ai chatbot' },
     { label: 'Configurações',            icon: '⚙️', path: '/settings',      keywords: 'preferencias tema ajustes' },
+    { label: 'Ajuda & Guia',              icon: '📖', path: '/help',          keywords: 'ajuda guia tutorial como funciona help' },
   ];
 
   get cmdFiltered(): CmdItem[] {
@@ -107,6 +108,7 @@ export class AppComponent implements OnInit, OnDestroy {
         { path: '/forecast',  label: 'Previsões',  icon: '🔮' },
         { path: '/ir-chat',   label: 'Chat IA',    icon: '🤖' },
         { path: '/settings',  label: 'Config',     icon: '⚙️' },
+        { path: '/help',      label: 'Ajuda',      icon: '📖' },
       ]
     },
   ];
