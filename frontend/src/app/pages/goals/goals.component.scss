@@ -118,3 +118,25 @@
 .animate-card { animation: cardIn 0.45s cubic-bezier(0.4,0,0.2,1) both; }
 @keyframes cardIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 768px) { .goals-grid { grid-template-columns: 1fr; } .goal-card { padding: 1.2rem; } }
+
+/* Contribute modal extras */
+.contribute-goal-info {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 12px 14px; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid var(--glass-border);
+  margin-bottom: 4px;
+}
+.cgi-row { display: flex; justify-content: space-between; align-items: center; }
+.cgi-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+.cgi-value { font-size: 14px; font-weight: 800; color: var(--text-primary); &.accent { color: var(--accent-blue); } &.gold { color: var(--accent-gold); } }
+
+.contribute-balance-info {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; background: rgba(16,185,129,0.06); border-radius: 10px;
+  border: 1px solid rgba(16,185,129,0.15); font-size: 13px; color: var(--text-secondary);
+  .cbi-icon { font-size: 1.1rem; }
+  strong { color: var(--accent-green); font-weight: 800; }
+}
+
+.form-hint {
+  display: block; font-size: 11px; color: var(--text-muted); margin-top: 4px; font-style: italic;
+}
