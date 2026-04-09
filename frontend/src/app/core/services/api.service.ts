@@ -125,6 +125,9 @@ export class ApiService {
   aiChat(messages: any[]) {
     return this.http.post<any>(`${BASE}/ai/chat`, { messages });
   }
+  aiPdfAnalysis() {
+    return this.http.get<any>(`${BASE}/ai/pdf-analysis`);
+  }
 
   // Analytics
   getFinancialScore() { return this.http.get<any>(`${BASE}/analytics/score`); }
