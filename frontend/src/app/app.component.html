@@ -1,218 +1,225 @@
-<!-- SPLASH SCREEN -->
-<div class="splash-screen" *ngIf="showSplash">
-  <div class="splash-content">
-    <div class="splash-logo-container">
-      <div class="splash-logo">
-        <span class="splash-glyph">M</span>
+<ng-container *ngIf="isAuthenticated; else loginOutlet">
+  <!-- SPLASH SCREEN -->
+  <div class="splash-screen" *ngIf="showSplash">
+    <div class="splash-content">
+      <div class="splash-logo-container">
+        <div class="splash-logo">
+          <span class="splash-glyph">M</span>
+        </div>
+        <div class="splash-rings">
+          <div class="splash-ring ring-1"></div>
+          <div class="splash-ring ring-2"></div>
+          <div class="splash-ring ring-3"></div>
+        </div>
       </div>
-      <div class="splash-rings">
-        <div class="splash-ring ring-1"></div>
-        <div class="splash-ring ring-2"></div>
-        <div class="splash-ring ring-3"></div>
+      <h1 class="splash-title">MoneyControl</h1>
+      <p class="splash-subtitle">Financial Intelligence OS</p>
+      <div class="splash-loader">
+        <div class="splash-loader-bar"></div>
       </div>
+      <span class="splash-version">v2.0 — Premium Edition</span>
     </div>
-    <h1 class="splash-title">MoneyControl</h1>
-    <p class="splash-subtitle">Financial Intelligence OS</p>
-    <div class="splash-loader">
-      <div class="splash-loader-bar"></div>
-    </div>
-    <span class="splash-version">v2.0 — Premium Edition</span>
-  </div>
-  <div class="splash-particles">
-    <div class="splash-particle" *ngFor="let p of [1,2,3,4,5,6,7,8]"></div>
-  </div>
-</div>
-
-<div class="app-shell" [class.collapsed]="!sidebarOpen">
-
-  <!-- ── SIDEBAR ── -->
-  <aside class="sidebar">
-    <div class="sb-logo">
-      <div class="sb-logo-mark">
-        <span class="logo-glyph">M</span>
-      </div>
-      <div class="sb-logo-text" *ngIf="sidebarOpen">
-        <span class="logo-name">MoneyControl</span>
-        <span class="logo-sub">Financial OS</span>
-      </div>
-      <button class="sb-toggle" (click)="toggleSidebar()">
-        <span class="toggle-icon" [class.rotated]="!sidebarOpen">‹</span>
-      </button>
-    </div>
-
-    <div class="sb-clock" *ngIf="sidebarOpen">
-      <div class="clock-time">{{ currentTime }}</div>
-      <div class="clock-date">{{ currentDate }}</div>
-    </div>
-
-    <nav class="sb-nav">
-      <ng-container *ngFor="let group of navGroups">
-        <div class="nav-group-label" *ngIf="sidebarOpen">{{ group.group }}</div>
-        <a *ngFor="let item of group.items"
-           [routerLink]="item.path"
-           routerLinkActive="active"
-           class="nav-item"
-           [title]="!sidebarOpen ? item.label : ''">
-          <span class="nav-icon">{{ item.icon }}</span>
-          <span class="nav-label" *ngIf="sidebarOpen">{{ item.label }}</span>
-          <span class="active-indicator"></span>
-        </a>
-        <div class="nav-divider"></div>
-      </ng-container>
-    </nav>
-
-    <div class="sb-footer">
-      <!-- ⌘K Command Palette trigger -->
-      <button class="cmd-trigger-btn" (click)="openCmd()" [title]="!sidebarOpen ? 'Command Palette ⌘K' : ''">
-        <span class="cmd-trigger-icon">⌘</span>
-        <span class="cmd-trigger-label" *ngIf="sidebarOpen">Command Palette</span>
-        <span class="cmd-trigger-hint" *ngIf="sidebarOpen">⌘K</span>
-      </button>
-      <button class="theme-btn" (click)="toggleTheme()">
-        <span class="theme-icon">{{ isDark ? '☀' : '◑' }}</span>
-        <span class="theme-label" *ngIf="sidebarOpen">{{ isDark ? 'Modo Claro' : 'Modo Escuro' }}</span>
-      </button>
-      <div class="sb-version" *ngIf="sidebarOpen">v2.0 · MoneyControl OS</div>
-    </div>
-  </aside>
-
-  <!-- ── MAIN CONTENT ── -->
-  <main class="main-content">
-    <router-outlet></router-outlet>
-  </main>
-
-</div>
-
-<!-- ── COMMAND PALETTE ── -->
-<div class="cmd-overlay" *ngIf="cmdOpen" (click)="closeCmd()">
-  <div class="cmd-box" (click)="$event.stopPropagation()">
-    <div class="cmd-header">
-      <span class="cmd-search-icon">⌘</span>
-      <input
-        #cmdInput
-        class="cmd-input"
-        type="text"
-        placeholder="Buscar página, ação, atalho..."
-        [(ngModel)]="cmdQuery"
-        (input)="onCmdInput()"
-        autofocus
-      />
-      <kbd class="cmd-esc-hint">Esc</kbd>
-    </div>
-    <div class="cmd-list">
-      <div class="cmd-list-label" *ngIf="!cmdQuery">Navegação Rápida</div>
-      <div class="cmd-list-label" *ngIf="cmdQuery && cmdFiltered.length === 0">Nenhum resultado para "{{ cmdQuery }}"</div>
-      <button
-        *ngFor="let item of cmdFiltered; let i = index"
-        class="cmd-item"
-        [class.selected]="cmdSelected === i"
-        (mouseenter)="cmdSelected = i"
-        (click)="navigateCmd(item)"
-      >
-        <span class="cmd-item-icon">{{ item.icon }}</span>
-        <span class="cmd-item-label">{{ item.label }}</span>
-        <span class="cmd-item-path">{{ item.path }}</span>
-        <span class="cmd-item-enter" *ngIf="cmdSelected === i">↵</span>
-      </button>
-    </div>
-    <div class="cmd-footer">
-      <span><kbd>↑↓</kbd> Navegar</span>
-      <span><kbd>↵</kbd> Abrir</span>
-      <span><kbd>Esc</kbd> Fechar</span>
+    <div class="splash-particles">
+      <div class="splash-particle" *ngFor="let p of [1,2,3,4,5,6,7,8]"></div>
     </div>
   </div>
-</div>
+
+  <div class="app-shell" [class.collapsed]="!sidebarOpen" [class.closing]="showClosing">
+    <!-- ── SIDEBAR ── -->
+    <aside class="sidebar">
+      <div class="sb-logo">
+        <div class="sb-logo-mark">
+          <span class="logo-glyph">M</span>
+        </div>
+        <div class="sb-logo-text" *ngIf="sidebarOpen">
+          <span class="logo-name">MoneyControl</span>
+          <span class="logo-sub">Financial OS</span>
+        </div>
+        <button class="sb-toggle" (click)="toggleSidebar()">
+          <span class="toggle-icon" [class.rotated]="!sidebarOpen">‹</span>
+        </button>
+      </div>
+
+      <div class="sb-clock" *ngIf="sidebarOpen">
+        <div class="clock-time">{{ currentTime }}</div>
+        <div class="clock-date">{{ currentDate }}</div>
+      </div>
+
+      <nav class="sb-nav">
+        <ng-container *ngFor="let group of navGroups">
+          <div class="nav-group-label" *ngIf="sidebarOpen">{{ group.group }}</div>
+          <a *ngFor="let item of group.items"
+             [routerLink]="item.path"
+             routerLinkActive="active"
+             class="nav-item"
+             [title]="!sidebarOpen ? item.label : ''">
+            <span class="nav-icon">{{ item.icon }}</span>
+            <span class="nav-label" *ngIf="sidebarOpen">{{ item.label }}</span>
+            <span class="active-indicator"></span>
+          </a>
+          <div class="nav-divider"></div>
+        </ng-container>
+      </nav>
+
+      <div class="sb-footer">
+        <!-- ⌘K Command Palette trigger -->
+        <button class="cmd-trigger-btn" (click)="openCmd()" [title]="!sidebarOpen ? 'Command Palette ⌘K' : ''">
+          <span class="cmd-trigger-icon">⌘</span>
+          <span class="cmd-trigger-label" *ngIf="sidebarOpen">Command Palette</span>
+          <span class="cmd-trigger-hint" *ngIf="sidebarOpen">⌘K</span>
+        </button>
+        <button class="theme-btn" (click)="toggleTheme()">
+          <span class="theme-icon">{{ isDark ? '☀' : '◑' }}</span>
+          <span class="theme-label" *ngIf="sidebarOpen">{{ isDark ? 'Modo Claro' : 'Modo Escuro' }}</span>
+        </button>
+        <button class="logout-btn" (click)="logout()">
+          <span class="theme-icon">⏻</span>
+          <span class="logout-label" *ngIf="sidebarOpen">Logout Seguro</span>
+        </button>
+        <div class="sb-version" *ngIf="sidebarOpen">v2.0 · MoneyControl OS</div>
+      </div>
+    </aside>
+
+    <!-- ── MAIN CONTENT ── -->
+    <main class="main-content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+
+  <!-- ── COMMAND PALETTE ── -->
+  <div class="cmd-overlay" *ngIf="cmdOpen" (click)="closeCmd()">
+    <div class="cmd-box" (click)="$event.stopPropagation()">
+      <div class="cmd-header">
+        <span class="cmd-search-icon">⌘</span>
+        <input
+          #cmdInput
+          class="cmd-input"
+          type="text"
+          placeholder="Buscar página, ação, atalho..."
+          [(ngModel)]="cmdQuery"
+          (input)="onCmdInput()"
+          autofocus
+        />
+        <kbd class="cmd-esc-hint">Esc</kbd>
+      </div>
+      <div class="cmd-list">
+        <div class="cmd-list-label" *ngIf="!cmdQuery">Navegação Rápida</div>
+        <div class="cmd-list-label" *ngIf="cmdQuery && cmdFiltered.length === 0">Nenhum resultado para "{{ cmdQuery }}"</div>
+        <button
+          *ngFor="let item of cmdFiltered; let i = index"
+          class="cmd-item"
+          [class.selected]="cmdSelected === i"
+          (mouseenter)="cmdSelected = i"
+          (click)="navigateCmd(item)"
+        >
+          <span class="cmd-item-icon">{{ item.icon }}</span>
+          <span class="cmd-item-label">{{ item.label }}</span>
+          <span class="cmd-item-path">{{ item.path }}</span>
+          <span class="cmd-item-enter" *ngIf="cmdSelected === i">↵</span>
+        </button>
+      </div>
+      <div class="cmd-footer">
+        <span><kbd>↑↓</kbd> Navegar</span>
+        <span><kbd>↵</kbd> Abrir</span>
+        <span><kbd>Esc</kbd> Fechar</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIXED PDF REPORT BUTTON -->
+  <button class="pdf-fab" (click)="generatePDF()" title="Gerar Relatório PDF Completo" *ngIf="!showSplash">
+    <span class="pdf-fab-icon">📄</span>
+    <span class="pdf-fab-label">PDF</span>
+  </button>
+
+  <!-- FIXED JSON EXPORT BUTTON -->
+  <button class="json-fab" (click)="exportJSON()" title="Exportar backup JSON" *ngIf="!showSplash">
+    <span class="pdf-fab-icon">💾</span>
+    <span class="pdf-fab-label">Export</span>
+  </button>
+
+  <!-- FIXED JSON IMPORT BUTTON -->
+  <button class="import-fab" (click)="openImportModal()" title="Importar backup JSON" *ngIf="!showSplash">
+    <span class="pdf-fab-icon">📥</span>
+    <span class="pdf-fab-label">Import</span>
+  </button>
+
+  <!-- IMPORT MODAL -->
+  <div class="cmd-overlay" *ngIf="showImportModal" (click)="closeImportModal()">
+    <div class="cmd-box import-modal" (click)="$event.stopPropagation()" style="max-width:440px">
+      <div class="cmd-header" style="border-bottom:1px solid rgba(255,255,255,0.07);padding-bottom:14px;margin-bottom:16px">
+        <span class="cmd-search-icon">📥</span>
+        <span style="font-size:15px;font-weight:700;color:var(--text-primary);flex:1">Importar Backup JSON</span>
+        <button (click)="closeImportModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;padding:0 4px">✕</button>
+      </div>
+      <div style="padding:0 4px">
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;line-height:1.6">
+          ⚠️ <strong>Atenção:</strong> a importação <strong>substitui todos os dados</strong> do sistema pelo conteúdo do arquivo. Esta ação não pode ser desfeita.
+        </p>
+        <div *ngIf="!importLoading && !importSuccess">
+          <label style="display:block;background:var(--bg-glass);border:2px dashed var(--border);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:border-color .2s"
+                 onmouseover="this.style.borderColor='#8b5cf6'" onmouseout="this.style.borderColor=''">
+            <span style="font-size:32px;display:block;margin-bottom:8px">📂</span>
+            <span style="color:var(--text-primary);font-weight:600;font-size:13px">Clique para selecionar o arquivo .json</span>
+            <span style="display:block;font-size:11px;color:var(--text-muted);margin-top:4px">Apenas arquivos exportados pelo MoneyControl</span>
+            <input type="file" accept=".json" style="display:none" (change)="onImportFileSelected($event)">
+          </label>
+          <div *ngIf="importError" style="margin-top:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;color:#dc2626;font-size:12px">
+            ❌ {{ importError }}
+          </div>
+        </div>
+        <div *ngIf="importLoading" style="text-align:center;padding:32px 0">
+          <div style="font-size:32px;margin-bottom:12px;animation:spin 1s linear infinite;display:inline-block">⟳</div>
+          <div style="color:var(--text-muted);font-size:13px">Importando dados...</div>
+        </div>
+        <div *ngIf="importSuccess" style="text-align:center;padding:32px 0">
+          <div style="font-size:40px;margin-bottom:12px">✅</div>
+          <div style="color:#10b981;font-weight:700;font-size:14px">Importação concluída!</div>
+          <div style="color:var(--text-muted);font-size:12px;margin-top:6px">O sistema será recarregado...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TICKER FOOTER (fixed, full-width) ── -->
+  <footer class="ticker-bar" *ngIf="ticker.length > 0">
+    <div class="ticker-live-badge">
+      <span class="ticker-dot"></span>
+      LIVE
+    </div>
+    <div class="ticker-track-wrap">
+      <div class="ticker-track">
+        <ng-container *ngFor="let item of ticker">
+          <div class="ticker-item" [class.up]="item.up" [class.down]="!item.up">
+            <span class="ticker-label">{{ item.label }}</span>
+            <span class="ticker-value">{{ item.value }}</span>
+            <span class="ticker-change" *ngIf="item.change">
+              <span class="ticker-arrow">{{ item.up ? '▲' : '▼' }}</span>
+              {{ item.change }}
+            </span>
+          </div>
+          <span class="ticker-sep">|</span>
+        </ng-container>
+        <ng-container *ngFor="let item of ticker">
+          <div class="ticker-item" [class.up]="item.up" [class.down]="!item.up">
+            <span class="ticker-label">{{ item.label }}</span>
+            <span class="ticker-value">{{ item.value }}</span>
+            <span class="ticker-change" *ngIf="item.change">
+              <span class="ticker-arrow">{{ item.up ? '▲' : '▼' }}</span>
+              {{ item.change }}
+            </span>
+          </div>
+          <span class="ticker-sep">|</span>
+        </ng-container>
+      </div>
+    </div>
+    <div class="ticker-time">{{ currentTime }}</div>
+  </footer>
+</ng-container>
+
+<ng-template #loginOutlet>
+  <router-outlet></router-outlet>
+</ng-template>
 
 <!-- ── TOAST NOTIFICATIONS ── -->
 <app-toast></app-toast>
-
-<!-- FIXED PDF REPORT BUTTON -->
-<button class="pdf-fab" (click)="generatePDF()" title="Gerar Relatório PDF Completo" *ngIf="!showSplash">
-  <span class="pdf-fab-icon">📄</span>
-  <span class="pdf-fab-label">PDF</span>
-</button>
-
-<!-- FIXED JSON EXPORT BUTTON -->
-<button class="json-fab" (click)="exportJSON()" title="Exportar backup JSON" *ngIf="!showSplash">
-  <span class="pdf-fab-icon">💾</span>
-  <span class="pdf-fab-label">Export</span>
-</button>
-
-<!-- FIXED JSON IMPORT BUTTON -->
-<button class="import-fab" (click)="openImportModal()" title="Importar backup JSON" *ngIf="!showSplash">
-  <span class="pdf-fab-icon">📥</span>
-  <span class="pdf-fab-label">Import</span>
-</button>
-
-<!-- IMPORT MODAL -->
-<div class="cmd-overlay" *ngIf="showImportModal" (click)="closeImportModal()">
-  <div class="cmd-box import-modal" (click)="$event.stopPropagation()" style="max-width:440px">
-    <div class="cmd-header" style="border-bottom:1px solid rgba(255,255,255,0.07);padding-bottom:14px;margin-bottom:16px">
-      <span class="cmd-search-icon">📥</span>
-      <span style="font-size:15px;font-weight:700;color:var(--text-primary);flex:1">Importar Backup JSON</span>
-      <button (click)="closeImportModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;padding:0 4px">✕</button>
-    </div>
-    <div style="padding:0 4px">
-      <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;line-height:1.6">
-        ⚠️ <strong>Atenção:</strong> a importação <strong>substitui todos os dados</strong> do sistema pelo conteúdo do arquivo. Esta ação não pode ser desfeita.
-      </p>
-      <div *ngIf="!importLoading && !importSuccess">
-        <label style="display:block;background:var(--bg-glass);border:2px dashed var(--border);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:border-color .2s" 
-               onmouseover="this.style.borderColor='#8b5cf6'" onmouseout="this.style.borderColor=''">
-          <span style="font-size:32px;display:block;margin-bottom:8px">📂</span>
-          <span style="color:var(--text-primary);font-weight:600;font-size:13px">Clique para selecionar o arquivo .json</span>
-          <span style="display:block;font-size:11px;color:var(--text-muted);margin-top:4px">Apenas arquivos exportados pelo MoneyControl</span>
-          <input type="file" accept=".json" style="display:none" (change)="onImportFileSelected($event)">
-        </label>
-        <div *ngIf="importError" style="margin-top:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;color:#dc2626;font-size:12px">
-          ❌ {{ importError }}
-        </div>
-      </div>
-      <div *ngIf="importLoading" style="text-align:center;padding:32px 0">
-        <div style="font-size:32px;margin-bottom:12px;animation:spin 1s linear infinite;display:inline-block">⟳</div>
-        <div style="color:var(--text-muted);font-size:13px">Importando dados...</div>
-      </div>
-      <div *ngIf="importSuccess" style="text-align:center;padding:32px 0">
-        <div style="font-size:40px;margin-bottom:12px">✅</div>
-        <div style="color:#10b981;font-weight:700;font-size:14px">Importação concluída!</div>
-        <div style="color:var(--text-muted);font-size:12px;margin-top:6px">O sistema será recarregado...</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ── TICKER FOOTER (fixed, full-width) ── -->
-<footer class="ticker-bar" *ngIf="ticker.length > 0">
-  <div class="ticker-live-badge">
-    <span class="ticker-dot"></span>
-    LIVE
-  </div>
-  <div class="ticker-track-wrap">
-    <div class="ticker-track">
-      <ng-container *ngFor="let item of ticker">
-        <div class="ticker-item" [class.up]="item.up" [class.down]="!item.up">
-          <span class="ticker-label">{{ item.label }}</span>
-          <span class="ticker-value">{{ item.value }}</span>
-          <span class="ticker-change" *ngIf="item.change">
-            <span class="ticker-arrow">{{ item.up ? '▲' : '▼' }}</span>
-            {{ item.change }}
-          </span>
-        </div>
-        <span class="ticker-sep">|</span>
-      </ng-container>
-      <!-- duplicate for seamless loop -->
-      <ng-container *ngFor="let item of ticker">
-        <div class="ticker-item" [class.up]="item.up" [class.down]="!item.up">
-          <span class="ticker-label">{{ item.label }}</span>
-          <span class="ticker-value">{{ item.value }}</span>
-          <span class="ticker-change" *ngIf="item.change">
-            <span class="ticker-arrow">{{ item.up ? '▲' : '▼' }}</span>
-            {{ item.change }}
-          </span>
-        </div>
-        <span class="ticker-sep">|</span>
-      </ng-container>
-    </div>
-  </div>
-  <div class="ticker-time">{{ currentTime }}</div>
-</footer>

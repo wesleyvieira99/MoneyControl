@@ -5,6 +5,8 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from './core/services/api.service';
 import { ToastComponent } from './core/components/toast/toast.component';
 import { catchError, firstValueFrom, of } from 'rxjs';
+import { AuthService } from './core/services/auth.service';
+import { ToastService } from './core/services/toast.service';
 
 interface NavItem { path: string; label: string; icon: string; badge?: string; }
 interface NavGroup { group: string; items: NavItem[]; }
@@ -108,7 +110,16 @@ export class AppComponent implements OnInit, OnDestroy {
     },
   ];
 
-  constructor(private api: ApiService, private router: Router) {}
+  constructor(
+    private api: ApiService,
+    private router: Router,
+    private auth: AuthService,
+    private toast: ToastService
+  ) {}
+
+  get isAuthenticated(): boolean {
+    return this.auth.isAuthenticated();
+  }
 
   @HostListener('window:keydown', ['$event'])
   onKey(e: KeyboardEvent) {
@@ -192,6 +203,18 @@ export class AppComponent implements OnInit, OnDestroy {
   }
   applyTheme() {
     document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
+  }
+
+  logout() {
+    this.showClosing = true;
+    setTimeout(() => {
+      this.auth.logout();
+      this.cmdOpen = false;
+      this.showImportModal = false;
+      this.showClosing = false;
+      this.toast.info('Logout realizado', 'Sessão encerrada com segurança.');
+      this.router.navigateByUrl('/login');
+    }, 420);
   }
 
   // ── JSON EXPORT ─────────────────────────────────────────────────────────
@@ -315,6 +338,23 @@ export class AppComponent implements OnInit, OnDestroy {
 
       const scoreColor = overallScore >= 70 ? '#10b981' : overallScore >= 40 ? '#f59e0b' : '#ef4444';
       const scoreLabel = overallScore >= 70 ? 'Saudável' : overallScore >= 40 ? 'Atenção' : 'Crítico';
+      const debtToIncome = monthlyIncome > 0 ? (totalDebt / monthlyIncome) : 0;
+      const emergencyCoverageMonths = monthlyExpense > 0 ? (Math.max(totalBalance, 0) / monthlyExpense) : 0;
+      const investmentsShare = patrimony > 0 ? (totalInvested / patrimony) * 100 : 0;
+      const goalProgressPct = goals.length > 0 ? (totalGoalsSaved / Math.max(totalGoals, 1)) * 100 : 0;
+
+      const aiSuggestions: string[] = [];
+      if (savingsRate < 10) aiSuggestions.push('Reduza despesas variáveis em 10% e direcione essa diferença para uma reserva automática no dia do recebimento.');
+      if (emergencyCoverageMonths < 3) aiSuggestions.push(`Priorize reserva de emergência até 6 meses: hoje sua cobertura estimada é de ${emergencyCoverageMonths.toFixed(1)} mês(es).`);
+      if (totalDebt > 0 && debtToIncome > 0.5) aiSuggestions.push(`Seu endividamento está elevado (${debtToIncome.toFixed(1)}x da renda mensal). Foque em quitar dívidas de maior juros antes de novos aportes.`);
+      if (totalCardLimit > 0 && (totalCardBill / totalCardLimit) > 0.7) aiSuggestions.push('Uso do limite do cartão acima de 70%: renegocie gastos recorrentes e adote teto semanal para reduzir risco de inadimplência.');
+      if (goals.length > 0 && goalProgressPct < 35) aiSuggestions.push(`Metas estão em ${goalProgressPct.toFixed(0)}% do objetivo; programe aporte fixo mensal por meta para ganhar tração.`);
+      if (topCats.length > 0 && catTotal > 0) {
+        const topCategoryPct = (+topCats[0].amount / catTotal) * 100;
+        if (topCategoryPct > 35) aiSuggestions.push(`A categoria "${topCats[0].category}" concentra ${topCategoryPct.toFixed(0)}% dos gastos; defina limite mensal específico para ela.`);
+      }
+      if (investments.length > 0 && investmentsShare < 20 && savingsRate >= 15) aiSuggestions.push('Seu caixa está saudável para acelerar investimentos: avalie aumentar aportes progressivos mantendo liquidez da reserva.');
+      if (aiSuggestions.length === 0) aiSuggestions.push('Seu cenário atual está equilibrado. Mantenha aportes consistentes, revisão quinzenal de gastos e rebalanceamento trimestral da carteira.');
 
       const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -452,6 +492,16 @@ export class AppComponent implements OnInit, OnDestroy {
   .ir-item{background:#fff;border-radius:8px;padding:12px;border:1px solid #fde68a}
   .ir-item-lbl{font-size:9px;font-weight:700;text-transform:uppercase;color:#92400e;letter-spacing:0.07em;margin-bottom:4px}
   .ir-item-val{font-size:14px;font-weight:900;color:#0f172a}
+
+  /* ── AI SUGGESTIONS ── */
+  .ai-panel{background:linear-gradient(135deg,#eef2ff,#f5f3ff);border:1px solid #c7d2fe;border-radius:14px;padding:18px 20px}
+  .ai-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+  .ai-title{font-size:13px;font-weight:900;color:#3730a3;display:flex;align-items:center;gap:8px}
+  .ai-badge{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;background:#4338ca;color:#e0e7ff;border-radius:999px;padding:3px 8px}
+  .ai-sub{font-size:11px;color:#6366f1;margin-bottom:10px}
+  .ai-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  .ai-item{background:#fff;border:1px solid #ddd6fe;border-radius:10px;padding:10px 12px;font-size:11px;color:#312e81}
+  .ai-prio{font-size:9px;font-weight:900;color:#4c1d95;background:#ede9fe;border-radius:999px;padding:2px 7px;margin-right:8px}
 
   @media print{body{background:#fff}.page-wrap{padding:16px 12px}.cover{border-radius:0}.no-print{display:none}}
   @page{margin:1cm;size:A4}
@@ -910,6 +960,21 @@ ${history.length > 0 ? `
     <div class="kpi blue"><div class="kpi-lbl">Total Transações</div><div class="kpi-val">${transactions.length}</div><div class="kpi-sub">registradas no sistema</div></div>
     <div class="kpi teal"><div class="kpi-lbl">Distribuição</div><div class="kpi-val">${rules.length}</div><div class="kpi-sub">regra(s) ativa(s)</div></div>
     <div class="kpi purple"><div class="kpi-lbl">Score Financeiro</div><div class="kpi-val" style="color:${scoreColor}">${overallScore}/100</div><div class="kpi-sub">${scoreLabel}</div></div>
+  </div>
+</div>
+
+<!-- ══ SUGESTÕES DE IA ═════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title"><span class="s-icon">🤖</span> Plano de Ação Inteligente</div>
+  <div class="ai-panel">
+    <div class="ai-head">
+      <div class="ai-title">Assistente IA Financeiro</div>
+      <div class="ai-badge">${overallScore >= 70 ? 'Otimização' : overallScore >= 40 ? 'Recuperação' : 'Urgente'}</div>
+    </div>
+    <div class="ai-sub">Recomendações automáticas com base no comportamento financeiro do período.</div>
+    <ul class="ai-list">
+      ${aiSuggestions.slice(0, 6).map((s, i) => `<li class="ai-item"><span class="ai-prio">P${i + 1}</span>${s}</li>`).join('')}
+    </ul>
   </div>
 </div>
 
