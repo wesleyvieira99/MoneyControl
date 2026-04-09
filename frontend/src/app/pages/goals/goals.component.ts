@@ -160,7 +160,7 @@ export class GoalsComponent implements OnInit {
         category = await firstValueFrom(
           this.api.createCategory({ name: catName, type: 'EXPENSE', color: g.color || '#ef4444', icon: '🎯' })
         );
-        this.loadCategories(); // refresh categories list (also updates config/settings)
+        this.loadCategories(); // refresh local categories list so new category appears in autocomplete
       }
 
       // 2. Create EXPENSE transaction

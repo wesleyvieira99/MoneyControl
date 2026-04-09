@@ -205,7 +205,7 @@ export class DistributionComponent implements OnInit {
         category = await firstValueFrom(
           this.api.createCategory({ name: catName, type: 'EXPENSE', color: r.color || '#ef4444', icon: '📦' })
         );
-        // Refresh categories (also keeps settings/config in sync)
+        // Refresh local categories list so new category appears in autocomplete
         this.categories = await firstValueFrom(this.api.getCategories().pipe(catchError(() => of(this.categories))));
       }
 
