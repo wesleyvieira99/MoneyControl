@@ -225,6 +225,7 @@
   overflow: hidden;
   border-top: 2px solid rgba(139, 92, 246, 0.3);
   transition: all var(--transition-base);
+  min-height: 265px;
 
   &::before {
     content: '';
@@ -401,11 +402,13 @@
   gap: var(--spacing-md);
   padding-top: var(--spacing-md);
   border-top: 1px solid var(--glass-border);
+  flex-wrap: wrap;
 }
 
 .amount-item {
   flex: 1;
   min-width: 0;
+  min-width: 88px;
 }
 
 .amount-label {
@@ -456,6 +459,7 @@
   max-width: 560px;
   max-height: 90vh;
   overflow-y: auto;
+  overscroll-behavior: contain;
   box-shadow: var(--shadow-xl);
   position: relative;
   animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -514,6 +518,16 @@
   display: flex;
   gap: var(--spacing-md);
   justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .envelope-amounts {
+    gap: var(--spacing-sm);
+  }
+  .amount-divider {
+    display: none;
+  }
 }
 
 // ─── ICON PICKER ──────────────────────────────────────────────────────────

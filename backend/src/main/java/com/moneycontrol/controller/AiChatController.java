@@ -7,8 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
-import java.time.LocalDate;
-import java.time.YearMonth;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 
 @RestController
@@ -23,6 +22,13 @@ public class AiChatController {
     private final TransactionRepository txRepo;
     private final BankAccountRepository accountRepo;
     private final InvestmentRepository investRepo;
+    private final CreditCardRepository cardRepo;
+    private final CategoryRepository categoryRepo;
+    private final DebtReorganizationRepository debtRepo;
+    private final FinancialGoalRepository goalRepo;
+    private final ProfitDistributionRuleRepository distributionRepo;
+    private final MonthlyBudgetRepository budgetRepo;
+    private final InvestmentTransactionRepository investmentTransactionRepo;
 
     @PostMapping("/chat")
     public ResponseEntity<Map<String, Object>> chat(@RequestBody Map<String, Object> body) {
@@ -65,19 +71,45 @@ public class AiChatController {
     }
 
     private String buildFinancialContext() {
-        YearMonth ym = YearMonth.now();
-        LocalDate start = ym.minusMonths(12).atDay(1);
-        LocalDate end = ym.atEndOfMonth();
-        List<Transaction> txs = txRepo.findByDateBetweenOrderByDateDesc(start, end);
+        List<Transaction> txs = txRepo.findAll();
         List<BankAccount> accounts = accountRepo.findAll();
+        List<CreditCard> cards = cardRepo.findAll();
+        List<Category> categories = categoryRepo.findAll();
         List<Investment> investments = investRepo.findAll();
+        List<InvestmentTransaction> investmentTransactions = investmentTransactionRepo.findAll();
+        List<DebtReorganization> debts = debtRepo.findAll();
+        List<FinancialGoal> goals = goalRepo.findAll();
+        List<ProfitDistributionRule> distributions = distributionRepo.findAll();
+        List<MonthlyBudget> budgets = budgetRepo.findAll();
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("Contas bancárias: ").append(accounts.size()).append("\n");
-        accounts.forEach(a -> sb.append("  - ").append(a.getName()).append(": R$ ").append(a.getBalance()).append("\n"));
-        sb.append("Investimentos: ").append(investments.size()).append("\n");
-        investments.forEach(i -> sb.append("  - ").append(i.getName()).append(" (").append(i.getType()).append("): R$ ").append(i.getCurrentValue()).append("\n"));
-        sb.append("Transações dos últimos 12 meses: ").append(txs.size()).append("\n");
-        return sb.toString();
+        Map<String, Object> fullContext = new LinkedHashMap<>();
+        fullContext.put("generatedAt", new Date());
+        fullContext.put("accounts", accounts);
+        fullContext.put("cards", cards);
+        fullContext.put("categories", categories);
+        fullContext.put("investments", investments);
+        fullContext.put("investmentTransactions", investmentTransactions);
+        fullContext.put("debts", debts);
+        fullContext.put("goals", goals);
+        fullContext.put("distributionRules", distributions);
+        fullContext.put("budgets", budgets);
+        fullContext.put("transactions", txs);
+        fullContext.put("totals", Map.of(
+                "accounts", accounts.size(),
+                "cards", cards.size(),
+                "categories", categories.size(),
+                "investments", investments.size(),
+                "investmentTransactions", investmentTransactions.size(),
+                "debts", debts.size(),
+                "goals", goals.size(),
+                "distributionRules", distributions.size(),
+                "budgets", budgets.size(),
+                "transactions", txs.size()
+        ));
+        try {
+            return new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(fullContext);
+        } catch (Exception e) {
+            return "Falha ao serializar contexto financeiro: " + e.getMessage();
+        }
     }
 }

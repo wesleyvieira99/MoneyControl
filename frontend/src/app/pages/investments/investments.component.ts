@@ -192,11 +192,11 @@ export class InvestmentsComponent implements OnInit {
     this.detailTab = 'movements';
     this.detailWithdrawals = [];
     this.api.getInvestmentTransactions(inv.id).pipe(catchError(() => of([]))).subscribe(txs => this.detailTxs = txs);
-    // Busca saques/resgates cadastrados em Transações vinculados ao nome do investimento
+    // Busca reflexos de aportes/retiradas registrados automaticamente em Transações
     this.api.getTransactions().pipe(catchError(() => of([]))).subscribe((txs: any[]) => {
       this.detailWithdrawals = txs.filter(t =>
-        t.type === 'INCOME' &&
-        t.description?.toLowerCase().includes(inv.name?.toLowerCase())
+        t.description === 'Investimentos' &&
+        t.notes?.includes(`Investimento: ${inv.name}`)
       );
     });
   }
@@ -207,30 +207,12 @@ export class InvestmentsComponent implements OnInit {
   saveTx() {
     this.api.addInvestmentTransaction(this.detailInvestment.id, this.txForm)
       .pipe(catchError(() => of(null)))
-      .subscribe(savedTx => {
+      .subscribe(() => {
         this.closeTxModal();
         this.api.getInvestmentTransactions(this.detailInvestment.id)
           .pipe(catchError(() => of([])))
           .subscribe(txs => this.detailTxs = txs);
-
-        // Se for WITHDRAWAL (saque/resgate), cria automaticamente uma Transação de RECEITA
-        if (this.txForm.type === 'WITHDRAWAL' && this.txForm.amount > 0) {
-          const inv = this.detailInvestment;
-          const txPayload: any = {
-            date: this.txForm.date || new Date().toISOString().slice(0,10),
-            description: `💎 Resgate — ${inv.name}`,
-            amount: +this.txForm.amount,
-            type: 'INCOME',
-            status: 'PAID',
-            notes: `Resgate automático do investimento "${inv.name}". ${this.txForm.notes || ''}`.trim(),
-            isRecurring: false,
-          };
-          // Vincula à conta bancária do investimento se houver
-          if (inv.bankAccount?.id) txPayload.bankAccount = { id: inv.bankAccount.id };
-          this.api.createTransaction(txPayload)
-            .pipe(catchError(() => of(null)))
-            .subscribe(() => {});
-        }
+        this.openDetail(this.detailInvestment);
       });
   }
 

@@ -18,8 +18,6 @@
     <div class="howto-sep"></div>
     <div class="howto-pill">Compra à vista no cartão <span class="howto-tag blue">→ aqui</span></div>
     <div class="howto-sep"></div>
-    <div class="howto-pill">Resgate de investimento <span class="howto-tag green">receita</span></div>
-    <div class="howto-sep"></div>
     <div class="howto-pill">Vincule a uma <span class="howto-tag">conta bancária</span></div>
   </div>
 
@@ -124,9 +122,8 @@
         <option value="INCOME">Receita</option>
         <option value="EXPENSE">Despesa</option>
         <option value="TRANSFER">Transferência</option>
-        <option value="INVESTMENT">Investimento</option>
-      </select>
-    </div>
+        </select>
+      </div>
     <div class="filter-group" style="flex:1;min-width:200px">
       <label>Buscar</label>
       <input type="text" placeholder="🔍 Descrição..." [(ngModel)]="filters.search" (input)="applyFilters()" />
@@ -251,7 +248,6 @@
           <option value="INCOME">📈 Receita</option>
           <option value="EXPENSE">📉 Despesa</option>
           <option value="TRANSFER">⇄ Transferência</option>
-          <option value="INVESTMENT">📊 Investimento</option>
         </select>
       </div>
       <div class="form-group">
