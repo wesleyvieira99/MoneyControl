@@ -25,4 +25,11 @@ public class DebtReorganization {
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private TransactionStatus status = TransactionStatus.PENDING;
+    /** true = dívida perene (recorrente sem parcelas, ex: luz, internet) */
+    @Builder.Default
+    private Boolean perennial = false;
+    /** Para perenes: dia do mês de vencimento (1-31) */
+    private Integer dueDayOfMonth;
+    /** Para perenes: data de início da recorrência */
+    private LocalDate perennialStartDate;
 }

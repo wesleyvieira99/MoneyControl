@@ -29,5 +29,9 @@ public class Transaction {
     private TransactionStatus status = TransactionStatus.PENDING;
     private String notes;
     private Boolean isRecurring;
+    /** Para recorrentes: até quando repetir (mês/ano) */
+    private java.time.LocalDate recurringUntilDate;
+    /** Para recorrentes perenes: dia do mês de vencimento */
+    private Integer recurringDayOfMonth;
     private String tags;
 }
