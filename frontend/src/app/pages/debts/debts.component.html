@@ -4,7 +4,29 @@
       <h1>🔴 Dívidas & Parcelas</h1>
       <p class="page-subtitle">Controle suas dívidas e acompanhe o progresso</p>
     </div>
-    <button class="btn-primary" (click)="openNew()">+ Nova Dívida</button>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="btn-secondary" (click)="syncTransactions()" [disabled]="syncing" title="Gerar transações para dívidas existentes">
+        {{ syncing ? '⏳ Sincronizando...' : '🔄 Sincronizar Transações' }}
+      </button>
+      <button class="btn-secondary" (click)="showPaidModal = true"
+              *ngIf="paidDebts.length > 0 && filterStatus !== 'PAID'">
+        ✅ Quitadas ({{ paidDebts.length }})
+      </button>
+      <button class="btn-primary" (click)="openNew()">+ Nova Dívida</button>
+    </div>
+  </div>
+  <div *ngIf="syncMsg" class="sync-msg">{{ syncMsg }}</div>
+
+  <!-- HOW-TO STRIP -->
+  <div class="howto-strip howto-red">
+    <div class="howto-icon">📋</div>
+    <div class="howto-pill active">Todas as suas dívidas</div>
+    <div class="howto-sep"></div>
+    <div class="howto-pill">Parcelado no cartão <span class="howto-tag purple">vincule ao cartão</span></div>
+    <div class="howto-sep"></div>
+    <div class="howto-pill">Financiamento <span class="howto-tag blue">vincule à conta</span></div>
+    <div class="howto-sep"></div>
+    <div class="howto-pill">À vista no cartão <span class="howto-tag red">→ Transações</span></div>
   </div>
 
   <!-- Summary Banner -->
@@ -47,85 +69,192 @@
     </div>
   </div>
 
-  <!-- Debts Grid -->
-  <div class="debts-grid">
-    <div class="debt-card glass-card" *ngFor="let d of debts">
-      <!-- Status Bar top -->
-      <div class="debt-card-top"
-        [class.green]="d.status === 'PAID'"
-        [class.yellow]="d.status === 'PENDING'"
-        [class.red]="d.status === 'OVERDUE'">
+  <!-- ═══ FILTER BAR ═══ -->
+  <div class="filter-bar">
+    <!-- Search -->
+    <div class="filter-search-wrap">
+      <span class="filter-search-icon">🔍</span>
+      <input class="filter-search" type="text" placeholder="Buscar dívida, cartão, conta…"
+             [(ngModel)]="filterSearch" />
+      <button class="filter-search-clear" *ngIf="filterSearch" (click)="filterSearch=''">×</button>
+    </div>
+
+    <div class="filter-groups-row">
+      <!-- Status -->
+      <div class="filter-group">
+        <span class="filter-label">Status</span>
+        <div class="filter-chips">
+          <button class="filter-chip"         [class.active]="filterStatus==='ALL'"     (click)="setFilterStatus('ALL')">Todas</button>
+          <button class="filter-chip pending"  [class.active]="filterStatus==='PENDING'" (click)="setFilterStatus('PENDING')">⏳ Pendentes</button>
+          <button class="filter-chip overdue"  [class.active]="filterStatus==='OVERDUE'" (click)="setFilterStatus('OVERDUE')">🔴 Atrasadas</button>
+          <button class="filter-chip paid"     [class.active]="filterStatus==='PAID'"    (click)="setFilterStatus('PAID')">✅ Quitadas</button>
+        </div>
       </div>
-
-      <div class="debt-card-body">
-        <div class="debt-header">
-          <div>
-            <div class="debt-name">{{ d.description }}</div>
-            <div class="debt-source">
-              {{ d.creditCard ? '💳 ' + d.creditCard.name : (d.bankAccount ? '🏦 ' + d.bankAccount.name : '—') }}
-            </div>
-          </div>
-          <div class="debt-header-right">
-            <span class="badge"
-              [class.badge-green]="d.status==='PAID'"
-              [class.badge-yellow]="d.status==='PENDING'"
-              [class.badge-red]="d.status==='OVERDUE'">
-              {{ d.status === 'PAID' ? '✅ Quitada' : d.status === 'OVERDUE' ? '🔴 Atrasada' : '⏳ Pendente' }}
-            </span>
-            <div class="debt-actions">
-              <button class="icon-btn" (click)="openEdit(d)">✏️</button>
-              <button class="icon-btn danger" (click)="delete(d.id)">🗑️</button>
-            </div>
-          </div>
+      <!-- Vínculo -->
+      <div class="filter-group">
+        <span class="filter-label">Vínculo</span>
+        <div class="filter-chips">
+          <button class="filter-chip"           [class.active]="filterLink==='ALL'"     (click)="setFilterLink('ALL')">Todos</button>
+          <button class="filter-chip card-link"  [class.active]="filterLink==='CARD'"    (click)="setFilterLink('CARD')">💳 Cartão</button>
+          <button class="filter-chip acct-link"  [class.active]="filterLink==='ACCOUNT'" (click)="setFilterLink('ACCOUNT')">🏦 Conta</button>
+          <button class="filter-chip none-link"  [class.active]="filterLink==='NONE'"    (click)="setFilterLink('NONE')">🔗 Sem vínculo</button>
         </div>
-
-        <!-- Amount cards -->
-        <div class="debt-amounts">
-          <div class="debt-amount-item">
-            <div class="amount-label">Restante</div>
-            <div class="amount-value red">{{ fmt(d.remainingAmount) }}</div>
-          </div>
-          <div class="debt-amount-item">
-            <div class="amount-label">Original</div>
-            <div class="amount-value">{{ fmt(d.originalAmount) }}</div>
-          </div>
-          <div class="debt-amount-item">
-            <div class="amount-label">Parcelas</div>
-            <div class="amount-value green">{{ d.paidInstallments }}/{{ d.totalInstallments }}</div>
-          </div>
+      </div>
+      <!-- Ordenação -->
+      <div class="filter-group">
+        <span class="filter-label">Ordenar</span>
+        <div class="filter-chips">
+          <button class="filter-chip"          [class.active]="filterSort==='DEFAULT'"      (click)="setFilterSort('DEFAULT')">Padrão</button>
+          <button class="filter-chip sort-amt" [class.active]="filterSort==='AMOUNT_DESC'"  (click)="setFilterSort('AMOUNT_DESC')">💸 Maior valor</button>
+          <button class="filter-chip sort-amt" [class.active]="filterSort==='AMOUNT_ASC'"   (click)="setFilterSort('AMOUNT_ASC')">💸 Menor valor</button>
+          <button class="filter-chip sort-prg" [class.active]="filterSort==='PROGRESS_DESC'"(click)="setFilterSort('PROGRESS_DESC')">📈 + Quitadas</button>
+          <button class="filter-chip sort-due" [class.active]="filterSort==='NEXT_DUE'"     (click)="setFilterSort('NEXT_DUE')">📅 Próx. venc.</button>
         </div>
-
-        <!-- Progress -->
-        <div class="debt-progress-wrap">
-          <div class="debt-progress-label">
-            <span>Progresso de quitação</span>
-            <span>{{ progress(d).toFixed(0) }}% quitado</span>
-          </div>
-          <div class="debt-progress-bar">
-            <div class="debt-progress-fill" [style.width]="progress(d) + '%'"></div>
-          </div>
-        </div>
-
-        <!-- Start date -->
-        <div style="font-size:12px;color:var(--text-secondary);margin-top:8px" *ngIf="d.startDate">
-          📅 Início: {{ d.startDate | date:'dd/MM/yyyy' }}
-        </div>
-
-        <!-- Notes -->
-        <div class="debt-notes" *ngIf="d.notes">📝 {{ d.notes }}</div>
       </div>
     </div>
 
-    <!-- Empty -->
-    <div class="debt-empty glass-card" *ngIf="debts.length === 0">
-      <span class="empty-icon">🎉</span>
-      <div class="empty-title">Nenhuma dívida cadastrada</div>
-      <div class="empty-sub">Você está livre de dívidas! Ou adicione para acompanhar seus compromissos.</div>
+    <div class="filter-footer">
+      <span class="filter-results">
+        {{ activeDebts.length }} dívida{{ activeDebts.length !== 1 ? 's' : '' }} encontrada{{ activeDebts.length !== 1 ? 's' : '' }}
+        <ng-container *ngIf="filterStatus==='PAID'"> (inclui quitadas)</ng-container>
+      </span>
+      <button class="filter-clear-btn" *ngIf="hasActiveFilter" (click)="clearFilters()">✕ Limpar filtros</button>
+    </div>
+  </div>
+
+  <!-- Debts Grid -->
+  <div class="debts-grid">
+    <div class="debt-card" *ngFor="let d of activeDebts; let i = index"
+         (click)="openInstallments(d)"
+         [class.clickable]="!d.perennial"
+         [class.status-paid]="d.status === 'PAID'"
+         [class.status-pending]="d.status === 'PENDING'"
+         [class.status-overdue]="d.status === 'OVERDUE'"
+         [style.animation-delay]="(i * 0.05) + 's'"
+         [title]="d.perennial ? '' : 'Clique para ver parcelas'">
+
+      <!-- Coloured left accent stripe -->
+      <div class="dc-stripe"></div>
+
+      <div class="dc-body">
+
+        <!-- ── Row 1: title + actions ── -->
+        <div class="dc-top-row">
+          <div class="dc-title-block">
+            <div class="dc-name">{{ d.description }}</div>
+            <div class="dc-chips">
+              <span class="dc-chip chip-purple" *ngIf="d.creditCard">
+                <span class="chip-icon">💳</span>{{ d.creditCard.name }}
+              </span>
+              <span class="dc-chip chip-blue" *ngIf="d.bankAccount">
+                <span class="chip-icon">🏦</span>{{ d.bankAccount.name }}
+              </span>
+              <span class="dc-chip chip-gray" *ngIf="!d.creditCard && !d.bankAccount">sem vínculo</span>
+            </div>
+          </div>
+          <div class="dc-controls" (click)="$event.stopPropagation()">
+            <span class="dc-badge"
+              [class.dc-badge-green]="d.status === 'PAID'"
+              [class.dc-badge-yellow]="d.status === 'PENDING'"
+              [class.dc-badge-red]="d.status === 'OVERDUE'">
+              {{ d.status === 'PAID' ? '✅ Quitada' : d.status === 'OVERDUE' ? '🔴 Atrasada' : '⏳ Pendente' }}
+            </span>
+            <div class="dc-actions">
+              <button class="icon-btn" (click)="openEdit(d)" title="Editar">✏️</button>
+              <button class="icon-btn danger" (click)="delete(d.id)" title="Excluir">🗑️</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Row 2: overdue alert ── -->
+        <div class="dc-overdue-alert" *ngIf="overdueCount(d) > 0">
+          🔴 {{ overdueCount(d) }} parcela{{ overdueCount(d) > 1 ? 's' : '' }} atrasada{{ overdueCount(d) > 1 ? 's' : '' }}
+        </div>
+
+        <!-- ── Row 3: amount tiles ── -->
+        <div class="dc-amounts">
+          <!-- Restante / Mensal — destaque -->
+          <div class="dc-amt dc-amt-main">
+            <div class="dc-amt-label">{{ d.perennial ? 'Mensal' : 'Restante' }}</div>
+            <div class="dc-amt-val dc-amt-red">{{ fmt(d.perennial ? d.originalAmount : d.remainingAmount) }}</div>
+          </div>
+          <!-- Original -->
+          <div class="dc-amt">
+            <div class="dc-amt-label">Original</div>
+            <div class="dc-amt-val">{{ fmt(d.originalAmount) }}</div>
+          </div>
+          <!-- Parcela (parcelada) | Vencto (perene) -->
+          <div class="dc-amt" *ngIf="!d.perennial">
+            <div class="dc-amt-label">Parcela</div>
+            <div class="dc-amt-val dc-amt-blue">{{ fmt(installmentValue(d)) }}</div>
+          </div>
+          <div class="dc-amt" *ngIf="d.perennial">
+            <div class="dc-amt-label">Vencimento</div>
+            <div class="dc-amt-val dc-amt-purple">Dia {{ d.dueDayOfMonth }}</div>
+          </div>
+          <!-- Parcelas pagas / Tipo perene -->
+          <div class="dc-amt" *ngIf="!d.perennial">
+            <div class="dc-amt-label">Pagas</div>
+            <div class="dc-amt-val dc-amt-green">{{ d.paidInstallments }}<span class="dc-amt-total">/{{ d.totalInstallments }}</span></div>
+          </div>
+          <div class="dc-amt" *ngIf="d.perennial">
+            <div class="dc-amt-label">Tipo</div>
+            <div class="dc-amt-val" style="font-size:11px;color:var(--text-muted)">🔄 Perene</div>
+          </div>
+        </div>
+
+        <!-- ── Row 4: progress (parcelada) ── -->
+        <ng-container *ngIf="!d.perennial">
+          <div class="dc-progress-wrap">
+            <div class="dc-progress-header">
+              <span class="dc-progress-label">Progresso</span>
+              <span class="dc-progress-pct">{{ progress(d).toFixed(0) }}%</span>
+            </div>
+            <div class="dc-progress-track">
+              <div class="dc-progress-fill"
+                   [style.width]="progress(d) + '%'"
+                   [class.fill-green]="progress(d) >= 70"
+                   [class.fill-yellow]="progress(d) < 70 && progress(d) >= 30"
+                   [class.fill-red]="progress(d) < 30 || d.status === 'OVERDUE'">
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Row 5: next due + hint ── -->
+          <div class="dc-footer-row">
+            <span class="dc-next-due" *ngIf="nextDueDate(d)">
+              📅 {{ nextDueDate(d) }}
+              <span class="dc-due-soon" *ngIf="isDueSoon(d)">⚡ Vence em breve!</span>
+            </span>
+            <span class="dc-view-hint">🔍 ver parcelas</span>
+          </div>
+        </ng-container>
+
+        <!-- ── Row 4 (perennial): recurring badge ── -->
+        <div class="dc-perennial-row" *ngIf="d.perennial">
+          <span class="dc-perennial-badge">🔄 Recorrente · todo mês no dia {{ d.dueDayOfMonth }}</span>
+        </div>
+
+        <!-- ── Row last: notes ── -->
+        <div class="dc-notes" *ngIf="d.notes">📝 {{ d.notes }}</div>
+
+      </div><!-- /dc-body -->
+    </div>
+
+    <!-- Empty state -->
+    <div class="debt-empty" *ngIf="activeDebts.length === 0">
+      <span class="empty-icon">{{ filterStatus !== 'ALL' || filterLink !== 'ALL' ? '🔍' : '🎉' }}</span>
+      <div class="empty-title">Nenhuma dívida encontrada</div>
+      <div class="empty-sub">
+        {{ filterStatus !== 'ALL' || filterLink !== 'ALL'
+          ? 'Nenhuma dívida corresponde aos filtros selecionados.'
+          : 'Todas as suas dívidas estão quitadas! Ou adicione novas para acompanhar.' }}
+      </div>
     </div>
   </div>
 </div>
 
-<!-- Modal -->
+<!-- ═══ DEBT FORM MODAL ═══ -->
 <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
   <div class="modal" (click)="$event.stopPropagation()">
     <div class="modal-header">
@@ -133,14 +262,38 @@
       <button class="close-btn" (click)="closeModal()">×</button>
     </div>
     <div class="form-group"><label>Descrição *</label><input type="text" [(ngModel)]="form.description" placeholder="Ex: Financiamento Carro" /></div>
-    <div class="form-row mt-1">
-      <div class="form-group"><label>Valor Original (R$)</label><input type="number" [(ngModel)]="form.originalAmount" /></div>
-      <div class="form-group"><label>Valor Restante (R$)</label><input type="number" [(ngModel)]="form.remainingAmount" /></div>
+
+    <div class="form-group mt-1">
+      <label>Tipo de Dívida</label>
+      <div class="debt-type-toggle">
+        <button type="button" class="dtype-btn" [class.active]="!form.perennial" (click)="form.perennial = false">📋 Parcelada</button>
+        <button type="button" class="dtype-btn" [class.active]="form.perennial"  (click)="form.perennial = true">🔄 Perene (recorrente mensal)</button>
+      </div>
     </div>
-    <div class="form-row mt-1">
-      <div class="form-group"><label>Total de Parcelas</label><input type="number" [(ngModel)]="form.totalInstallments" /></div>
-      <div class="form-group"><label>Parcelas Pagas</label><input type="number" [(ngModel)]="form.paidInstallments" /></div>
-    </div>
+
+    <ng-container *ngIf="!form.perennial">
+      <div class="form-row mt-1">
+        <div class="form-group"><label>Valor Original (R$)</label><input type="number" [(ngModel)]="form.originalAmount" /></div>
+        <div class="form-group"><label>Valor Restante (R$)</label><input type="number" [(ngModel)]="form.remainingAmount" /></div>
+      </div>
+      <div class="form-row mt-1">
+        <div class="form-group"><label>Total de Parcelas</label><input type="number" [(ngModel)]="form.totalInstallments" /></div>
+        <div class="form-group"><label>Parcelas Pagas</label><input type="number" [(ngModel)]="form.paidInstallments" /></div>
+      </div>
+      <div class="form-group mt-1"><label>Data de Início</label><input type="date" [(ngModel)]="form.startDate" /></div>
+    </ng-container>
+
+    <ng-container *ngIf="form.perennial">
+      <div class="perennial-banner">
+        🔄 <strong>Dívida Perene</strong> — lançada automaticamente em <strong>transações</strong> todo mês
+      </div>
+      <div class="form-row mt-1">
+        <div class="form-group"><label>Valor Mensal (R$)</label><input type="number" [(ngModel)]="form.originalAmount" /></div>
+        <div class="form-group"><label>Dia de Vencimento (1-31)</label><input type="number" min="1" max="31" [(ngModel)]="form.dueDayOfMonth" /></div>
+      </div>
+      <div class="form-group mt-1"><label>Início da Recorrência</label><input type="date" [(ngModel)]="form.perennialStartDate" /></div>
+    </ng-container>
+
     <div class="form-row mt-1">
       <div class="form-group"><label>Cartão</label>
         <select [(ngModel)]="form.creditCardId"><option value="">Nenhum</option><option *ngFor="let c of cards" [value]="c.id">{{ c.name }}</option></select>
@@ -150,9 +303,12 @@
       </div>
     </div>
     <div class="form-row mt-1">
-      <div class="form-group"><label>Data de Início</label><input type="date" [(ngModel)]="form.startDate" /></div>
       <div class="form-group"><label>Status</label>
-        <select [(ngModel)]="form.status"><option value="PENDING">⏳ Pendente</option><option value="PAID">✅ Quitado</option><option value="OVERDUE">🔴 Atrasado</option></select>
+        <select [(ngModel)]="form.status">
+          <option value="PENDING">⏳ Pendente</option>
+          <option value="PAID">✅ Quitado</option>
+          <option value="OVERDUE">🔴 Atrasado</option>
+        </select>
       </div>
     </div>
     <div class="form-group mt-1"><label>Notas</label><textarea rows="2" [(ngModel)]="form.notes" style="resize:vertical"></textarea></div>
@@ -160,5 +316,171 @@
       <button class="btn-secondary" (click)="closeModal()">Cancelar</button>
       <button class="btn-primary" (click)="save()">{{ editMode ? 'Atualizar' : 'Criar' }}</button>
     </div>
+  </div>
+</div>
+
+<!-- ═══ PAID DEBTS MODAL ═══ -->
+<div class="modal-overlay" *ngIf="showPaidModal" (click)="showPaidModal = false">
+  <div class="modal paid-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>✅ Dívidas Quitadas ({{ paidDebts.length }})</h2>
+      <button class="close-btn" (click)="showPaidModal = false">×</button>
+    </div>
+    <div class="paid-modal-body">
+      <div *ngIf="paidDebts.length === 0" class="paid-empty"><span>🎉</span> Nenhuma dívida quitada ainda.</div>
+      <div class="paid-debt-card" *ngFor="let d of paidDebts">
+        <div class="paid-debt-top">
+          <div class="paid-debt-name">{{ d.description }}</div>
+          <span class="badge badge-green">✅ Quitada</span>
+        </div>
+        <div class="paid-debt-details">
+          <div class="paid-detail"><span class="pd-label">Valor Original</span><span class="pd-value">{{ fmt(d.originalAmount) }}</span></div>
+          <div class="paid-detail" *ngIf="!d.perennial"><span class="pd-label">Parcelas</span><span class="pd-value green">{{ d.paidInstallments }}/{{ d.totalInstallments }}</span></div>
+          <div class="paid-detail" *ngIf="d.perennial"><span class="pd-label">Tipo</span><span class="pd-value">🔄 Perene</span></div>
+          <div class="paid-detail" *ngIf="d.startDate"><span class="pd-label">Início</span><span class="pd-value">{{ d.startDate | date:'dd/MM/yyyy' }}</span></div>
+          <div class="paid-detail" *ngIf="d.creditCard"><span class="pd-label">Cartão</span><span class="pd-value">💳 {{ d.creditCard.name }}</span></div>
+          <div class="paid-detail" *ngIf="d.bankAccount"><span class="pd-label">Conta</span><span class="pd-value">🏦 {{ d.bankAccount.name }}</span></div>
+        </div>
+        <div class="paid-debt-notes" *ngIf="d.notes">�� {{ d.notes }}</div>
+        <div class="paid-debt-actions">
+          <button class="icon-btn" (click)="openEdit(d); showPaidModal = false" title="Editar">✏️</button>
+          <button class="icon-btn danger" (click)="delete(d.id)" title="Excluir">🗑️</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ INSTALLMENTS MODAL ═══ -->
+<div class="modal-overlay" *ngIf="showInstallModal" (click)="closeInstallModal()">
+  <div class="modal install-modal" (click)="$event.stopPropagation()">
+
+    <!-- Gradient header bar -->
+    <div class="install-modal-header-bar">
+      <div class="modal-header">
+        <div style="min-width:0;flex:1">
+          <h2>📋 Parcelas — <span class="install-debt-name">{{ installModalDebt?.description }}</span></h2>
+          <div class="install-modal-sub" *ngIf="!installLoading">
+            <span class="install-stat green">✅ {{ installPaidCount }} pagas</span>
+            <span class="install-stat red"   *ngIf="installOverdueCount > 0">🔴 {{ installOverdueCount }} atrasadas</span>
+            <span class="install-stat gray">⏳ {{ installPendingCount }} pendentes</span>
+            <span class="install-stat purple" *ngIf="installSaving">⏳ salvando…</span>
+          </div>
+        </div>
+        <button class="close-btn" (click)="closeInstallModal()">×</button>
+      </div>
+
+      <!-- Debt summary strip -->
+      <div class="install-debt-strip" *ngIf="installModalDebt && !installLoading">
+        <div class="ids-item">
+          <span class="ids-label">Original</span>
+          <span class="ids-val">{{ fmt(installModalDebt.originalAmount) }}</span>
+        </div>
+        <div class="ids-item">
+          <span class="ids-label">Restante</span>
+          <span class="ids-val red">{{ fmt(installModalDebt.remainingAmount) }}</span>
+        </div>
+        <div class="ids-item">
+          <span class="ids-label">Parcela</span>
+          <span class="ids-val blue">{{ fmt(installmentValue(installModalDebt)) }}</span>
+        </div>
+        <div class="ids-item ids-progress-item">
+          <span class="ids-label">Progresso — {{ installProgress }}%</span>
+          <div class="ids-bar">
+            <div class="ids-bar-fill"
+                 [style.width]="installProgress + '%'"
+                 [class.bar-green]="installProgress >= 80"
+                 [class.bar-gold]="installProgress >= 40 && installProgress < 80"
+                 [class.bar-blue]="installProgress < 40"></div>
+          </div>
+        </div>
+        <div class="ids-item">
+          <span class="ids-label">Status</span>
+          <span class="badge"
+                [class.badge-green]="installModalDebt.status === 'PAID'"
+                [class.badge-yellow]="installModalDebt.status === 'PENDING'"
+                [class.badge-red]="installModalDebt.status === 'OVERDUE'">
+            {{ installModalDebt.status === 'PAID' ? '✅ Quitada' : installModalDebt.status === 'OVERDUE' ? '🔴 Atrasada' : '⏳ Pendente' }}
+          </span>
+        </div>
+      </div>
+    </div><!-- /header bar -->
+
+    <!-- Body -->
+    <div class="install-modal-body">
+
+      <!-- Error -->
+      <div class="install-error" *ngIf="installSaveError">⚠️ {{ installSaveError }}</div>
+
+      <!-- Toolbar: filter chips + batch actions -->
+      <div class="install-toolbar" *ngIf="!installLoading && installments.length">
+        <div class="install-filter-chips">
+          <button class="inst-chip" [class.active]="installFilter==='ALL'"     (click)="installFilter='ALL'">Todas</button>
+          <button class="inst-chip pending" [class.active]="installFilter==='PENDING'" (click)="installFilter='PENDING'">⏳ {{ installPendingCount }}</button>
+          <button class="inst-chip overdue" [class.active]="installFilter==='OVERDUE'" (click)="installFilter='OVERDUE'" *ngIf="installOverdueCount>0">🔴 {{ installOverdueCount }}</button>
+          <button class="inst-chip paid"    [class.active]="installFilter==='PAID'"    (click)="installFilter='PAID'">✅ {{ installPaidCount }}</button>
+        </div>
+        <div class="install-batch-btns">
+          <button class="inst-batch-btn mark-paid"
+                  [disabled]="installBatchBusy || installSaving"
+                  (click)="markAllInstallments('PAID')"
+                  title="Marcar todas as parcelas visíveis como pagas">
+            {{ installBatchBusy ? '⏳' : '✅' }} Marcar pagas
+          </button>
+          <button class="inst-batch-btn mark-pending"
+                  [disabled]="installBatchBusy || installSaving"
+                  (click)="markAllInstallments('PENDING')"
+                  title="Marcar todas as parcelas visíveis como pendentes">
+            {{ installBatchBusy ? '⏳' : '↩' }} Desfazer
+          </button>
+        </div>
+      </div>
+
+      <!-- Hint -->
+      <div class="install-hint" *ngIf="!installLoading && installments.length">
+        💡 Clique numa parcela para alternar · <strong>{{ filteredInstallments.length }}</strong> de {{ installments.length }} exibidas
+      </div>
+
+      <!-- Loading -->
+      <div class="install-loading" *ngIf="installLoading">
+        <div class="install-spinner"></div>
+        Carregando parcelas…
+      </div>
+
+      <!-- List -->
+      <div class="install-list" *ngIf="!installLoading">
+        <div class="install-row"
+             *ngFor="let p of filteredInstallments"
+             [class.install-paid]="p.status === 'PAID'"
+             [class.install-overdue]="p.status === 'OVERDUE'"
+             [class.install-pending]="p.status === 'PENDING'"
+             [class.install-saving]="installSaving || installBatchBusy"
+             (click)="toggleInstallment(p)"
+             [title]="p.status === 'PAID' ? 'Clique para desfazer — marcar como pendente' : 'Clique para marcar como paga'">
+
+          <!-- Checkbox -->
+          <div class="install-check" [class.checked]="p.status === 'PAID'">
+            <span *ngIf="p.status === 'PAID'">✓</span>
+          </div>
+
+          <div class="install-num">#{{ p.installmentNumber }}</div>
+          <div class="install-date">{{ p.dueDate | date:'dd/MM/yyyy' }}</div>
+          <div class="install-amt">{{ fmt(p.amount) }}</div>
+
+          <div class="install-status-badge"
+               [class.ibadge-green]="p.status === 'PAID'"
+               [class.ibadge-red]="p.status === 'OVERDUE'"
+               [class.ibadge-yellow]="p.status === 'PENDING'">
+            {{ p.status === 'PAID' ? '✅ Paga' : p.status === 'OVERDUE' ? '🔴 Atrasada' : '⏳ Pendente' }}
+          </div>
+
+          <div class="install-toggle-hint">
+            {{ p.status === 'PAID' ? '↩ desfazer' : '✓ marcar paga' }}
+          </div>
+        </div>
+        <div class="install-empty" *ngIf="installments.length === 0">Nenhuma parcela encontrada.</div>
+      </div>
+
+    </div><!-- /body -->
   </div>
 </div>

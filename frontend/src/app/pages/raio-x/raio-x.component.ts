@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService } from '../../core/services/api.service';
+import { catchError, firstValueFrom, of } from 'rxjs';
 import * as echarts from 'echarts';
 
 @Component({
@@ -45,10 +46,10 @@ export class RaioXComponent implements OnInit, OnDestroy {
   loadAll() {
     this.loading = true;
     Promise.all([
-      this.api.getFinancialScore().toPromise(),
-      this.api.getIndependencePoint().toPromise(),
-      this.api.getAnomalies().toPromise(),
-      this.api.getMonthlyComparison(3).toPromise(),
+      firstValueFrom(this.api.getFinancialScore().pipe(catchError(() => of(null)))),
+      firstValueFrom(this.api.getIndependencePoint().pipe(catchError(() => of(null)))),
+      firstValueFrom(this.api.getAnomalies().pipe(catchError(() => of([])))),
+      firstValueFrom(this.api.getMonthlyComparison(3).pipe(catchError(() => of([])))),
     ]).then(([score, independence, anomalies, comparison]: any[]) => {
       this.score = score;
       this.independence = independence;

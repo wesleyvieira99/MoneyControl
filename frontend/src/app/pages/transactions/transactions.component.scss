@@ -62,6 +62,7 @@
   }
   .stat-label { font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
   .stat-value { font-size: 24px; font-weight: 900; letter-spacing: -0.03em; line-height: 1; font-family: 'Inter', sans-serif; }
+  .stat-sub   { font-size: 10px; color: var(--text-muted); margin-top: 5px; font-style: italic; opacity: 0.7; }
 }
 
 .overdue-banner {
@@ -96,9 +97,40 @@
     pointer-events: none;
   }
 }
-.chart-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; gap: 12px; }
+.chart-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; margin-bottom: 16px; gap: 12px; }
 .chart-title  { font-size: 14px; font-weight: 700; color: var(--text-primary); }
 .chart-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+/* ── Chart totals inline ── */
+.chart-totals-row {
+  display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+}
+.chart-total-item {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 7px 13px; border-radius: 12px;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+  min-width: 110px;
+  .ct-label { font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); }
+  .ct-value { font-size: 13px; font-weight: 900; color: var(--text-primary); font-family: 'Inter', sans-serif; white-space: nowrap; }
+  .ct-net   { font-size: 14px; }
+  &.green   { border-color: rgba(16,185,129,0.2);  .ct-value { color: #34d399; } }
+  &.red     { border-color: rgba(239,68,68,0.2);   .ct-value { color: #f87171; } }
+  &.net-pos-item { border-color: rgba(16,185,129,0.2);  .ct-value { color: #34d399; } }
+  &.net-neg-item { border-color: rgba(239,68,68,0.2);   .ct-value { color: #f87171; } }
+}
+
+/* ── Range Presets ── */
+.range-presets {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;
+  button {
+    padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700;
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    color: var(--text-secondary); cursor: pointer; transition: all 0.2s;
+    font-family: inherit;
+    &:hover { background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.3); color: #60a5fa; }
+    &.active { background: rgba(59,130,246,0.18); border-color: rgba(59,130,246,0.5); color: #93c5fd; }
+  }
+}
 
 /* ── Filters Bar ── */
 .filters-bar {
@@ -146,8 +178,26 @@ table {
   }
 }
 .desc-cell {
-  display: flex; align-items: center; gap: 6px; max-width: 260px;
-  span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); font-weight: 500; }
+  display: flex; align-items: center; gap: 5px; max-width: 280px; flex-wrap: nowrap;
+  .desc-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); font-weight: 500; flex: 1; min-width: 0; }
+  .desc-note { font-size: 13px; cursor: help; flex-shrink: 0; }
+}
+
+// ── Transaction type tags (perene / recurring / installment) ──────────────
+.tx-tag {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 99px;
+  white-space: nowrap; flex-shrink: 0; letter-spacing: 0.03em;
+  border: 1px solid transparent;
+  &.tx-tag-perene {
+    background: rgba(139,92,246,0.12); color: #c4b5fd; border-color: rgba(139,92,246,0.25);
+  }
+  &.tx-tag-rec {
+    background: rgba(59,130,246,0.1); color: #60a5fa; border-color: rgba(59,130,246,0.22);
+  }
+  &.tx-tag-inst {
+    background: rgba(245,158,11,0.1); color: #fbbf24; border-color: rgba(245,158,11,0.22);
+  }
 }
 
 /* ── Badges ── */
@@ -201,7 +251,7 @@ table {
   &::before { content: ''; position: absolute; top: 0; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, transparent, rgba(99,102,241,0.6), rgba(139,92,246,0.5), transparent); border-radius: 99px; }
 }
 @keyframes modalIn { from { opacity: 0; transform: scale(0.94) translateY(16px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; h2 { font-size: 18px; font-weight: 800; margin: 0; background: linear-gradient(135deg, #fff 0%, #93c5fd 50%, #c4b5fd 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; } }
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; h2 { font-size: 18px; font-weight: 800; margin: 0; background: linear-gradient(135deg, #fff 0%, #93c5fd 50%, #c4b5fd 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; } }
 .close-btn { width: 34px; height: 34px; border-radius: 10px; background: var(--glass-bg-strong); border: 1px solid var(--glass-border); color: var(--text-muted); font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; line-height: 1; &:hover { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.3); color: var(--accent-red); } }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; @media (max-width: 480px) { grid-template-columns: 1fr; } }
 .form-group {
@@ -211,6 +261,67 @@ table {
 }
 .mt-1 { margin-top: 16px; }
 .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--glass-border); }
+.modal-sm { max-width: 460px; }
+
+/* ── Recurrence Group ── */
+.section-lbl {
+  font-size: 10.5px !important; font-weight: 700 !important; text-transform: uppercase !important;
+  letter-spacing: 0.08em !important; color: var(--text-muted) !important; margin-bottom: 6px;
+}
+.recurrence-group { gap: 8px !important; }
+.recurrence-option {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px; border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255,255,255,0.02);
+  cursor: pointer; transition: all 0.2s;
+  text-transform: none !important; font-size: 13px !important;
+  &:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); }
+  &.active { border-color: rgba(99,102,241,0.4); background: rgba(99,102,241,0.07); }
+  input[type=checkbox] { margin-top: 2px; flex-shrink: 0; }
+}
+.recurrence-info { display: flex; flex-direction: column; gap: 2px; }
+.rec-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.rec-sub   { font-size: 11px; color: var(--text-muted); }
+.perene-preview {
+  padding: 9px 12px; border-radius: 10px;
+  background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.25);
+  font-size: 12px; color: #c4b5fd; line-height: 1.5;
+  strong { color: #fff; }
+}
+
+/* ── Recurring Modal ── */
+.recurring-preview-box {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px; border-radius: 14px;
+  background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2);
+  margin-bottom: 4px;
+  .rpb-icon { font-size: 28px; opacity: 0.7; flex-shrink: 0; color: var(--accent-blue); font-weight: 900; }
+  .rpb-title { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+  .rpb-sub   { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+}
+.recurring-count-preview {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin-top: 12px; padding: 10px 14px; border-radius: 10px;
+  background: rgba(16,185,129,0.07); border: 1px solid rgba(16,185,129,0.2);
+  font-size: 12.5px; color: #6ee7b7; line-height: 1.5;
+  strong { color: #fff; }
+  span:first-child { flex-shrink: 0; margin-top: 1px; }
+}
+
+/* ── Recurring overlay sits ABOVE the main modal ── */
+.recurring-overlay {
+  z-index: 1100 !important;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(8px);
+}
+.recurring-overlay .modal {
+  border-color: rgba(59,130,246,0.4);
+  box-shadow: 0 0 0 1px rgba(59,130,246,0.2), 0 32px 100px rgba(0,0,0,0.8);
+  &::before {
+    background: linear-gradient(90deg, transparent, rgba(59,130,246,0.6), rgba(99,102,241,0.5), transparent);
+  }
+}
 .animate-card { animation: cardIn 0.45s cubic-bezier(0.4,0,0.2,1) both; }
 @keyframes cardIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 .d-flex { display: flex; }

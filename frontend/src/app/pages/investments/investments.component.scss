@@ -256,5 +256,26 @@
 .animate-card { animation: cardIn 0.45s cubic-bezier(0.4,0,0.2,1) both; }
 .modal-lg { max-width: 720px; }
 
+// ── Conta vinculada no card de investimento ───────────────────────────────
+.inv-account-link {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+.inv-account-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px 3px 7px;
+  border-radius: 999px;
+  background: rgba(59,130,246,0.09);
+  border: 1px solid rgba(59,130,246,0.25);
+  font-size: 11px; font-weight: 600; color: #93c5fd;
+  transition: background 0.18s;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  &:hover { background: rgba(59,130,246,0.16); }
+}
+.inv-account-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+}
+
 .inv-page { padding-bottom: 60px; }
 .inv-type-section { margin-bottom: 2rem; }

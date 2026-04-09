@@ -7,6 +7,16 @@
     <button class="btn-primary" (click)="openNew()">+ Novo Cartão</button>
   </div>
 
+  <!-- HOW-TO STRIP -->
+  <div class="howto-strip howto-purple">
+    <div class="howto-icon">💳</div>
+    <div class="howto-pill active">Limites & faturas</div>
+    <div class="howto-sep"></div>
+    <div class="howto-pill">Compra à vista no cartão <span class="howto-tag blue">→ Transações</span></div>
+    <div class="howto-sep"></div>
+    <div class="howto-pill">Compra parcelada <span class="howto-tag purple">→ Dívidas</span></div>
+  </div>
+
   <!-- Summary Row -->
   <div class="cards-summary">
     <div class="summary-stat blue">
@@ -99,6 +109,17 @@
             {{ usedPercent(card).toFixed(0) }}% usado
           </span>
         </div>
+
+        <!-- Conta vinculada -->
+        <div class="card-account-link" *ngIf="card.bankAccount">
+          <span class="card-account-badge">
+            <span class="card-account-icon">🏦</span>
+            <span class="card-account-name">{{ card.bankAccount.name }}</span>
+          </span>
+        </div>
+        <div class="card-account-link card-account-none" *ngIf="!card.bankAccount">
+          <span style="font-size:11px;color:var(--text-muted);opacity:.6">sem conta vinculada</span>
+        </div>
       </div>
     </div>
 
@@ -184,28 +205,142 @@
 
 <!-- Invoice Modal -->
 <div class="modal-overlay" *ngIf="invoiceCard" (click)="invoiceCard = null">
-  <div class="modal modal-lg" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h2>📄 Fatura — {{ invoiceCard.name }}</h2>
+  <div class="modal modal-lg invoice-modal" (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="invoice-header">
+      <div class="invoice-header-left">
+        <div class="invoice-card-badge" [style.background]="invoiceCard.color + '22'" [style.border-color]="invoiceCard.color + '44'">
+          <span class="invoice-card-dot" [style.background]="invoiceCard.color"></span>
+          <span class="invoice-card-name">{{ invoiceCard.name }}</span>
+          <span class="invoice-card-digits" *ngIf="invoiceCard.lastFourDigits">•••• {{ invoiceCard.lastFourDigits }}</span>
+        </div>
+        <h2 class="invoice-title">📄 Fatura</h2>
+      </div>
       <button class="close-btn" (click)="invoiceCard = null">×</button>
     </div>
-    <div class="d-flex gap-1 align-center mb-2">
-      <input type="month" [(ngModel)]="invoiceMonth" (change)="loadInvoice()" style="width:auto" />
-      <span class="badge badge-red">Total: {{ fmt(invoiceTotal()) }}</span>
+
+    <!-- Summary Stats -->
+    <div class="invoice-stats-row">
+      <div class="inv-stat-card blue">
+        <div class="isc-label">Compras à Vista</div>
+        <div class="isc-val">{{ fmt(invoiceTotal()) }}</div>
+        <div class="isc-sub">{{ invoiceMonth + '-01' | date:'MMM/yyyy':'':'pt-BR' }}</div>
+      </div>
+      <div class="inv-stat-card orange">
+        <div class="isc-label">Parcelas do Mês</div>
+        <div class="isc-val">{{ fmt(invoiceDebtMonthly()) }}</div>
+        <div class="isc-sub">{{ invoiceDebtsWithInstallments.length }} dívida(s) ativa(s)</div>
+      </div>
+      <div class="inv-stat-card purple">
+        <div class="isc-label">Total Estimado</div>
+        <div class="isc-val">{{ fmt(invoiceTotalThisMonth()) }}</div>
+        <div class="isc-sub">fatura + parcelas</div>
+      </div>
+      <div class="inv-stat-card red">
+        <div class="isc-label">Limite Usado</div>
+        <div class="isc-val">{{ fmt(invoiceCard.usedLimit) }}</div>
+        <div class="isc-sub">de {{ fmt(invoiceCard.creditLimit) }}</div>
+      </div>
     </div>
-    <table>
-      <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th></tr></thead>
-      <tbody>
-        <tr *ngFor="let t of invoiceTransactions">
-          <td>{{ t.date | date:'dd/MM' }}</td>
-          <td>{{ t.description }}</td>
-          <td>{{ t.category?.name || '—' }}</td>
-          <td class="text-red">{{ fmt(t.amount) }}</td>
-        </tr>
-        <tr *ngIf="invoiceTransactions.length === 0">
-          <td colspan="4" style="text-align:center;padding:30px;color:#475569">Nenhuma transação neste mês</td>
-        </tr>
-      </tbody>
-    </table>
+
+    <!-- Tabs -->
+    <div class="inv-tabs">
+      <button class="inv-tab" [class.active]="invoiceTab==='transactions'" (click)="invoiceTab='transactions'">
+        <span class="inv-tab-icon">💳</span>
+        <span>Compras à Vista</span>
+        <span class="inv-tab-badge">{{ invoiceTransactions.length }}</span>
+      </button>
+      <button class="inv-tab" [class.active]="invoiceTab==='debts'" (click)="invoiceTab='debts'">
+        <span class="inv-tab-icon">📋</span>
+        <span>Dívidas Parceladas</span>
+        <span class="inv-tab-badge">{{ invoiceDebts.length }}</span>
+      </button>
+    </div>
+
+    <!-- ── TAB: Compras à vista ── -->
+    <ng-container *ngIf="invoiceTab==='transactions'">
+      <div class="inv-toolbar">
+        <input type="month" [(ngModel)]="invoiceMonth" (change)="loadInvoice()" class="month-input" />
+        <span class="badge badge-red" *ngIf="invoiceTransactions.length">Total: {{ fmt(invoiceTotal()) }}</span>
+        <span class="inv-loading" *ngIf="invoiceLoading">⏳ carregando…</span>
+      </div>
+
+      <div class="inv-list" *ngIf="invoiceTransactions.length; else noTx">
+        <div class="inv-row" *ngFor="let t of invoiceTransactions">
+          <div class="ir-date">{{ t.date | date:'dd/MM' }}</div>
+          <div class="ir-cat-icon">{{ t.category?.icon || '💳' }}</div>
+          <div class="ir-desc">
+            <span class="ir-desc-main">{{ t.description }}</span>
+            <span class="ir-desc-cat">{{ t.category?.name || '—' }}</span>
+          </div>
+          <div class="ir-amount">{{ fmt(t.amount) }}</div>
+        </div>
+      </div>
+      <ng-template #noTx>
+        <div class="inv-empty">
+          <span>🧾</span>
+          <p>Nenhuma compra à vista neste mês</p>
+        </div>
+      </ng-template>
+    </ng-container>
+
+    <!-- ── TAB: Dívidas Parceladas ── -->
+    <ng-container *ngIf="invoiceTab==='debts'">
+      <div class="inv-list debt-list" *ngIf="invoiceDebtsWithInstallments.length; else noDebt">
+        <div class="debt-row" *ngFor="let d of invoiceDebtsWithInstallments">
+
+          <!-- Row top: name + status -->
+          <div class="debt-row-top">
+            <div class="debt-info">
+              <span class="debt-desc">{{ d.description }}</span>
+              <span class="debt-link" *ngIf="d.creditCard">💳 {{ d.creditCard.name }}</span>
+            </div>
+            <span class="badge" [ngClass]="debtStatusClass(d)">{{ debtStatusLabel(d) }}</span>
+          </div>
+
+          <!-- Progress bar -->
+          <div class="debt-progress-wrap">
+            <div class="debt-progress-bar">
+              <div class="debt-progress-fill"
+                [style.width]="progressPct(d) + '%'"
+                [class.prog-green]="progressPct(d) >= 80"
+                [class.prog-gold]="progressPct(d) >= 40 && progressPct(d) < 80"
+                [class.prog-blue]="progressPct(d) < 40">
+              </div>
+            </div>
+            <span class="debt-progress-label">{{ d._paidCount || d.paidInstallments }}/{{ d._total || d.totalInstallments }} parcelas ({{ progressPct(d) }}%)</span>
+          </div>
+
+          <!-- Row bottom: amounts + next due -->
+          <div class="debt-row-meta">
+            <div class="debt-meta-item">
+              <span class="meta-label">Valor Original</span>
+              <span class="meta-val">{{ fmt(d.originalAmount) }}</span>
+            </div>
+            <div class="debt-meta-item">
+              <span class="meta-label">Restante</span>
+              <span class="meta-val text-red">{{ fmt(d.remainingAmount) }}</span>
+            </div>
+            <div class="debt-meta-item">
+              <span class="meta-label">Parcela</span>
+              <span class="meta-val text-blue">{{ d._nextInstallment ? fmt(d._nextInstallment.amount) : (d.totalInstallments > 0 ? fmt(d.originalAmount / d.totalInstallments) : '—') }}</span>
+            </div>
+            <div class="debt-meta-item">
+              <span class="meta-label">Próx. Vencimento</span>
+              <span class="meta-val" [class.text-red]="d._overdueCount > 0">{{ nextDueLabel(d) }}</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <ng-template #noDebt>
+        <div class="inv-empty">
+          <span>📋</span>
+          <p>Nenhuma dívida parcelada vinculada a este cartão</p>
+        </div>
+      </ng-template>
+    </ng-container>
+
   </div>
 </div>

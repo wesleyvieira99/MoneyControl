@@ -3,7 +3,17 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { ToastService } from '../../core/services/toast.service';
-import { catchError, of } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
+
+interface CalEvent {
+  id?: number;
+  label: string;
+  amount: number;
+  type: 'INCOME' | 'EXPENSE' | 'DEBT' | 'RECURRING';
+  status: string;
+  source: string;
+  icon: string;
+}
 
 interface CalendarDay {
   date: Date;
@@ -11,6 +21,7 @@ interface CalendarDay {
   isCurrentMonth: boolean;
   isToday: boolean;
   debts: DebtInstallment[];
+  events: CalEvent[];
 }
 
 interface DebtInstallment {
@@ -25,14 +36,7 @@ interface DebtInstallment {
   source: string;
   notes: string;
   dueDate: Date;
-  alarmSet: boolean;
-}
-
-interface ScheduledAlarm {
-  debtId: number;
-  description: string;
-  dueDate: string;
-  phone: string;
+  alarmSet?: boolean;
 }
 
 @Component({
@@ -44,6 +48,7 @@ interface ScheduledAlarm {
 })
 export class CalendarComponent implements OnInit {
   debts: any[] = [];
+  transactions: any[] = [];
   currentDate = new Date();
   currentYear = this.currentDate.getFullYear();
   currentMonth = this.currentDate.getMonth();
@@ -54,26 +59,30 @@ export class CalendarComponent implements OnInit {
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
   ];
 
-  // Modal
   showDayModal = false;
   selectedDay: CalendarDay | null = null;
-
-  // Alarm modal
-  showAlarmModal = false;
-  alarmDebt: DebtInstallment | null = null;
-  alarmPhone = '';
-
-  // Stored alarms
-  alarms: ScheduledAlarm[] = [];
 
   constructor(private api: ApiService, private toast: ToastService) {}
 
   ngOnInit() {
-    this.loadAlarms();
-    this.api.getDebts().pipe(catchError(() => of([]))).subscribe(d => {
-      this.debts = d;
+    forkJoin([
+      this.api.getDebts().pipe(catchError(() => of([]))),
+      this.api.getTransactions({ start: this.currentYear - 1 + '-01-01', end: this.currentYear + 2 + '-12-31' })
+        .pipe(catchError(() => of([])))
+    ]).subscribe(([debts, txs]: any[]) => {
+      this.debts = debts || [];
+      this.transactions = txs || [];
       this.buildCalendar();
     });
+  }
+
+  reloadTx() {
+    this.api.getTransactions({ start: this.currentYear - 1 + '-01-01', end: this.currentYear + 2 + '-12-31' })
+      .pipe(catchError(() => of([])))
+      .subscribe((txs: any[]) => {
+        this.transactions = txs || [];
+        this.buildCalendar();
+      });
   }
 
   buildCalendar() {
@@ -84,82 +93,84 @@ export class CalendarComponent implements OnInit {
     const startWeekDay = firstDay.getDay();
     const daysInMonth = lastDay.getDate();
     const today = new Date();
-
     const days: CalendarDay[] = [];
 
-    // Previous month fill
     const prevMonthLastDay = new Date(year, month, 0).getDate();
     for (let i = startWeekDay - 1; i >= 0; i--) {
       const date = new Date(year, month - 1, prevMonthLastDay - i);
-      days.push({
-        date,
-        day: prevMonthLastDay - i,
-        isCurrentMonth: false,
-        isToday: false,
-        debts: this.getDebtsForDate(date)
-      });
+      days.push({ date, day: prevMonthLastDay - i, isCurrentMonth: false, isToday: false,
+        debts: this.getDebtsForDate(date), events: this.getEventsForDate(date) });
     }
 
-    // Current month
     for (let d = 1; d <= daysInMonth; d++) {
       const date = new Date(year, month, d);
       const isToday = date.toDateString() === today.toDateString();
-      days.push({
-        date,
-        day: d,
-        isCurrentMonth: true,
-        isToday,
-        debts: this.getDebtsForDate(date)
-      });
+      days.push({ date, day: d, isCurrentMonth: true, isToday,
+        debts: this.getDebtsForDate(date), events: this.getEventsForDate(date) });
     }
 
-    // Next month fill to complete 6 rows (42 cells)
     const remaining = 42 - days.length;
     for (let i = 1; i <= remaining; i++) {
       const date = new Date(year, month + 1, i);
-      days.push({
-        date,
-        day: i,
-        isCurrentMonth: false,
-        isToday: false,
-        debts: this.getDebtsForDate(date)
-      });
+      days.push({ date, day: i, isCurrentMonth: false, isToday: false,
+        debts: this.getDebtsForDate(date), events: this.getEventsForDate(date) });
     }
 
     this.calendarDays = days;
   }
 
+  getEventsForDate(date: Date): CalEvent[] {
+    const dateStr = date.toISOString().slice(0, 10);
+    const events: CalEvent[] = [];
+
+    for (const tx of this.transactions) {
+      const txDate = (tx.date || '').slice(0, 10);
+      if (txDate !== dateStr) continue;
+
+      const isDebt    = tx.description?.startsWith('📋');
+      const isResgate = tx.description?.startsWith('💎');
+      const icon = isDebt ? '📋' : isResgate ? '💎' : tx.isRecurring ? '↻' : tx.type === 'INCOME' ? '📈' : '📉';
+      const evType: CalEvent['type'] = isDebt ? 'DEBT' : tx.isRecurring ? 'RECURRING' : tx.type === 'INCOME' ? 'INCOME' : 'EXPENSE';
+
+      events.push({
+        id: tx.id,
+        label: tx.description,
+        amount: +tx.amount,
+        type: evType,
+        status: tx.status,
+        source: tx.bankAccount?.name || tx.creditCard?.name || '—',
+        icon,
+      });
+    }
+    return events;
+  }
+
   getDebtsForDate(date: Date): DebtInstallment[] {
     const installments: DebtInstallment[] = [];
-    // Pre-build alarm lookup for O(1) checks
-    const alarmKeys = new Set(this.alarms.map(a => `${a.debtId}_${a.dueDate}`));
 
     for (const debt of this.debts) {
       if (!debt.startDate || !debt.totalInstallments) continue;
 
       const startDate = new Date(debt.startDate);
-      // Normalize to local midnight
-      startDate.setHours(0, 0, 0, 0);
-      const totalInst = +debt.totalInstallments;
-      const paidInst = +debt.paidInstallments || 0;
+      startDate.setMinutes(startDate.getMinutes() + startDate.getTimezoneOffset());
+      const totalInst   = +debt.totalInstallments;
+      const paidInst    = +debt.paidInstallments || 0;
       const originalAmt = +debt.originalAmount || 0;
       const installmentAmt = totalInst > 0 ? originalAmt / totalInst : 0;
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const today = new Date(); today.setHours(0, 0, 0, 0);
 
       for (let i = 0; i < totalInst; i++) {
         const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, startDate.getDate());
         dueDate.setHours(0, 0, 0, 0);
 
         if (dueDate.getFullYear() === date.getFullYear() &&
-            dueDate.getMonth() === date.getMonth() &&
-            dueDate.getDate() === date.getDate()) {
+            dueDate.getMonth()    === date.getMonth()    &&
+            dueDate.getDate()     === date.getDate()) {
 
-          const isPaid = i < paidInst;
+          const isPaid    = i < paidInst;
           const isOverdue = !isPaid && dueDate.getTime() < today.getTime();
-          const source = debt.creditCard ? '💳 ' + debt.creditCard.name :
-                        (debt.bankAccount ? '🏦 ' + debt.bankAccount.name : '—');
+          const source    = debt.creditCard  ? '💳 ' + debt.creditCard.name
+                          : debt.bankAccount ? '🏦 ' + debt.bankAccount.name : '—';
 
           installments.push({
             debtId: debt.id,
@@ -170,10 +181,8 @@ export class CalendarComponent implements OnInit {
             remainingAmount: +debt.remainingAmount || 0,
             originalAmount: originalAmt,
             status: isPaid ? 'PAID' : (isOverdue ? 'OVERDUE' : 'PENDING'),
-            source,
-            notes: debt.notes || '',
-            dueDate,
-            alarmSet: alarmKeys.has(`${debt.id}_${dueDate.toISOString().slice(0, 10)}`)
+            source, notes: debt.notes || '',
+            dueDate
           });
         }
       }
@@ -181,37 +190,27 @@ export class CalendarComponent implements OnInit {
     return installments;
   }
 
-  // Navigation
   prevMonth() {
-    if (this.currentMonth === 0) {
-      this.currentMonth = 11;
-      this.currentYear--;
-    } else {
-      this.currentMonth--;
-    }
+    if (this.currentMonth === 0) { this.currentMonth = 11; this.currentYear--; }
+    else { this.currentMonth--; }
     this.buildCalendar();
   }
 
   nextMonth() {
-    if (this.currentMonth === 11) {
-      this.currentMonth = 0;
-      this.currentYear++;
-    } else {
-      this.currentMonth++;
-    }
+    if (this.currentMonth === 11) { this.currentMonth = 0; this.currentYear++; }
+    else { this.currentMonth++; }
     this.buildCalendar();
   }
 
   goToday() {
     const today = new Date();
-    this.currentYear = today.getFullYear();
+    this.currentYear  = today.getFullYear();
     this.currentMonth = today.getMonth();
     this.buildCalendar();
   }
 
-  // Day modal
   openDayModal(day: CalendarDay) {
-    if (day.debts.length === 0) return;
+    if (day.debts.length === 0 && day.events.length === 0) return;
     this.selectedDay = day;
     this.showDayModal = true;
   }
@@ -221,115 +220,51 @@ export class CalendarComponent implements OnInit {
     this.selectedDay = null;
   }
 
-  // Alarm modal
-  openAlarmModal(debt: DebtInstallment, event: Event) {
-    event.stopPropagation();
-    this.alarmDebt = debt;
-    this.showAlarmModal = true;
-  }
-
-  closeAlarmModal() {
-    this.showAlarmModal = false;
-    this.alarmDebt = null;
-  }
-
-  scheduleAlarm() {
-    if (!this.alarmDebt) return;
-
-    const alarm: ScheduledAlarm = {
-      debtId: this.alarmDebt.debtId,
-      description: this.alarmDebt.description,
-      dueDate: this.alarmDebt.dueDate.toISOString().slice(0, 10),
-      phone: this.alarmPhone,
-    };
-
-    this.alarms.push(alarm);
-    this.saveAlarms();
-
-    // Build WhatsApp message for 1 day before
-    const dueDate = new Date(this.alarmDebt.dueDate);
-    const reminderDate = new Date(dueDate);
-    reminderDate.setDate(reminderDate.getDate() - 1);
-    const formattedDue = dueDate.toLocaleDateString('pt-BR');
-    const installmentAmt = this.fmt(this.alarmDebt.installmentAmount);
-    const message = `⚠️ *MoneyControl - Lembrete de Vencimento*\n\n` +
-      `📌 *${this.alarmDebt.description}*\n` +
-      `💰 Parcela ${this.alarmDebt.installmentNumber}/${this.alarmDebt.totalInstallments}: *${installmentAmt}*\n` +
-      `📅 Vence amanhã: *${formattedDue}*\n\n` +
-      `⏰ Não esqueça de pagar!`;
-
-    const phoneClean = this.alarmPhone.replace(/\D/g, '');
-    const whatsappUrl = `https://wa.me/${phoneClean}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
-
-    this.alarmDebt.alarmSet = true;
-    this.toast.success('Alarme agendado!', `Lembrete configurado para ${this.alarmDebt.description}`);
-    this.closeAlarmModal();
-    this.buildCalendar();
-  }
-
-  removeAlarm(debt: DebtInstallment, event: Event) {
-    event.stopPropagation();
-    const dateStr = debt.dueDate.toISOString().slice(0, 10);
-    this.alarms = this.alarms.filter(a => !(a.debtId === debt.debtId && a.dueDate === dateStr));
-    this.saveAlarms();
-    debt.alarmSet = false;
-    this.toast.info('Alarme removido', `Lembrete de ${debt.description} foi removido`);
-    this.buildCalendar();
-  }
-
-  // Alarm persistence
-  isAlarmSet(debtId: number, dueDate: Date): boolean {
-    const dateStr = dueDate.toISOString().slice(0, 10);
-    return this.alarms.some(a => a.debtId === debtId && a.dueDate === dateStr);
-  }
-
-  loadAlarms() {
-    try {
-      const stored = localStorage.getItem('mc-calendar-alarms');
-      this.alarms = stored ? JSON.parse(stored) : [];
-    } catch {
-      this.alarms = [];
-    }
-  }
-
-  saveAlarms() {
-    localStorage.setItem('mc-calendar-alarms', JSON.stringify(this.alarms));
-  }
-
-  // Summary stats
   get totalInstallmentsThisMonth(): number {
-    return this.calendarDays
-      .filter(d => d.isCurrentMonth)
+    return this.calendarDays.filter(d => d.isCurrentMonth)
       .reduce((sum, d) => sum + d.debts.length, 0);
   }
 
   get totalAmountThisMonth(): number {
-    return this.calendarDays
-      .filter(d => d.isCurrentMonth)
+    return this.calendarDays.filter(d => d.isCurrentMonth)
       .reduce((sum, d) => sum + d.debts.reduce((s, debt) => s + debt.installmentAmount, 0), 0);
   }
 
   get pendingThisMonth(): number {
-    return this.calendarDays
-      .filter(d => d.isCurrentMonth)
+    return this.calendarDays.filter(d => d.isCurrentMonth)
       .reduce((sum, d) => sum + d.debts.filter(debt => debt.status === 'PENDING').length, 0);
   }
 
   get overdueThisMonth(): number {
-    return this.calendarDays
-      .filter(d => d.isCurrentMonth)
+    return this.calendarDays.filter(d => d.isCurrentMonth)
       .reduce((sum, d) => sum + d.debts.filter(debt => debt.status === 'OVERDUE').length, 0);
   }
 
+  get incomeThisMonth(): number {
+    return this.calendarDays.filter(d => d.isCurrentMonth)
+      .reduce((sum, d) => sum + d.events.filter(e => e.type === 'INCOME')
+        .reduce((s, e) => s + e.amount, 0), 0);
+  }
+
+  get expenseThisMonth(): number {
+    return this.calendarDays.filter(d => d.isCurrentMonth)
+      .reduce((sum, d) => sum + d.events.filter(e => e.type === 'EXPENSE' || e.type === 'RECURRING')
+        .reduce((s, e) => s + e.amount, 0), 0);
+  }
+
+  get totalEventsThisMonth(): number {
+    return this.calendarDays.filter(d => d.isCurrentMonth)
+      .reduce((sum, d) => sum + d.events.length, 0);
+  }
+
   get alarmsThisMonth(): number {
-    return this.calendarDays
-      .filter(d => d.isCurrentMonth)
+    return this.calendarDays.filter(d => d.isCurrentMonth)
       .reduce((sum, d) => sum + d.debts.filter(debt => debt.alarmSet).length, 0);
   }
 
-  // Helpers
-  fmt(v: number) { return v?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) ?? 'R$ 0,00'; }
+  fmt(v: number) {
+    return v?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) ?? 'R$ 0,00';
+  }
 
   selectedDayTotal(): number {
     if (!this.selectedDay) return 0;
@@ -338,21 +273,33 @@ export class CalendarComponent implements OnInit {
 
   statusLabel(status: string): string {
     switch (status) {
-      case 'PAID': return '✅ Paga';
+      case 'PAID':    return '✅ Paga';
       case 'OVERDUE': return '🔴 Atrasada';
-      default: return '⏳ Pendente';
+      default:        return '⏳ Pendente';
     }
   }
 
   statusClass(status: string): string {
     switch (status) {
-      case 'PAID': return 'status-paid';
+      case 'PAID':    return 'status-paid';
       case 'OVERDUE': return 'status-overdue';
-      default: return 'status-pending';
+      default:        return 'status-pending';
+    }
+  }
+
+  eventTypeClass(type: CalEvent['type']): string {
+    switch (type) {
+      case 'INCOME':    return 'ev-income';
+      case 'EXPENSE':   return 'ev-expense';
+      case 'DEBT':      return 'ev-debt';
+      case 'RECURRING': return 'ev-recurring';
+      default:          return '';
     }
   }
 
   formatDate(date: Date): string {
-    return date.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+    return date.toLocaleDateString('pt-BR', {
+      weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
+    });
   }
 }

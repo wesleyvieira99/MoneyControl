@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-const BASE = 'http://localhost:8080/api';
+const BASE = 'http://localhost:8081/api';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -13,6 +13,10 @@ export class ApiService {
   createAccount(a: any) { return this.http.post<any>(`${BASE}/accounts`, a); }
   updateAccount(id: number, a: any) { return this.http.put<any>(`${BASE}/accounts/${id}`, a); }
   deleteAccount(id: number) { return this.http.delete(`${BASE}/accounts/${id}`); }
+  getAccountTransactions(id: number) { return this.http.get<any[]>(`${BASE}/accounts/${id}/transactions`); }
+  getAccountCardTransactions(id: number) { return this.http.get<any[]>(`${BASE}/accounts/${id}/card-transactions`); }
+  getAccountSummary(id: number) { return this.http.get<any>(`${BASE}/accounts/${id}/summary`); }
+  getDebtsByAccount(accountId: number) { return this.http.get<any[]>(`${BASE}/debts/by-account/${accountId}`); }
 
   // Cards
   getCards() { return this.http.get<any[]>(`${BASE}/cards`); }
@@ -50,6 +54,7 @@ export class ApiService {
 
   // Debts
   getDebts() { return this.http.get<any[]>(`${BASE}/debts`); }
+  getDebtsByCard(cardId: number) { return this.http.get<any[]>(`${BASE}/debts/by-card/${cardId}`); }
   createDebt(d: any) { return this.http.post<any>(`${BASE}/debts`, d); }
   updateDebt(id: number, d: any) { return this.http.put<any>(`${BASE}/debts/${id}`, d); }
   deleteDebt(id: number) { return this.http.delete(`${BASE}/debts/${id}`); }
@@ -82,9 +87,33 @@ export class ApiService {
     const url = month ? `${BASE}/dashboard/category-breakdown?month=${month}` : `${BASE}/dashboard/category-breakdown`;
     return this.http.get<any[]>(url);
   }
+  getDashboardPillars(month?: string) {
+    const url = month ? `${BASE}/dashboard/pillars?month=${month}` : `${BASE}/dashboard/pillars`;
+    return this.http.get<any>(url);
+  }
   getInsights(month?: string) {
     const url = month ? `${BASE}/dashboard/insights?month=${month}` : `${BASE}/dashboard/insights`;
     return this.http.get<any[]>(url);
+  }
+
+  // Data export/import
+  exportData(): Observable<Blob> {
+    return this.http.get(`${BASE}/data/export`, { responseType: 'blob' });
+  }
+  importData(file: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<any>(`${BASE}/data/import`, formData);
+  }
+
+  // Debt WhatsApp reminders
+  sendDebtReminders() { return this.http.post<any>(`${BASE}/debts/send-reminders`, {}); }
+  syncDebtTransactions() { return this.http.post<any>(`${BASE}/debts/sync-transactions`, {}); }
+  recomputeDebtStatus() { return this.http.post<any>(`${BASE}/debts/recompute-status`, {}); }
+  patchDebtCategories() { return this.http.post<any>(`${BASE}/debts/patch-categories`, {}); }
+  getDebtInstallments(id: number) { return this.http.get<any[]>(`${BASE}/debts/${id}/installments`); }
+  patchDebtInstallment(debtId: number, installNum: number, status: string) {
+    return this.http.patch<any>(`${BASE}/debts/${debtId}/installments/${installNum}`, { status });
   }
 
   // Forecast

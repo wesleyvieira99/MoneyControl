@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgxEchartsDirective } from 'ngx-echarts';
 import { ApiService } from '../../core/services/api.service';
-import { catchError, of } from 'rxjs';
+import { DataSyncService, SyncEvent } from '../../core/services/data-sync.service';
+import { catchError, forkJoin, of, Subscription } from 'rxjs';
 import type { EChartsOption } from 'echarts';
 
 @Component({
@@ -13,20 +14,41 @@ import type { EChartsOption } from 'echarts';
   templateUrl: './accounts.component.html',
   styleUrls: ['./accounts.component.scss']
 })
-export class AccountsComponent implements OnInit {
+export class AccountsComponent implements OnInit, OnDestroy {
   accounts: any[] = [];
+  accountSummaries: { [id: number]: { cards: any[], investments: any[], debts: any[] } } = {};
   showModal = false;
   editMode = false;
   form: any = this.emptyForm();
   historyAccount: any = null;
   historyTxs: any[] = [];
+  historyCardTxs: any[] = [];
+  historyTab: 'account' | 'cards' = 'account';
   balancePieOption: EChartsOption = {};
   balanceBarOption: EChartsOption = {};
 
   private readonly PALETTE = ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4','#ec4899','#f97316'];
+  private _sub?: Subscription;
 
-  constructor(private api: ApiService) {}
-  ngOnInit() { this.reload(); }
+  constructor(private api: ApiService, private sync: DataSyncService) {}
+
+  ngOnInit() {
+    this.reload();
+    // Refresh summaries when a debt changes
+    this._sub = this.sync.events$.subscribe((ev: SyncEvent) => {
+      if (ev.type === 'DEBT_UPDATED' || ev.type === 'DEBTS_RELOADED') {
+        this.loadAllSummaries();
+      }
+    });
+  }
+
+  ngOnDestroy() { this._sub?.unsubscribe(); }
+
+  @HostListener('document:keydown.escape')
+  onEscape() {
+    if (this.historyAccount) { this.historyAccount = null; return; }
+    if (this.showModal)      { this.closeModal(); }
+  }
 
   openNew() { this.editMode = false; this.form = this.emptyForm(); this.showModal = true; }
   openEdit(a: any) { this.editMode = true; this.form = { ...a }; this.showModal = true; }
@@ -36,7 +58,25 @@ export class AccountsComponent implements OnInit {
     this.api.getAccounts().pipe(catchError(() => of([]))).subscribe(a => {
       this.accounts = a;
       this.buildCharts();
+      this.loadAllSummaries();
     });
+  }
+
+  loadAllSummaries() {
+    this.accountSummaries = {};
+    if (!this.accounts.length) return;
+    const calls = this.accounts.map(acc =>
+      this.api.getAccountSummary(acc.id).pipe(catchError(() => of({ cards: [], investments: [], debts: [] })))
+    );
+    forkJoin(calls).subscribe(results => {
+      results.forEach((summary, i) => {
+        this.accountSummaries[this.accounts[i].id] = summary;
+      });
+    });
+  }
+
+  getSummary(accountId: number) {
+    return this.accountSummaries[accountId] || { cards: [], investments: [], debts: [] };
   }
 
   buildCharts() {
@@ -110,13 +150,23 @@ export class AccountsComponent implements OnInit {
     obs.subscribe({ next: () => { this.closeModal(); this.reload(); }, error: () => { this.closeModal(); } });
   }
   delete(id: number) {
-    if (confirm('Excluir conta?')) this.api.deleteAccount(id).subscribe({ next: () => this.reload(), error: () => {} });
+    if (confirm('Excluir esta conta? As transações vinculadas a ela também serão removidas.')) {
+      this.api.deleteAccount(id).subscribe({
+        next: () => this.reload(),
+        error: (err) => alert('Erro ao excluir conta: ' + (err?.error?.message || err?.status || 'tente novamente'))
+      });
+    }
   }
   openHistory(a: any) {
     this.historyAccount = a;
-    this.api.getTransactions({ accountId: a.id }).pipe(catchError(() => of([]))).subscribe(txs => this.historyTxs = txs);
+    this.historyTxs = [];
+    this.historyCardTxs = [];
+    this.historyTab = 'account';
+    this.api.getAccountTransactions(a.id).pipe(catchError(() => of([]))).subscribe(txs => this.historyTxs = txs);
+    this.api.getAccountCardTransactions(a.id).pipe(catchError(() => of([]))).subscribe(txs => this.historyCardTxs = txs);
   }
   totalBalance() { return this.accounts.reduce((s, a) => s + +a.balance, 0); }
   fmt(v: number) { return v?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) ?? ''; }
+  countDebts(debts: any[], status: string): number { return debts?.filter(d => d.status === status).length || 0; }
   emptyForm() { return { name: '', bankName: '', balance: 0, color: '#3b82f6', logoUrl: '', accountNumber: '', notes: '' }; }
 }

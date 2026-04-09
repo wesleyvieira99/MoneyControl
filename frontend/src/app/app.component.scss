@@ -1060,10 +1060,7 @@ $transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 16px 48px rgba(139,92,246,0.45), 0 0 80px rgba(59,130,246,0.2);
     padding: 12px 22px;
   }
-
-  &:active {
-    transform: translateY(0) scale(0.98);
-  }
+  &:active { transform: translateY(0) scale(0.98); }
 
   @media (max-width: 768px) {
     padding: 10px 14px;
@@ -1071,6 +1068,75 @@ $transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     bottom: 52px;
     right: 12px;
   }
+}
+
+/* ── JSON Export FAB ── */
+.json-fab {
+  position: fixed;
+  bottom: 110px;
+  right: 20px;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 16px;
+  background: linear-gradient(135deg, rgba(16,185,129,0.85), rgba(5,150,105,0.8));
+  border: 1px solid rgba(16,185,129,0.4);
+  border-radius: 14px;
+  color: white;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 0 6px 24px rgba(16,185,129,0.3);
+  backdrop-filter: blur(12px);
+  white-space: nowrap;
+
+  &:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 12px 36px rgba(16,185,129,0.45);
+  }
+  &:active { transform: translateY(0) scale(0.98); }
+
+  @media (max-width: 768px) { padding: 9px 12px; font-size: 11px; bottom: 100px; right: 12px; }
+}
+
+/* ── JSON Import FAB ── */
+.import-fab {
+  position: fixed;
+  bottom: 160px;
+  right: 20px;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 16px;
+  background: linear-gradient(135deg, rgba(245,158,11,0.85), rgba(217,119,6,0.8));
+  border: 1px solid rgba(245,158,11,0.4);
+  border-radius: 14px;
+  color: white;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 0 6px 24px rgba(245,158,11,0.3);
+  backdrop-filter: blur(12px);
+  white-space: nowrap;
+
+  &:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 12px 36px rgba(245,158,11,0.45);
+  }
+  &:active { transform: translateY(0) scale(0.98); }
+
+  @media (max-width: 768px) { padding: 9px 12px; font-size: 11px; bottom: 148px; right: 12px; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .pdf-fab-icon {

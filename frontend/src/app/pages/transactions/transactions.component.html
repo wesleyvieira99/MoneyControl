@@ -11,23 +11,39 @@
     </div>
   </div>
 
+  <!-- HOW-TO STRIP -->
+  <div class="howto-strip">
+    <div class="howto-icon">💸</div>
+    <div class="howto-pill active">Entradas & saídas à vista</div>
+    <div class="howto-sep"></div>
+    <div class="howto-pill">Compra à vista no cartão <span class="howto-tag blue">→ aqui</span></div>
+    <div class="howto-sep"></div>
+    <div class="howto-pill">Resgate de investimento <span class="howto-tag green">receita</span></div>
+    <div class="howto-sep"></div>
+    <div class="howto-pill">Vincule a uma <span class="howto-tag">conta bancária</span></div>
+  </div>
+
   <!-- STATS -->
   <div class="tx-stats">
     <div class="tx-stat green animate-card" style="animation-delay:.05s">
       <div class="stat-label">📈 Receitas</div>
       <div class="stat-value">{{ fmt(totalIncome()) }}</div>
+      <div class="stat-sub">período completo</div>
     </div>
     <div class="tx-stat red animate-card" style="animation-delay:.1s">
       <div class="stat-label">📉 Despesas</div>
       <div class="stat-value">{{ fmt(totalExpense()) }}</div>
+      <div class="stat-sub">período completo</div>
     </div>
-    <div class="tx-stat blue animate-card" style="animation-delay:.15s">
-      <div class="stat-label">⇄ Transferências</div>
-      <div class="stat-value">{{ countTransfers() }}</div>
+    <div class="tx-stat animate-card" [class.blue]="netBalance()>=0" [class.red]="netBalance()<0" style="animation-delay:.15s">
+      <div class="stat-label">⚖️ Saldo Líquido</div>
+      <div class="stat-value">{{ netBalance() >= 0 ? '+' : '' }}{{ fmt(netBalance()) }}</div>
+      <div class="stat-sub">receitas − despesas</div>
     </div>
     <div class="tx-stat gold animate-card" style="animation-delay:.2s">
-      <div class="stat-label">⏳ Pendentes</div>
+      <div class="stat-label">⏳ Pend/Atrasadas</div>
       <div class="stat-value">{{ countPending() }}</div>
+      <div class="stat-sub">na seleção atual</div>
     </div>
   </div>
 
@@ -37,21 +53,38 @@
   </div>
 
   <!-- DAILY FLOW CHART -->
-  <div class="chart-container animate-card" *ngIf="!loading && filtered.length > 1" style="margin-bottom:20px">
+  <div class="chart-container animate-card" *ngIf="!loading && transactions.length > 1" style="margin-bottom:20px">
     <div class="chart-header">
       <div>
         <div class="chart-title">📊 Fluxo Diário — Receitas vs Despesas</div>
-        <div class="chart-subtitle">Distribuição das transações do período selecionado</div>
+        <div class="chart-subtitle">Totais do período · independente dos filtros de tabela</div>
       </div>
-      <div class="d-flex gap-1">
-        <span class="badge badge-green">+{{ fmt(totalIncome()) }}</span>
-        <span class="badge badge-red">-{{ fmt(totalExpense()) }}</span>
+      <div class="chart-totals-row">
+        <div class="chart-total-item green">
+          <span class="ct-label">📈 Total Receitas</span>
+          <span class="ct-value">+{{ fmt(totalIncome()) }}</span>
+        </div>
+        <div class="chart-total-item red">
+          <span class="ct-label">📉 Total Despesas</span>
+          <span class="ct-value">-{{ fmt(totalExpense()) }}</span>
+        </div>
+        <div class="chart-total-item" [class.net-pos-item]="netBalance()>=0" [class.net-neg-item]="netBalance()<0">
+          <span class="ct-label">⚖️ Saldo Líquido</span>
+          <span class="ct-value ct-net">{{ netBalance() >= 0 ? '+' : '' }}{{ fmt(netBalance()) }}</span>
+        </div>
       </div>
     </div>
-    <div echarts [options]="dailyFlowChart" style="height:220px"></div>
+    <div echarts [options]="dailyFlowChart" style="height:240px"></div>
   </div>
 
   <!-- FILTERS -->
+  <div class="range-presets">
+    <button (click)="setRange('month')" [class.active]="filters.start === today1st">Este Mês</button>
+    <button (click)="setRange('3months')">3 Meses</button>
+    <button (click)="setRange('6months')">6 Meses</button>
+    <button (click)="setRange('year')">Este Ano</button>
+    <button (click)="setRange('all')">Tudo</button>
+  </div>
   <div class="filters-bar">
     <div class="filter-group">
       <label>De</label>
@@ -124,22 +157,40 @@
           <td style="font-variant-numeric:tabular-nums;white-space:nowrap">{{ t.date | date:'dd/MM/yy' }}</td>
           <td>
             <div class="desc-cell">
-              <span>{{ t.description }}</span>
-              <span class="badge badge-yellow" *ngIf="t.isRecurring" title="Recorrente">↻</span>
-              <span style="font-size:14px;cursor:help" *ngIf="t.notes" [title]="t.notes">📝</span>
+              <span class="desc-text">{{ t.description }}</span>
+              <!-- Perennial marker -->
+              <span class="tx-tag tx-tag-perene" *ngIf="t.isRecurring && (t.description?.startsWith('PERENE') || t.notes?.includes('perene'))" title="Conta perene — recorrente mensal">🔄 Perene</span>
+              <!-- Recurring marker (non-perennial) -->
+              <span class="tx-tag tx-tag-rec" *ngIf="t.isRecurring && !t.description?.startsWith('PERENE') && !t.notes?.includes('perene')" title="Recorrente">↻ Recorrente</span>
+              <!-- Installment marker — only for auto-generated debt installments -->
+              <span class="tx-tag tx-tag-inst" *ngIf="!t.isRecurring && t.installmentNumber && (t.installmentGroup?.id || t.notes?.includes('automaticamente'))" title="Parcela de dívida">📋 Parcela {{ t.installmentNumber }}</span>
+              <!-- Notes indicator -->
+              <span class="desc-note" *ngIf="t.notes" [title]="t.notes">📝</span>
             </div>
           </td>
-          <td><span class="badge" [class]="'badge-' + typeColor(t.type)">{{ t.type }}</span></td>
+          <td>
+            <span class="badge" [class]="'badge-' + typeColor(t.type)">
+              {{ t.type === 'INCOME' ? '⬆ Receita' : t.type === 'EXPENSE' ? '⬇ Despesa' : t.type === 'TRANSFER' ? '⇄ Transf.' : '📊 Invest.' }}
+            </span>
+          </td>
           <td>{{ t.category?.name || '—' }}</td>
-          <td style="color:var(--text-secondary);font-size:13px">{{ t.bankAccount?.name || t.creditCard?.name || '—' }}</td>
+          <td style="color:var(--text-secondary);font-size:12px;white-space:nowrap">
+            {{ t.bankAccount?.name || t.creditCard?.name || '—' }}
+          </td>
           <td style="font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap"
               [class.text-green]="t.type === 'INCOME'"
               [class.text-red]="t.type === 'EXPENSE'">
             {{ t.type === 'INCOME' ? '+' : t.type === 'EXPENSE' ? '-' : '' }}{{ fmt(t.amount) }}
           </td>
           <td>
-            <button class="status-btn" (click)="toggleStatus(t)" style="background:none;border:none;cursor:pointer;padding:0">
-              <span class="badge" [class]="'badge-' + statusColor(t.status)">{{ t.status }}</span>
+            <button class="status-btn" (click)="toggleStatus(t)" title="Clique para alternar status" style="background:none;border:none;cursor:pointer;padding:0">
+              <span class="badge"
+                [class.badge-green]="t.status==='PAID'"
+                [class.badge-yellow]="t.status==='PENDING'"
+                [class.badge-red]="t.status==='OVERDUE'"
+                [class.badge-blue]="t.status==='CANCELLED'">
+                {{ t.status==='PAID' ? '✅ Pago' : t.status==='PENDING' ? '⏳ Pendente' : t.status==='OVERDUE' ? '⚠️ Atrasado' : '❌ Cancelado' }}
+              </span>
             </button>
           </td>
           <td>
@@ -162,10 +213,10 @@
     </table>
     <!-- Net balance footer row -->
     <div class="balance-net-row" *ngIf="!loading && filtered.length > 0">
-      <span class="net-label">{{ filtered.length }} transações no período</span>
-      <span style="color:var(--text-muted);font-size:12px">Saldo líquido:</span>
-      <span [class.net-pos]="(totalIncome()-totalExpense())>=0" [class.net-neg]="(totalIncome()-totalExpense())<0">
-        {{ (totalIncome()-totalExpense()) >= 0 ? '+' : '' }}{{ fmt(totalIncome()-totalExpense()) }}
+      <span class="net-label">{{ filtered.length }} de {{ transactions.length }} transações no período</span>
+      <span style="color:var(--text-muted);font-size:12px">Saldo líquido (período completo):</span>
+      <span [class.net-pos]="netBalance()>=0" [class.net-neg]="netBalance()<0">
+        {{ netBalance() >= 0 ? '+' : '' }}{{ fmt(netBalance()) }}
       </span>
     </div>
   </div>
@@ -237,11 +288,32 @@
           <option *ngFor="let c of cards" [value]="c.id">{{ c.name }}</option>
         </select>
       </div>
-      <div class="form-group" style="justify-content:flex-end;padding-top:18px">
-        <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;cursor:pointer">
-          <input type="checkbox" [(ngModel)]="form.isRecurring" style="width:auto;accent-color:var(--accent-blue)" />
-          Transação recorrente
+      <div class="form-group recurrence-group">
+        <label class="section-lbl">⏰ Recorrência</label>
+        <label class="recurrence-option" [class.active]="form.isRecurring && !form.isPerennialRecurring">
+          <input type="checkbox"
+            [checked]="form.isRecurring && !form.isPerennialRecurring"
+            (change)="onRecurringToggle($event)"
+            style="width:auto;accent-color:var(--accent-blue)" />
+          <div class="recurrence-info">
+            <span class="rec-title">↻ Recorrente com prazo</span>
+            <span class="rec-sub">Define até quando ao marcar</span>
+          </div>
         </label>
+        <label class="recurrence-option" [class.active]="form.isPerennialRecurring">
+          <input type="checkbox"
+            [(ngModel)]="form.isPerennialRecurring"
+            (change)="onPerennialToggle()"
+            style="width:auto;accent-color:var(--accent-purple)" />
+          <div class="recurrence-info">
+            <span class="rec-title">🔄 Perene (contas fixas)</span>
+            <span class="rec-sub">Gera 24 meses automaticamente</span>
+          </div>
+        </label>
+        <!-- Preview inline for perennial -->
+        <div class="perene-preview" *ngIf="form.isPerennialRecurring">
+          <span>📅 Serão criadas <strong>24 ocorrências</strong> mensais a partir de {{ form.date | date:'MMM/yyyy' }}</span>
+        </div>
       </div>
     </div>
     <div class="form-group mt-1">
@@ -251,6 +323,41 @@
     <div class="modal-actions">
       <button class="btn-secondary" (click)="closeModal()">Cancelar</button>
       <button class="btn-primary" (click)="save()">{{ editMode ? '✓ Atualizar' : '+ Criar' }}</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RECORRENTE: ATÉ QUANDO? — aparece ON TOP do modal principal -->
+<div class="modal-overlay recurring-overlay" *ngIf="showRecurringModal" (click)="cancelRecurring()">
+  <div class="modal modal-sm" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>↻ Até quando repetir?</h2>
+      <button class="close-btn" (click)="cancelRecurring()">×</button>
+    </div>
+
+    <div class="recurring-preview-box">
+      <div class="rpb-icon">↻</div>
+      <div>
+        <div class="rpb-title">{{ pendingPayload?.description }}</div>
+        <div class="rpb-sub">R$ {{ pendingPayload?.amount | number:'1.2-2' }} · {{ pendingPayload?.type === 'INCOME' ? 'Receita' : 'Despesa' }} mensal</div>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-top:18px">
+      <label>📅 Repetir todo mês até *</label>
+      <input type="month" [(ngModel)]="recurringUntil" style="font-size:15px;font-weight:700" />
+    </div>
+
+    <div class="recurring-count-preview" *ngIf="recurringUntil">
+      <span>📋</span>
+      <span>Serão criadas <strong>{{ calcRecurringCount() }} ocorrências</strong> mensais — cada uma ficará <span class="badge badge-yellow" style="font-size:10px">⏳ Pendente</span> para você confirmar</span>
+    </div>
+
+    <div class="modal-actions" style="margin-top:20px">
+      <button class="btn-secondary" (click)="cancelRecurring()">Apenas esta vez</button>
+      <button class="btn-primary" [disabled]="!recurringUntil" (click)="confirmRecurring()">
+        ✓ Criar {{ calcRecurringCount() }} ocorrências
+      </button>
     </div>
   </div>
 </div>

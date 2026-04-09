@@ -24,6 +24,18 @@
     </div>
   </div>
 
+  <!-- HOW-TO STRIP -->
+  <div class="howto-strip howto-gold">
+    <div class="howto-icon">💎</div>
+    <div class="howto-pill active">Bases de investimento</div>
+    <div class="howto-sep"></div>
+    <div class="howto-pill">Ações · Cripto · Renda Fixa · Fundos</div>
+    <div class="howto-sep"></div>
+    <div class="howto-pill">Resgate de lucro <span class="howto-tag green">→ Transações</span></div>
+    <div class="howto-sep"></div>
+    <div class="howto-pill">Clique no ativo <span class="howto-tag gold">ver movimentações</span></div>
+  </div>
+
   <!-- ─── MEGA KPI BANNER ───────────────────────────────────── -->
   <div class="inv-mega-banner">
     <div class="inv-mega-card mega-main">
@@ -183,6 +195,14 @@
               </div>
             </div>
 
+            <!-- Conta vinculada -->
+            <div class="inv-account-link" *ngIf="inv.bankAccount">
+              <span class="inv-account-chip">
+                <span class="inv-account-dot" [style.background]="inv.bankAccount.color || '#3b82f6'"></span>
+                🏦 {{ inv.bankAccount.name }}
+              </span>
+            </div>
+
           </div>
         </div>
 
@@ -249,31 +269,70 @@
       </div>
       <div class="kpi-card gold"><div class="kpi-label">Rentabilidade</div><div class="kpi-value">{{ gainPct(detailInvestment) }}%</div></div>
     </div>
-    <div class="d-flex justify-between align-center mt-2 mb-2">
-      <h3 style="font-size:15px;font-weight:700">Movimentações</h3>
-      <button class="btn-primary" (click)="openTxModal()">+ Adicionar</button>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:8px;margin:16px 0 12px">
+      <button class="btn-secondary" [class.btn-primary]="detailTab==='movements'" (click)="detailTab='movements'" style="font-size:13px;padding:6px 16px">
+        📊 Movimentações ({{ detailTxs.length }})
+      </button>
+      <button class="btn-secondary" [class.btn-primary]="detailTab==='withdrawals'" (click)="detailTab='withdrawals'" style="font-size:13px;padding:6px 16px">
+        💸 Saques em Transações ({{ detailWithdrawals.length }})
+      </button>
     </div>
-    <div class="tx-table-wrapper">
-      <table>
-        <thead><tr><th>Data</th><th>Tipo</th><th>Valor</th><th>Notas</th></tr></thead>
-        <tbody>
-          <tr *ngFor="let tx of detailTxs">
-            <td>{{ tx.date | date:'dd/MM/yy' }}</td>
-            <td><span class="badge" [class.badge-green]="tx.type==='YIELD'||tx.type==='DIVIDEND'" [class.badge-blue]="tx.type==='DEPOSIT'" [class.badge-red]="tx.type==='WITHDRAWAL'">{{ tx.type }}</span></td>
-            <td [class.text-green]="tx.type!=='WITHDRAWAL'" [class.text-red]="tx.type==='WITHDRAWAL'" style="font-weight:700">{{ fmt(tx.amount) }}</td>
-            <td class="text-muted" style="font-size:12px">{{ tx.notes || '—' }}</td>
-          </tr>
-          <tr *ngIf="detailTxs.length===0">
-            <td colspan="4">
-              <div class="empty-state" style="padding:40px 20px">
-                <div class="empty-icon">📋</div>
-                <div class="empty-title">Sem movimentações</div>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+
+    <!-- Movimentações internas -->
+    <ng-container *ngIf="detailTab==='movements'">
+      <div class="d-flex justify-between align-center mb-2">
+        <span style="font-size:12px;color:var(--text-muted)">Aportes, retiradas e rendimentos registrados no investimento</span>
+        <button class="btn-primary" (click)="openTxModal()">+ Adicionar</button>
+      </div>
+      <div class="tx-table-wrapper">
+        <table>
+          <thead><tr><th>Data</th><th>Tipo</th><th>Valor</th><th>Notas</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let tx of detailTxs">
+              <td>{{ tx.date | date:'dd/MM/yy' }}</td>
+              <td><span class="badge" [class.badge-green]="tx.type==='YIELD'||tx.type==='DIVIDEND'" [class.badge-blue]="tx.type==='DEPOSIT'" [class.badge-red]="tx.type==='WITHDRAWAL'">{{ tx.type }}</span></td>
+              <td [class.text-green]="tx.type!=='WITHDRAWAL'" [class.text-red]="tx.type==='WITHDRAWAL'" style="font-weight:700">{{ fmt(tx.amount) }}</td>
+              <td class="text-muted" style="font-size:12px">{{ tx.notes || '—' }}</td>
+            </tr>
+            <tr *ngIf="detailTxs.length===0">
+              <td colspan="4"><div class="empty-state" style="padding:40px 20px"><div class="empty-icon">📋</div><div class="empty-title">Sem movimentações</div></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </ng-container>
+
+    <!-- Saques cadastrados em Transações -->
+    <ng-container *ngIf="detailTab==='withdrawals'">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">
+        💡 Saques/resgates encontrados em <strong>Transações</strong> com descrição contendo "{{ detailInvestment.name }}"
+      </div>
+      <div class="tx-table-wrapper">
+        <table>
+          <thead><tr><th>Data</th><th>Descrição</th><th>Conta</th><th>Valor</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let t of detailWithdrawals">
+              <td>{{ t.date | date:'dd/MM/yy' }}</td>
+              <td>{{ t.description }}</td>
+              <td>{{ t.bankAccount?.name || '—' }}</td>
+              <td class="text-green" style="font-weight:700">+{{ fmt(t.amount) }}</td>
+              <td><span class="badge" [class.badge-green]="t.status==='PAID'" [class.badge-yellow]="t.status==='PENDING'">{{ t.status === 'PAID' ? 'Pago' : 'Pendente' }}</span></td>
+            </tr>
+            <tr *ngIf="detailWithdrawals.length===0">
+              <td colspan="5">
+                <div class="empty-state" style="padding:40px 20px">
+                  <div class="empty-icon">💸</div>
+                  <div class="empty-title">Nenhum saque encontrado</div>
+                  <div class="empty-sub" style="font-size:12px;color:var(--text-muted)">Para vincular, cadastre uma transação de receita com o nome "{{ detailInvestment.name }}" na descrição</div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </ng-container>
   </div>
 </div>
 

@@ -24,14 +24,22 @@
   <div class="insights-carousel" *ngIf="!loading && insights.length">
     <button class="carousel-arrow left" (click)="prevInsight()">‹</button>
     <div class="carousel-viewport">
-      <div class="insight-card insight-{{ insights[insightIndex].color }} animate-card">
+      <div class="insight-card insight-{{ insights[insightIndex].color }} animate-card"
+           [class.insight-expanded]="expandedInsight === insightIndex"
+           (click)="expandedInsight = expandedInsight === insightIndex ? null : insightIndex">
         <span class="insight-icon">{{ insights[insightIndex].icon }}</span>
         <div class="insight-body">
           <div class="insight-title">{{ insights[insightIndex].title }}</div>
           <div class="insight-desc">{{ insights[insightIndex].desc }}</div>
+          <div class="insight-detail" *ngIf="insights[insightIndex].detail && expandedInsight === insightIndex">
+            {{ insights[insightIndex].detail }}
+          </div>
+          <div class="insight-expand-hint" *ngIf="insights[insightIndex].detail && expandedInsight !== insightIndex">
+            <span>▼ clique para mais detalhes</span>
+          </div>
         </div>
         <div class="carousel-dots">
-          <span *ngFor="let ins of insights; let i = index" class="dot" [class.active]="i === insightIndex" (click)="insightIndex = i"></span>
+          <span *ngFor="let ins of insights; let i = index" class="dot" [class.active]="i === insightIndex" (click)="insightIndex = i; $event.stopPropagation()"></span>
         </div>
       </div>
     </div>
@@ -161,6 +169,7 @@
   <!-- TABS -->
   <div class="tabs-bar">
     <button class="tab-btn" [class.active]="activeTab==='overview'" (click)="activeTab='overview'">📊 Visão Geral</button>
+    <button class="tab-btn" [class.active]="activeTab==='pillars'" (click)="activeTab='pillars'">🎯 Pilares</button>
     <button class="tab-btn" [class.active]="activeTab==='categories'" (click)="activeTab='categories'">🏷️ Categorias</button>
     <button class="tab-btn" [class.active]="activeTab==='heatmap'" (click)="activeTab='heatmap'">🔥 Heatmap</button>
     <button class="tab-btn" [class.active]="activeTab==='savings'" (click)="activeTab='savings'">💡 Economia</button>
@@ -187,6 +196,120 @@
         <div echarts [options]="categoryBarOption" style="height:280px"></div>
       </div>
     </div>
+  </div>
+
+  <!-- TAB: PILLARS ─────────────────────────────────────────────────────── -->
+  <div *ngIf="activeTab==='pillars'" class="pillars-tab">
+
+    <div class="pillars-header">
+      <div class="pillars-header-left">
+        <div class="pillars-title">🎯 Análise por Pilar Financeiro</div>
+        <div class="pillars-subtitle">Visão profunda de cada dimensão do seu patrimônio</div>
+      </div>
+    </div>
+
+    <!-- PILLAR CARDS GRID -->
+    <div class="pillars-grid" *ngIf="pillars.length > 0; else noPillars">
+      <div class="pillar-card animate-card" *ngFor="let p of pillars; let i = index"
+           [style.animation-delay]="(i * 0.07) + 's'">
+        <div class="pillar-card-header" [style.background]="'linear-gradient(135deg,' + p.color + '22,' + p.color + '11)'">
+          <div class="pillar-icon" [style.color]="p.color">{{ p.icon }}</div>
+          <div class="pillar-info">
+            <div class="pillar-name">{{ p.name }}</div>
+            <div class="pillar-count">{{ p.count }} {{ p.count === 1 ? 'item' : 'itens' }}</div>
+          </div>
+          <div class="pillar-trend" [class.trend-up]="p.trend > 0" [class.trend-down]="p.trend < 0" *ngIf="p.trend !== 0">
+            {{ p.trend > 0 ? '▲' : '▼' }} {{ (p.trend | number:'1.1-1') }}%
+          </div>
+        </div>
+        <div class="pillar-card-body">
+          <div class="pillar-total" [style.color]="p.color">{{ fmt(p.total) }}</div>
+          <div class="pillar-total-label">Total no período</div>
+
+          <!-- Extra metrics per pillar -->
+          <div class="pillar-metrics" *ngIf="p.extra">
+            <!-- Investments pillar -->
+            <ng-container *ngIf="p.name === 'Investimentos' && p.extra">
+              <div class="pm-row"><span>Custo</span><span>{{ fmt(p.extra.invested ?? 0) }}</span></div>
+              <div class="pm-row"><span>Rendimento</span><span [class.text-success]="(p.extra['return'] ?? 0) >= 0" [class.text-danger]="(p.extra['return'] ?? 0) < 0">{{ fmt(p.extra['return'] ?? 0) }}</span></div>
+              <div class="pm-row"><span>% Rendimento</span><span [class.text-success]="(p.extra.returnPct ?? 0) >= 0">{{ (p.extra.returnPct ?? 0) | number:'1.2-2' }}%</span></div>
+            </ng-container>
+            <!-- Debts pillar -->
+            <ng-container *ngIf="p.name === 'Dívidas' && p.extra">
+              <div class="pm-row"><span>Atrasadas</span><span class="text-danger">{{ p.extra.overdue ?? 0 }}</span></div>
+              <div class="pm-row"><span>Perenes</span><span class="text-warning">{{ p.extra.perennial ?? 0 }}</span></div>
+              <div class="pm-row"><span>Valor original</span><span>{{ fmt(p.extra.original ?? 0) }}</span></div>
+            </ng-container>
+            <!-- Income pillar -->
+            <ng-container *ngIf="p.name === 'Receitas' && p.extra">
+              <div class="pm-row"><span>Transações</span><span>{{ p.extra.transactions ?? 0 }}</span></div>
+              <div class="pm-row"><span>Recorrentes</span><span class="text-success">{{ p.extra.recurring ?? 0 }}</span></div>
+            </ng-container>
+            <!-- Expenses pillar -->
+            <ng-container *ngIf="p.name === 'Despesas' && p.extra">
+              <div class="pm-row"><span>Transações</span><span>{{ p.extra.transactions ?? 0 }}</span></div>
+              <div class="pm-row"><span>Pendentes</span><span class="text-warning">{{ p.extra.pending ?? 0 }}</span></div>
+              <div class="pm-row"><span>Atrasadas</span><span class="text-danger">{{ p.extra.overdue ?? 0 }}</span></div>
+            </ng-container>
+            <!-- Cards pillar -->
+            <ng-container *ngIf="p.name === 'Cartões' && p.extra">
+              <div class="pm-row"><span>Limite total</span><span>{{ fmt(p.extra.totalLimit ?? 0) }}</span></div>
+              <div class="pm-row"><span>Gasto no mês</span><span class="text-danger">{{ fmt(p.extra.cardExpenses ?? 0) }}</span></div>
+              <div class="pm-row"><span>Utilização</span><span [class.text-danger]="(p.extra.utilizationPct ?? 0) > 80">{{ (p.extra.utilizationPct ?? 0) | number:'1.1-1' }}%</span></div>
+            </ng-container>
+          </div>
+
+          <!-- Pillar progress bar -->
+          <div class="pillar-bar-wrap">
+            <div class="pillar-bar-bg">
+              <div class="pillar-bar-fill" [style.width]="getBarPct(p) + '%'" [style.background]="p.color"></div>
+            </div>
+            <span class="pillar-bar-pct">{{ getBarPct(p) | number:'1.0-0' }}%</span>
+          </div>
+
+          <!-- Items list preview -->
+          <div class="pillar-items" *ngIf="p.items && p.items.length > 0">
+            <div class="pillar-item" *ngFor="let item of p.items | slice:0:4">
+              <span class="pi-name">{{ item.name || item.description || item.category }}</span>
+              <span class="pi-val" [style.color]="p.color">{{ fmt(item.currentValue ?? item.amount ?? item.remainingAmount ?? 0) }}</span>
+            </div>
+            <div class="pillar-items-more" *ngIf="(p.items?.length ?? 0) > 4">
+            + {{ ($any(p.items)?.length || 0) - 4 }} mais
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ng-template #noPillars>
+      <div class="empty-state" *ngIf="!loading">
+        <span style="font-size:48px">🎯</span>
+        <p>Dados de pilares não disponíveis. Verifique a conexão com o backend.</p>
+      </div>
+    </ng-template>
+
+    <!-- All insights with detail in this tab -->
+    <div class="pillars-insights-section" *ngIf="insights.length > 0">
+      <div class="section-divider">
+        <span>🤖 Insights da IA — Análise Detalhada</span>
+      </div>
+      <div class="insights-grid">
+        <div class="insight-deep-card insight-{{ ins.color }} animate-card"
+             *ngFor="let ins of insights; let i = index"
+             [style.animation-delay]="(i * 0.05) + 's'"
+             [class.expanded]="expandedInsight === i"
+             (click)="expandedInsight = expandedInsight === i ? null : i">
+          <div class="idc-header">
+            <span class="idc-icon">{{ ins.icon }}</span>
+            <span class="idc-title">{{ ins.title }}</span>
+            <span class="idc-chevron">{{ expandedInsight === i ? '▲' : '▼' }}</span>
+          </div>
+          <div class="idc-desc">{{ ins.desc }}</div>
+          <div class="idc-detail" *ngIf="ins.detail && expandedInsight === i">{{ ins.detail }}</div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- TAB: CATEGORIES -->
@@ -389,7 +512,7 @@
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowfullscreen
               (load)="onTvLoad()"
-              [title]="tvChannels[currentChannelIndex]?.name">
+              [title]="tvChannels[currentChannelIndex].name || ''">
             </iframe>
           </div>
         </div>

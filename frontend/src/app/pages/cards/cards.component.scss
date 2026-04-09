@@ -88,16 +88,154 @@
 .mt-1 { margin-top: 16px; }
 .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--glass-border); }
 
-.invoice-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 18px; }
-.inv-stat { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 14px; padding: 14px 16px; .is-label { font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; } .is-val { font-size: 16px; font-weight: 800; color: var(--text-primary); } }
+/* ── Invoice Modal Redesign ─────────────────────────────────────────────── */
+.modal-lg { max-width: 680px; padding: 24px 28px; @media (max-width: 600px) { padding: 18px 16px; } }
 
-.inv-list { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
-.inv-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 12px; font-size: 13px; .ir-desc { flex: 1; color: var(--text-primary); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ir-date { font-size: 11px; color: var(--text-muted); white-space: nowrap; } .ir-amount { font-weight: 700; white-space: nowrap; color: var(--accent-red); } }
+.invoice-modal { overflow: hidden; display: flex; flex-direction: column; max-height: 90vh; }
+
+// Header
+.invoice-header {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 20px;
+  .invoice-header-left { display: flex; flex-direction: column; gap: 6px; }
+  .invoice-title { font-size: 18px; font-weight: 800; margin: 0; background: linear-gradient(135deg,#fff 0%,#93c5fd 50%,#c4b5fd 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+}
+.invoice-card-badge {
+  display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 99px; border: 1px solid;
+  .invoice-card-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .invoice-card-name { font-size: 12.5px; font-weight: 700; color: var(--text-primary); }
+  .invoice-card-digits { font-size: 11px; color: var(--text-muted); font-family: 'SF Mono', monospace; }
+}
+
+// Summary stats
+.invoice-stats-row {
+  display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 20px;
+  @media (max-width: 560px) { grid-template-columns: repeat(2,1fr); }
+}
+.inv-stat-card {
+  border-radius: 14px; padding: 13px 14px; border: 1px solid transparent; position: relative; overflow: hidden;
+  &::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; border-radius: 14px 14px 0 0; }
+  .isc-label { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); font-weight: 700; margin-bottom: 5px; }
+  .isc-val   { font-size: clamp(13px, 2.5vw, 17px); font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .isc-sub   { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
+  &.blue   { background: rgba(59,130,246,0.08);  border-color: rgba(59,130,246,0.15);  &::before { background: linear-gradient(90deg,#3b82f6,#818cf8); } .isc-val { color: #60a5fa; } }
+  &.orange { background: rgba(249,115,22,0.08);  border-color: rgba(249,115,22,0.15);  &::before { background: linear-gradient(90deg,#f97316,#fb923c); } .isc-val { color: #fb923c; } }
+  &.purple { background: rgba(139,92,246,0.08);  border-color: rgba(139,92,246,0.15);  &::before { background: linear-gradient(90deg,#8b5cf6,#a78bfa); } .isc-val { color: #a78bfa; } }
+  &.red    { background: rgba(239,68,68,0.08);   border-color: rgba(239,68,68,0.15);   &::before { background: linear-gradient(90deg,#ef4444,#f87171); } .isc-val { color: #f87171; } }
+}
+
+// Tabs
+.inv-tabs {
+  display: flex; gap: 6px; margin-bottom: 18px; border-bottom: 1px solid var(--glass-border); padding-bottom: 0;
+}
+.inv-tab {
+  display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 12px 12px 0 0;
+  background: transparent; border: 1px solid transparent; border-bottom: none; color: var(--text-muted);
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-bottom: -1px;
+  .inv-tab-icon { font-size: 14px; }
+  .inv-tab-badge { background: rgba(255,255,255,0.08); border-radius: 99px; padding: 1px 7px; font-size: 11px; font-weight: 700; }
+  &:hover { color: var(--text-primary); background: rgba(255,255,255,0.04); }
+  &.active {
+    color: var(--text-primary); background: var(--glass-bg); border-color: var(--glass-border);
+    border-bottom-color: var(--bg-secondary);
+    .inv-tab-badge { background: rgba(99,102,241,0.2); color: #a78bfa; }
+  }
+}
+
+// Toolbar
+.inv-toolbar {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;
+  .month-input { padding: 6px 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 10px; color: var(--text-primary); font-size: 13px; outline: none; &:focus { border-color: rgba(99,102,241,0.5); } }
+  .inv-loading { font-size: 12px; color: var(--text-muted); }
+}
+
+// Transaction list
+.inv-list {
+  display: flex; flex-direction: column; gap: 7px;
+  max-height: 340px; overflow-y: auto;
+  padding-right: 4px;
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 99px; }
+}
+.inv-row {
+  display: grid; grid-template-columns: 44px 28px 1fr auto;
+  align-items: center; gap: 10px; padding: 10px 13px;
+  background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border);
+  border-radius: 12px; transition: background 0.15s;
+  &:hover { background: rgba(255,255,255,0.06); }
+  .ir-date   { font-size: 11.5px; color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+  .ir-cat-icon { font-size: 16px; text-align: center; }
+  .ir-desc   { min-width: 0;
+    .ir-desc-main { display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ir-desc-cat  { display: block; font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  }
+  .ir-amount { font-size: 13.5px; font-weight: 800; color: var(--accent-red); white-space: nowrap; }
+}
+
+// Debt list
+.debt-list { max-height: 380px; gap: 10px; }
+.debt-row {
+  display: flex; flex-direction: column; gap: 10px; padding: 14px 16px;
+  background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 14px;
+  transition: background 0.15s;
+  &:hover { background: rgba(255,255,255,0.06); }
+}
+.debt-row-top {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+  .debt-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .debt-desc { font-size: 13.5px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .debt-link { font-size: 11px; color: var(--text-muted); }
+}
+.debt-progress-wrap {
+  display: flex; align-items: center; gap: 10px;
+  .debt-progress-bar { flex: 1; height: 5px; background: rgba(255,255,255,0.07); border-radius: 99px; overflow: hidden; }
+  .debt-progress-fill { height: 100%; border-radius: 99px; transition: width 0.6s ease;
+    &.prog-green { background: linear-gradient(90deg,#10b981,#34d399); }
+    &.prog-gold  { background: linear-gradient(90deg,#f59e0b,#fbbf24); }
+    &.prog-blue  { background: linear-gradient(90deg,#3b82f6,#60a5fa); }
+  }
+  .debt-progress-label { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+}
+.debt-row-meta {
+  display: grid; grid-template-columns: repeat(4,1fr); gap: 8px;
+  @media (max-width: 500px) { grid-template-columns: repeat(2,1fr); }
+  .debt-meta-item { display: flex; flex-direction: column; gap: 2px; }
+  .meta-label { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 700; }
+  .meta-val   { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+}
+
+// Empty state
+.inv-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 40px 20px;
+  span { font-size: 36px; }
+  p { font-size: 13px; color: var(--text-muted); text-align: center; margin: 0; }
+}
 
 .text-green { color: var(--accent-green) !important; }
 .text-red   { color: var(--accent-red) !important; }
+.text-blue  { color: var(--accent-blue) !important; }
 .animate-card { animation: cardIn 0.45s cubic-bezier(0.4,0,0.2,1) both; }
 @keyframes cardIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+// ── Conta vinculada no card de cartão ─────────────────────────────────────
+.card-account-link {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.card-account-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 999px;
+  background: rgba(59,130,246,0.10);
+  border: 1px solid rgba(59,130,246,0.28);
+  font-size: 11.5px; font-weight: 600; color: #93c5fd;
+  transition: background 0.18s;
+  &:hover { background: rgba(59,130,246,0.18); }
+}
+.card-account-icon { font-size: 12px; }
+.card-account-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+.card-account-none { padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.04); }
 
 @media (max-width: 768px) {
   .cards-grid { grid-template-columns: 1fr; }

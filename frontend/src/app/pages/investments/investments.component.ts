@@ -24,6 +24,8 @@ export class InvestmentsComponent implements OnInit {
   form: any = this.emptyForm();
   detailInvestment: any = null;
   detailTxs: any[] = [];
+  detailWithdrawals: any[] = [];
+  detailTab: 'movements' | 'withdrawals' = 'movements';
   showTxModal = false;
   txForm: any = {};
   portfolioChart: EChartsOption = {};
@@ -187,17 +189,49 @@ export class InvestmentsComponent implements OnInit {
 
   openDetail(inv: any) {
     this.detailInvestment = inv;
+    this.detailTab = 'movements';
+    this.detailWithdrawals = [];
     this.api.getInvestmentTransactions(inv.id).pipe(catchError(() => of([]))).subscribe(txs => this.detailTxs = txs);
+    // Busca saques/resgates cadastrados em Transações vinculados ao nome do investimento
+    this.api.getTransactions().pipe(catchError(() => of([]))).subscribe((txs: any[]) => {
+      this.detailWithdrawals = txs.filter(t =>
+        t.type === 'INCOME' &&
+        t.description?.toLowerCase().includes(inv.name?.toLowerCase())
+      );
+    });
   }
 
   openTxModal() { this.txForm = { date: new Date().toISOString().slice(0,10), amount: 0, type: 'YIELD', notes: '' }; this.showTxModal = true; }
   closeTxModal() { this.showTxModal = false; }
 
   saveTx() {
-    this.api.addInvestmentTransaction(this.detailInvestment.id, this.txForm).pipe(catchError(() => of(null))).subscribe(() => {
-      this.closeTxModal();
-      this.api.getInvestmentTransactions(this.detailInvestment.id).pipe(catchError(() => of([]))).subscribe(txs => this.detailTxs = txs);
-    });
+    this.api.addInvestmentTransaction(this.detailInvestment.id, this.txForm)
+      .pipe(catchError(() => of(null)))
+      .subscribe(savedTx => {
+        this.closeTxModal();
+        this.api.getInvestmentTransactions(this.detailInvestment.id)
+          .pipe(catchError(() => of([])))
+          .subscribe(txs => this.detailTxs = txs);
+
+        // Se for WITHDRAWAL (saque/resgate), cria automaticamente uma Transação de RECEITA
+        if (this.txForm.type === 'WITHDRAWAL' && this.txForm.amount > 0) {
+          const inv = this.detailInvestment;
+          const txPayload: any = {
+            date: this.txForm.date || new Date().toISOString().slice(0,10),
+            description: `💎 Resgate — ${inv.name}`,
+            amount: +this.txForm.amount,
+            type: 'INCOME',
+            status: 'PAID',
+            notes: `Resgate automático do investimento "${inv.name}". ${this.txForm.notes || ''}`.trim(),
+            isRecurring: false,
+          };
+          // Vincula à conta bancária do investimento se houver
+          if (inv.bankAccount?.id) txPayload.bankAccount = { id: inv.bankAccount.id };
+          this.api.createTransaction(txPayload)
+            .pipe(catchError(() => of(null)))
+            .subscribe(() => {});
+        }
+      });
   }
 
   gain(inv: any) { return +inv.currentValue - +inv.initialAmount; }

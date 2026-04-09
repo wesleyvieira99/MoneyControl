@@ -12,7 +12,19 @@ interface InsightCard {
   icon: string;
   title: string;
   desc: string;
+  detail?: string;
   color: 'green' | 'blue' | 'gold' | 'red' | 'purple';
+}
+
+interface PillarData {
+  name: string;
+  icon: string;
+  total: number;
+  count: number;
+  trend: number;
+  color: string;
+  items?: any[];
+  extra?: any;
 }
 
 @Component({
@@ -103,6 +115,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ];
 
   insights: InsightCard[] = [];
+  expandedInsight: number | null = null;
+
+  // Pillars
+  pillars: PillarData[] = [];
+  pillarsLoading = false;
 
   balanceChartOption: EChartsOption = {};
   donutChartOption: EChartsOption = {};
@@ -168,7 +185,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       categories: this.api.getCategoryBreakdown(this.selectedMonth).pipe(catchError(() => of(null))),
       heatmap:    this.api.getHeatmap(this.selectedMonth.slice(0, 4)).pipe(catchError(() => of(null))),
       insights:   this.api.getInsights(this.selectedMonth).pipe(catchError(() => of(null))),
-    }).subscribe(({ summary, history, categories, heatmap, insights }) => {
+      pillars:    this.api.getDashboardPillars(this.selectedMonth).pipe(catchError(() => of(null))),
+    }).subscribe(({ summary, history, categories, heatmap, insights, pillars }) => {
       const usedMock = !summary || (!history?.length && !categories?.length);
       this.isMockData = usedMock;
       this.summary   = summary   ?? this.mockSummary;
@@ -178,7 +196,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
       this.rawHeatData = heat;
       this.heatmapYear = this.selectedMonth.slice(0, 4);
-      
+
+      // Process pillars
+      if (pillars) {
+        this.pillars = [
+          { name: 'Investimentos', icon: '📈', color: '#8b5cf6', total: pillars.investments?.total ?? 0, count: pillars.investments?.count ?? 0, trend: pillars.investments?.trend ?? 0, items: pillars.investments?.items, extra: pillars.investments },
+          { name: 'Dívidas',       icon: '📉', color: '#ef4444', total: pillars.debts?.total ?? 0,       count: pillars.debts?.count ?? 0,       trend: pillars.debts?.trend ?? 0,       items: pillars.debts?.items, extra: pillars.debts },
+          { name: 'Receitas',      icon: '💚', color: '#10b981', total: pillars.income?.total ?? 0,      count: pillars.income?.transactions ?? 0, trend: pillars.income?.trend ?? 0,      items: pillars.income?.items, extra: pillars.income },
+          { name: 'Despesas',      icon: '🔴', color: '#f59e0b', total: pillars.expenses?.total ?? 0,    count: pillars.expenses?.transactions ?? 0, trend: pillars.expenses?.trend ?? 0,    items: pillars.expenses?.items, extra: pillars.expenses },
+          { name: 'Cartões',       icon: '💳', color: '#3b82f6', total: pillars.cards?.cardExpenses ?? 0, count: pillars.cards?.count ?? 0,      trend: 0,                               items: pillars.cards?.items, extra: pillars.cards },
+        ];
+      }
+
       // Usa insights do GPT se disponíveis, senão gera localmente
       if (insights && insights.length > 0) {
         this.insights = insights;
@@ -727,6 +756,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   fmt(v: number) { return v?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) ?? 'R$ 0,00'; }
+
+  getBarPct(p: PillarData): number {
+    if (!this.pillars.length) return 0;
+    const max = Math.max(...this.pillars.map(x => x.total));
+    return max > 0 ? Math.min((p.total / max) * 100, 100) : 0;
+  }
   savingsPct() {
     if (!this.summary.monthlyIncome || this.summary.monthlyIncome <= 0) return 0;
     return Math.round(((this.summary.monthlyIncome - this.summary.monthlyExpense) / this.summary.monthlyIncome) * 100);

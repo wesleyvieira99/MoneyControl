@@ -3,11 +3,21 @@
   <div class="page-header">
     <div>
       <h1>Contas Bancárias</h1>
-      <div style="font-size:13px;color:var(--text-muted);margin-top:2px">{{ accounts.length }} contas cadastradas</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-top:2px">{{ accounts.length }} conta(s) cadastrada(s)</div>
     </div>
-    <div class="page-header-actions">
-      <button class="btn-primary" (click)="openNew()">+ Nova Conta</button>
-    </div>
+    <button class="btn-primary" (click)="openNew()">+ Nova Conta</button>
+  </div>
+
+  <!-- HOW-TO STRIP -->
+  <div class="howto-strip howto-green">
+    <div class="howto-icon">🏦</div>
+    <div class="howto-pill active">Saldo consolidado</div>
+    <div class="howto-sep"></div>
+    <div class="howto-pill">Clique <span class="howto-tag">📋 Histórico</span> para ver transações</div>
+    <div class="howto-sep"></div>
+    <div class="howto-pill">Vincula a <span class="howto-tag green">cartões</span></div>
+    <div class="howto-sep"></div>
+    <div class="howto-pill">Vincula a <span class="howto-tag blue">investimentos</span></div>
   </div>
 
   <!-- TOTAL BALANCE -->
@@ -33,13 +43,14 @@
 
   <!-- ACCOUNTS GRID -->
   <div class="accounts-grid mt-3">
-    <div class="account-card glass-card animate-card"
+    <div class="account-card animate-card"
          *ngFor="let a of accounts; let i = index"
-         [style.--acc-color]="a.color || '#3b82f6'"
          [style.animation-delay]="(i * 0.07) + 's'">
 
-      <div class="acc-top-bar" [style.background]="a.color || '#3b82f6'"></div>
+      <!-- Colored top stripe -->
+      <div class="acc-stripe" [style.background]="a.color || '#3b82f6'"></div>
 
+      <!-- Header row -->
       <div class="acc-header">
         <div class="acc-logo-wrap">
           <img *ngIf="a.logoUrl" [src]="a.logoUrl" class="bank-logo" onerror="this.style.display='none'" />
@@ -58,24 +69,116 @@
         </div>
       </div>
 
+      <!-- Balance -->
       <div class="acc-balance" [style.color]="a.color || 'var(--accent-blue)'">
         {{ fmt(a.balance) }}
       </div>
 
+      <!-- Footer: account number + badge -->
       <div class="acc-footer">
         <span class="acc-number" *ngIf="a.accountNumber">{{ a.accountNumber }}</span>
-        <span class="badge" [class.badge-green]="a.balance>0" [class.badge-red]="a.balance<0" [class.badge-gray]="a.balance===0">
+        <span class="badge"
+          [class.badge-green]="a.balance > 0"
+          [class.badge-red]="a.balance < 0"
+          [class.badge-gray]="a.balance === 0">
           {{ a.balance > 0 ? 'Positivo' : a.balance < 0 ? 'Negativo' : 'Zerado' }}
         </span>
       </div>
 
+      <!-- Share bar -->
       <div class="acc-bar-wrap" *ngIf="totalBalance() > 0">
-        <div class="acc-bar-fill"
-             [style.width]="(a.balance / totalBalance() * 100) + '%'"
-             [style.background]="a.color || '#3b82f6'">
+        <div class="acc-bar-track">
+          <div class="acc-bar-fill"
+               [style.width.%]="a.balance / totalBalance() * 100"
+               [style.background]="a.color || '#3b82f6'"></div>
         </div>
         <span class="acc-bar-pct">{{ (a.balance / totalBalance() * 100 | number:'1.0-0') }}%</span>
       </div>
+
+      <!-- ───── RELATIONSHIPS SECTION ───── -->
+      <ng-container *ngIf="getSummary(a.id) as s">
+
+        <div class="rel-section"
+             *ngIf="((s.cards?.length ?? 0) + (s.investments?.length ?? 0) + (s.debts?.length ?? 0)) > 0; else noRel">
+
+          <!-- Title row with summary pills -->
+          <div class="rel-title-row">
+            <span class="rel-title">🔗 Vínculos</span>
+            <span class="rel-summary-badges">
+              <span class="rel-summ rel-summ-purple" *ngIf="(s.cards?.length ?? 0) > 0">💳 {{ s.cards!.length }}</span>
+              <span class="rel-summ rel-summ-gold"   *ngIf="(s.investments?.length ?? 0) > 0">📈 {{ s.investments!.length }}</span>
+              <span class="rel-summ rel-summ-red"    *ngIf="(s.debts?.length ?? 0) > 0">💸 {{ s.debts!.length }}</span>
+            </span>
+          </div>
+
+          <!-- CARDS block -->
+          <div class="rel-block rel-block-cards" *ngIf="(s.cards?.length ?? 0) > 0">
+            <div class="rel-block-header">
+              <span class="rel-block-icon">💳</span>
+              <span class="rel-block-label">Cartões</span>
+              <span class="rel-count rel-count-purple">{{ s.cards!.length }}</span>
+            </div>
+            <div class="rel-items">
+              <div class="rel-item rel-item-card" *ngFor="let c of s.cards">
+                <span class="rel-color-dot" [style.background]="c.color || '#8b5cf6'"></span>
+                <span class="rel-item-name">{{ c.name }}</span>
+                <span class="rel-item-value" *ngIf="c.creditLimit">{{ fmt(c.creditLimit) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- INVESTMENTS block -->
+          <div class="rel-block rel-block-invest" *ngIf="(s.investments?.length ?? 0) > 0">
+            <div class="rel-block-header">
+              <span class="rel-block-icon">📈</span>
+              <span class="rel-block-label">Investimentos</span>
+              <span class="rel-count rel-count-gold">{{ s.investments!.length }}</span>
+            </div>
+            <div class="rel-items">
+              <div class="rel-item rel-item-invest" *ngFor="let inv of s.investments">
+                <span class="rel-color-dot" style="background:#f59e0b"></span>
+                <span class="rel-item-name">{{ inv.name }}</span>
+                <span class="rel-item-value" *ngIf="inv.currentValue">{{ fmt(inv.currentValue) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- DEBTS block -->
+          <div class="rel-block rel-block-debts" *ngIf="(s.debts?.length ?? 0) > 0">
+            <div class="rel-block-header">
+              <span class="rel-block-icon">💸</span>
+              <span class="rel-block-label">Dívidas</span>
+              <span class="rel-count rel-count-red">{{ s.debts!.length }}</span>
+              <span class="rel-status-pill pill-red"    *ngIf="countDebts($any(s.debts),'OVERDUE') > 0">{{ countDebts($any(s.debts),'OVERDUE') }} atr.</span>
+              <span class="rel-status-pill pill-yellow" *ngIf="countDebts($any(s.debts),'PENDING') > 0">{{ countDebts($any(s.debts),'PENDING') }} pend.</span>
+              <span class="rel-status-pill pill-green"  *ngIf="countDebts($any(s.debts),'PAID') > 0">{{ countDebts($any(s.debts),'PAID') }} quit.</span>
+            </div>
+            <div class="rel-items">
+              <div class="rel-item"
+                   [class.rel-item-overdue]="d.status === 'OVERDUE'"
+                   [class.rel-item-paid]="d.status === 'PAID'"
+                   [class.rel-item-pending]="d.status === 'PENDING'"
+                   *ngFor="let d of s.debts">
+                <span class="rel-color-dot"
+                  [style.background]="d.status==='OVERDUE' ? '#ef4444' : d.status==='PAID' ? '#10b981' : '#f59e0b'"></span>
+                <span class="rel-item-name">{{ d.description | slice:0:22 }}{{ d.description?.length > 22 ? '…' : '' }}</span>
+                <span class="rel-item-value rel-item-muted">
+                  {{ d.perennial ? '🔄 perene' : (d.paidInstallments + '/' + d.totalInstallments + 'x') }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <ng-template #noRel>
+          <div class="rel-empty">
+            <span>🔗</span>
+            <span>Sem vínculos cadastrados</span>
+          </div>
+        </ng-template>
+
+      </ng-container>
 
     </div>
   </div>
@@ -119,30 +222,66 @@
 <div class="modal-overlay" *ngIf="historyAccount" (click)="historyAccount = null">
   <div class="modal modal-lg" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h2>Histórico — {{ historyAccount.name }}</h2>
+      <div>
+        <h2>Histórico — {{ historyAccount.name }}</h2>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
+          {{ historyTab === 'account' ? historyTxs.length : historyCardTxs.length }} transação(ões) encontrada(s)
+        </div>
+      </div>
       <button class="close-btn" (click)="historyAccount = null">×</button>
     </div>
-    <div class="table-wrapper" style="max-height:480px;overflow-y:auto">
+
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button class="btn-secondary" [class.btn-primary]="historyTab==='account'" (click)="historyTab='account'" style="font-size:13px;padding:6px 16px">
+        🏦 Conta ({{ historyTxs.length }})
+      </button>
+      <button class="btn-secondary" [class.btn-primary]="historyTab==='cards'" (click)="historyTab='cards'" style="font-size:13px;padding:6px 16px">
+        💳 Cartões ({{ historyCardTxs.length }})
+      </button>
+    </div>
+
+    <div class="table-wrapper" style="max-height:440px;overflow-y:auto">
       <table>
         <thead>
-          <tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Valor</th><th>Status</th></tr>
+          <tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th>Valor</th><th>Status</th></tr>
         </thead>
         <tbody>
-          <tr *ngFor="let t of historyTxs">
-            <td style="white-space:nowrap">{{ t.date | date:'dd/MM/yy' }}</td>
-            <td>{{ t.description }}</td>
-            <td><span class="badge badge-blue">{{ t.type }}</span></td>
-            <td style="font-weight:700" [class.text-green]="t.type==='INCOME'" [class.text-red]="t.type==='EXPENSE'">{{ fmt(t.amount) }}</td>
-            <td><span class="badge" [class.badge-green]="t.status==='PAID'" [class.badge-yellow]="t.status==='PENDING'" [class.badge-red]="t.status==='OVERDUE'">{{ t.status }}</span></td>
-          </tr>
-          <tr *ngIf="historyTxs.length===0">
-            <td colspan="5">
-              <div class="empty-state" style="padding:40px">
-                <div class="empty-icon">📋</div>
-                <div class="empty-title">Nenhuma transação encontrada</div>
-              </div>
-            </td>
-          </tr>
+          <ng-container *ngIf="historyTab==='account'">
+            <tr *ngFor="let t of historyTxs">
+              <td style="white-space:nowrap">{{ t.date | date:'dd/MM/yy' }}</td>
+              <td>{{ t.description }}</td>
+              <td>{{ t.category?.name || '—' }}</td>
+              <td><span class="badge badge-blue">{{ t.type === 'INCOME' ? '⬆ Receita' : '⬇ Despesa' }}</span></td>
+              <td style="font-weight:700" [class.text-green]="t.type==='INCOME'" [class.text-red]="t.type==='EXPENSE'">
+                {{ t.type === 'INCOME' ? '+' : '-' }}{{ fmt(t.amount) }}
+              </td>
+              <td>
+                <span class="badge" [class.badge-green]="t.status==='PAID'" [class.badge-yellow]="t.status==='PENDING'" [class.badge-red]="t.status==='OVERDUE'">
+                  {{ t.status === 'PAID' ? 'Pago' : t.status === 'PENDING' ? 'Pendente' : 'Atrasado' }}
+                </span>
+              </td>
+            </tr>
+            <tr *ngIf="historyTxs.length===0">
+              <td colspan="6"><div class="empty-state" style="padding:40px"><div class="empty-icon">📋</div><div class="empty-title">Nenhuma transação vinculada</div></div></td>
+            </tr>
+          </ng-container>
+          <ng-container *ngIf="historyTab==='cards'">
+            <tr *ngFor="let t of historyCardTxs">
+              <td style="white-space:nowrap">{{ t.date | date:'dd/MM/yy' }}</td>
+              <td>{{ t.description }}</td>
+              <td>{{ t.category?.name || '—' }}</td>
+              <td><span class="badge badge-purple">💳 {{ t.creditCard?.name || 'Cartão' }}</span></td>
+              <td style="font-weight:700;color:var(--red)">-{{ fmt(t.amount) }}</td>
+              <td>
+                <span class="badge" [class.badge-green]="t.status==='PAID'" [class.badge-yellow]="t.status==='PENDING'" [class.badge-red]="t.status==='OVERDUE'">
+                  {{ t.status === 'PAID' ? 'Pago' : t.status === 'PENDING' ? 'Pendente' : 'Atrasado' }}
+                </span>
+              </td>
+            </tr>
+            <tr *ngIf="historyCardTxs.length===0">
+              <td colspan="6"><div class="empty-state" style="padding:40px"><div class="empty-icon">💳</div><div class="empty-title">Nenhum gasto de cartão vinculado</div></div></td>
+            </tr>
+          </ng-container>
         </tbody>
       </table>
     </div>
