@@ -177,6 +177,12 @@
           </div>
         </div>
       </div>
+
+      <!-- Botões Aporte / Retirada -->
+      <div class="envelope-move-btns">
+        <button class="btn-move btn-aporte" (click)="openMove(b, 'APORTE')">＋ Aporte</button>
+        <button class="btn-move btn-retirada" (click)="openMove(b, 'RETIRADA')">− Retirada</button>
+      </div>
     </div>
   </div>
 
@@ -230,6 +236,86 @@
       <button class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
       <button class="btn btn-primary" (click)="save()" [disabled]="saving || !form.categoryName">
         {{ saving ? 'Salvando...' : (editMode ? 'Salvar' : 'Criar') }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MODAL APORTE / RETIRADA ─────────────────────────────── -->
+<div class="modal-overlay" *ngIf="showMoveModal" (click)="closeMoveModal()">
+  <div class="modal-dialog" (click)="$event.stopPropagation()">
+    <div class="modal-header" [class.header-retirada]="moveMode === 'RETIRADA'">
+      <h2>{{ moveMode === 'APORTE' ? '💰 Aporte no Envelope' : '📤 Retirada do Envelope' }}</h2>
+      <button class="modal-close" (click)="closeMoveModal()">×</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Resumo do envelope -->
+      <div class="move-envelope-info" *ngIf="moveBudget">
+        <div class="mei-icon" [style.background]="moveBudget.categoryColor + '22'">{{ moveBudget.categoryIcon }}</div>
+        <div class="mei-data">
+          <div class="mei-name">{{ moveBudget.categoryName }}</div>
+          <div class="mei-row">
+            <span class="mei-lbl">Orçado</span>
+            <span class="mei-val">{{ fmt(moveBudget.budgetAmount) }}</span>
+          </div>
+          <div class="mei-row">
+            <span class="mei-lbl">Gasto</span>
+            <span class="mei-val text-red">{{ fmt(moveBudget.spentAmount ?? 0) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Saldo consolidado das contas -->
+      <div class="accounts-balance-strip">
+        <span class="abs-icon">🏦</span>
+        <span class="abs-label">Saldo total nas contas:</span>
+        <span class="abs-value" [class.text-red]="totalAccountBalance() < 0" [class.text-green]="totalAccountBalance() >= 0">
+          {{ fmt(totalAccountBalance()) }}
+        </span>
+      </div>
+
+      <!-- Seletor de conta -->
+      <div class="form-group">
+        <label class="form-label">🏦 Conta {{ moveMode === 'APORTE' ? 'de origem (débito)' : 'de destino (crédito)' }}</label>
+        <select class="form-input" [(ngModel)]="moveForm.accountId">
+          <option value="" disabled>Selecione uma conta...</option>
+          <option *ngFor="let a of accounts" [value]="a.id"
+            [disabled]="moveMode === 'APORTE' && +a.balance <= 0">
+            {{ a.name }} ({{ a.bankName }}) — {{ fmt(a.balance) }}
+          </option>
+        </select>
+        <div class="account-balance-badge" *ngIf="moveSelectedAccount">
+          <span>Saldo disponível:</span>
+          <strong [class.text-red]="+moveSelectedAccount.balance <= 0" [class.text-green]="+moveSelectedAccount.balance > 0">
+            {{ fmt(moveSelectedAccount.balance) }}
+          </strong>
+        </div>
+      </div>
+
+      <!-- Valor -->
+      <div class="form-group">
+        <label class="form-label">💵 Valor (R$)</label>
+        <input type="number" class="form-input" [(ngModel)]="moveForm.amount"
+          min="0.01" [max]="moveMaxAmount" step="0.01" placeholder="0,00" />
+        <span class="form-hint" *ngIf="moveSelectedAccount">
+          Máximo disponível: {{ fmt(moveMaxAmount) }}
+        </span>
+      </div>
+
+      <!-- Descrição -->
+      <div class="form-group">
+        <label class="form-label">📝 Descrição da transação</label>
+        <input type="text" class="form-input" [(ngModel)]="moveForm.description" placeholder="Ex: Aporte mensal alimentação" />
+        <span class="form-hint">Será criada como {{ moveMode === 'APORTE' ? 'despesa' : 'receita' }} em Transações</span>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeMoveModal()">Cancelar</button>
+      <button class="btn" [class.btn-primary]="moveMode === 'APORTE'" [class.btn-danger]="moveMode === 'RETIRADA'"
+        (click)="saveMove()" [disabled]="moveSaving || !canMove">
+        {{ moveSaving ? 'Processando...' : (moveMode === 'APORTE' ? '✅ Confirmar Aporte' : '✅ Confirmar Retirada') }}
       </button>
     </div>
   </div>

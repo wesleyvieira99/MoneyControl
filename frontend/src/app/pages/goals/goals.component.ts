@@ -38,6 +38,7 @@ export class GoalsComponent implements OnInit {
   showContributeModal = false;
   contributeGoal: Goal | null = null;
   contributeSaving = false;
+  contributeMode: 'APORTE' | 'RETIRADA' = 'APORTE';
   contributeForm = { accountId: '', amount: 0, categoryName: '' };
 
   icons = ['🎯','🏠','🚗','✈️','💍','🎓','💰','🏖️','🏋️','💻','🎸','🌍','⛵','🏥','👶','🐾'];
@@ -67,8 +68,10 @@ export class GoalsComponent implements OnInit {
   }
 
   get expenseCategories() {
-    return this.categories.filter(c => c.type === 'EXPENSE');
+    return this.categories.filter(c => c.type === 'EXPENSE' || c.type === 'INCOME');
   }
+
+  totalAccountBalance(): number { return this.accounts.reduce((s, a) => s + +a.balance, 0); }
 
   emptyForm(): Goal {
     return { name:'', targetAmount:0, currentAmount:0, deadline:'', notes:'', color: this.colors[0], icon: this.icons[0] };
@@ -109,10 +112,11 @@ export class GoalsComponent implements OnInit {
     });
   }
 
-  /** Open the contribute modal instead of browser prompt */
-  contribute(g: Goal) {
+  /** Open the contribute modal */
+  contribute(g: Goal, mode: 'APORTE' | 'RETIRADA' = 'APORTE') {
     this.contributeGoal = g;
-    this.contributeForm = { accountId: '', amount: 0, categoryName: '' };
+    this.contributeMode = mode;
+    this.contributeForm = { accountId: '', amount: 0, categoryName: mode === 'APORTE' ? 'Aporte Meta' : 'Retirada Meta' };
     this.showContributeModal = true;
   }
 
@@ -121,13 +125,17 @@ export class GoalsComponent implements OnInit {
     this.contributeGoal = null;
   }
 
-  /** Max amount: min of selected account balance and remaining goal amount */
+  /** Max amount permitido */
   get contributeMaxAmount(): number {
     if (!this.contributeGoal) return 0;
-    const remaining = Math.max(0, +this.contributeGoal.targetAmount - +this.contributeGoal.currentAmount);
     const account = this.accounts.find(a => a.id === +this.contributeForm.accountId);
-    if (!account) return remaining;
-    return Math.min(remaining, +account.balance);
+    if (this.contributeMode === 'APORTE') {
+      const remaining = Math.max(0, +this.contributeGoal.targetAmount - +this.contributeGoal.currentAmount);
+      return account ? Math.min(remaining, Math.max(0, +account.balance)) : remaining;
+    } else {
+      // Retirada: máximo é o acumulado na meta
+      return Math.max(0, +this.contributeGoal.currentAmount);
+    }
   }
 
   get selectedContributeAccount(): any {
@@ -141,10 +149,11 @@ export class GoalsComponent implements OnInit {
       && !!this.contributeForm.categoryName.trim();
   }
 
-  /** Execute the contribution: create category if needed, create transaction, update account and goal */
+  /** Execute aporte ou retirada */
   async saveContribution() {
     if (!this.canContribute || !this.contributeGoal) return;
     this.contributeSaving = true;
+    const isAporte = this.contributeMode === 'APORTE';
 
     try {
       const g = this.contributeGoal;
@@ -154,55 +163,62 @@ export class GoalsComponent implements OnInit {
       const account = this.accounts.find(a => a.id === accountId);
       if (!account) throw new Error('Conta não encontrada');
 
-      // 1. Find or create EXPENSE category
-      let category = this.categories.find(c => c.type === 'EXPENSE' && c.name.toLowerCase() === catName.toLowerCase());
+      // 1. Encontrar ou criar categoria (aporte=EXPENSE, retirada=INCOME)
+      let category = this.categories.find(c =>
+        c.type === (isAporte ? 'EXPENSE' : 'INCOME') &&
+        c.name.toLowerCase() === catName.toLowerCase()
+      );
       if (!category) {
         category = await firstValueFrom(
-          this.api.createCategory({ name: catName, type: 'EXPENSE', color: g.color || '#ef4444', icon: '🎯' })
+          this.api.createCategory({ name: catName, type: isAporte ? 'EXPENSE' : 'INCOME', color: g.color || '#ef4444', icon: g.icon || '🎯' })
         );
-        this.loadCategories(); // refresh local categories list so new category appears in autocomplete
+        this.loadCategories();
       }
 
-      // 2. Create EXPENSE transaction
-      const transaction = {
+      // 2. Criar transação
+      await firstValueFrom(this.api.createTransaction({
         date: new Date().toISOString().slice(0, 10),
-        description: `Aporte: ${g.name}`,
+        description: `${isAporte ? 'Aporte' : 'Retirada'}: ${g.name}`,
         amount: amt,
-        type: 'EXPENSE',
+        type: isAporte ? 'EXPENSE' : 'INCOME',
         status: 'PAID',
         category: { id: category.id },
         bankAccount: { id: accountId },
-        notes: `Aporte para meta "${g.name}" — categoria: ${catName}`
-      };
-      await firstValueFrom(this.api.createTransaction(transaction));
+        notes: `${isAporte ? 'Aporte' : 'Retirada'} meta "${g.name}" — categoria: ${catName}`
+      }));
 
-      // 3. Update account balance (deduct)
-      const updatedAccount = { ...account, balance: +account.balance - amt };
-      await firstValueFrom(this.api.updateAccount(accountId, updatedAccount));
+      // 3. Atualizar saldo da conta
+      await firstValueFrom(this.api.updateAccount(accountId, {
+        ...account,
+        balance: isAporte ? +account.balance - amt : +account.balance + amt
+      }));
 
-      // 4. Update goal currentAmount
-      const newCurrent = Math.min(+g.currentAmount + amt, +g.targetAmount);
-      const updatedGoal = { ...g, currentAmount: newCurrent };
-      await firstValueFrom(this.api.updateGoal(g.id!, updatedGoal));
+      // 4. Atualizar currentAmount da meta
+      const newCurrent = isAporte
+        ? Math.min(+g.currentAmount + amt, +g.targetAmount)
+        : Math.max(0, +g.currentAmount - amt);
+      await firstValueFrom(this.api.updateGoal(g.id!, { ...g, currentAmount: newCurrent }));
 
-      // 5. Emit sync events so other views refresh
+      // 5. Sincronizar
       this.sync.emit({ type: 'TRANSACTIONS_CHANGED' });
       this.sync.emit({ type: 'ACCOUNTS_CHANGED' });
 
-      // 6. Celebrate or toast
-      if (newCurrent >= +g.targetAmount) {
+      // 6. Toast / confete
+      if (isAporte && newCurrent >= +g.targetAmount) {
         this.celebrate();
         this.toast.success('🎉 Meta atingida!', `Parabéns! Você concluiu "${g.name}".`, 6000);
       } else {
-        this.toast.success('Aporte realizado!', `${this.fmt(amt)} debitados de "${account.name}" para a meta "${g.name}".`);
+        this.toast.success(
+          isAporte ? 'Aporte realizado!' : 'Retirada realizada!',
+          `${this.fmt(amt)} ${isAporte ? 'debitados de' : 'creditados em'} "${account.name}". Transação registrada.`
+        );
       }
 
-      // 7. Refresh data
       this.closeContributeModal();
       this.load();
       this.loadAccounts();
     } catch {
-      this.toast.error('Erro ao contribuir', 'Verifique os dados e tente novamente.');
+      this.toast.error('Erro ao processar', 'Verifique os dados e tente novamente.');
     } finally {
       this.contributeSaving = false;
     }

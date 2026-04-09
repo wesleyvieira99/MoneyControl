@@ -106,10 +106,14 @@
       <p class="gc-notes" *ngIf="g.notes">{{ g.notes }}</p>
 
       <!-- Contribute -->
-      <button class="btn-contribute" (click)="contribute(g)" [style.border-color]="g.color" [style.color]="g.color"
-        *ngIf="pct(g) < 100">
-        ＋ Adicionar aporte
-      </button>
+      <div class="gc-btns" *ngIf="pct(g) < 100">
+        <button class="btn-contribute btn-aporte" (click)="contribute(g, 'APORTE')" [style.border-color]="g.color" [style.color]="g.color">
+          ＋ Aporte
+        </button>
+        <button class="btn-contribute btn-retirada" (click)="contribute(g, 'RETIRADA')" *ngIf="+g.currentAmount > 0">
+          − Retirada
+        </button>
+      </div>
     </div>
   </div>
 
@@ -179,11 +183,11 @@
   </div>
 </div>
 
-<!-- Modal Contribute / Aporte -->
+<!-- Modal Contribute / Aporte / Retirada -->
 <div class="modal-overlay" *ngIf="showContributeModal" (click)="closeContributeModal()">
   <div class="modal-box" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h2>💰 Aporte para "{{ contributeGoal?.name }}"</h2>
+      <h2>{{ contributeMode === 'APORTE' ? '💰 Aporte para' : '📤 Retirada de' }} "{{ contributeGoal?.name }}"</h2>
       <button class="modal-close" (click)="closeContributeModal()">✕</button>
     </div>
 
@@ -198,24 +202,34 @@
           <span class="cgi-label">Acumulado</span>
           <span class="cgi-value accent">{{ fmt(contributeGoal.currentAmount) }}</span>
         </div>
-        <div class="cgi-row">
+        <div class="cgi-row" *ngIf="contributeMode === 'APORTE'">
           <span class="cgi-label">Faltam</span>
           <span class="cgi-value gold">{{ fmt(remaining(contributeGoal)) }}</span>
         </div>
       </div>
 
+      <!-- Saldo consolidado das contas -->
+      <div class="contribute-balance-strip">
+        <span>🏦</span>
+        <span class="cbs-label">Saldo total nas contas:</span>
+        <strong [class.cbs-neg]="totalAccountBalance() < 0" [class.cbs-pos]="totalAccountBalance() >= 0">
+          {{ fmt(totalAccountBalance()) }}
+        </strong>
+      </div>
+
       <!-- Account selector -->
       <div class="form-row">
-        <label>🏦 Conta de origem</label>
+        <label>🏦 Conta {{ contributeMode === 'APORTE' ? 'de origem (débito)' : 'de destino (crédito)' }}</label>
         <select [(ngModel)]="contributeForm.accountId">
           <option value="" disabled>Selecione uma conta...</option>
-          <option *ngFor="let a of accounts" [value]="a.id">
-            {{ a.name }} — Saldo: {{ fmt(a.balance) }}
+          <option *ngFor="let a of accounts" [value]="a.id"
+            [disabled]="contributeMode === 'APORTE' && +a.balance <= 0">
+            {{ a.name }} — {{ fmt(a.balance) }}
           </option>
         </select>
       </div>
 
-      <!-- Account balance warning -->
+      <!-- Account balance badge -->
       <div class="contribute-balance-info" *ngIf="selectedContributeAccount">
         <span class="cbi-icon">💳</span>
         <span>Saldo disponível: <strong>{{ fmt(selectedContributeAccount.balance) }}</strong></span>
@@ -223,7 +237,7 @@
 
       <!-- Amount -->
       <div class="form-row">
-        <label>💵 Valor do aporte (R$)</label>
+        <label>💵 Valor {{ contributeMode === 'APORTE' ? 'do aporte' : 'da retirada' }} (R$)</label>
         <input type="number" [(ngModel)]="contributeForm.amount" min="0.01" [max]="contributeMaxAmount" step="0.01"
           placeholder="Ex: 500.00" />
         <span class="form-hint" *ngIf="contributeMaxAmount > 0">
@@ -233,22 +247,23 @@
 
       <!-- Category name -->
       <div class="form-row">
-        <label>🏷️ Categoria da despesa</label>
+        <label>🏷️ Categoria da {{ contributeMode === 'APORTE' ? 'despesa' : 'receita' }}</label>
         <input type="text" [(ngModel)]="contributeForm.categoryName" list="goalCategoryList"
-          placeholder="Ex: Aporte Meta, Investimento, Reserva..." />
+          placeholder="Ex: Aporte Meta, Reserva, Retirada..." />
         <datalist id="goalCategoryList">
           <option *ngFor="let c of expenseCategories" [value]="c.name"></option>
         </datalist>
         <span class="form-hint">
-          Se a categoria não existir, será criada automaticamente
+          Será registrada como {{ contributeMode === 'APORTE' ? 'despesa' : 'receita' }} em Transações
         </span>
       </div>
     </div>
 
     <div class="modal-footer">
       <button class="btn-secondary" (click)="closeContributeModal()">Cancelar</button>
-      <button class="btn-primary" (click)="saveContribution()" [disabled]="contributeSaving || !canContribute">
-        {{ contributeSaving ? 'Processando...' : '✅ Confirmar Aporte' }}
+      <button class="btn-primary" [class.btn-danger]="contributeMode === 'RETIRADA'"
+        (click)="saveContribution()" [disabled]="contributeSaving || !canContribute">
+        {{ contributeSaving ? 'Processando...' : (contributeMode === 'APORTE' ? '✅ Confirmar Aporte' : '✅ Confirmar Retirada') }}
       </button>
     </div>
   </div>

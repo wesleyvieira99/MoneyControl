@@ -140,3 +140,59 @@
 .form-hint {
   display: block; font-size: 11px; color: var(--text-muted); margin-top: 4px; font-style: italic;
 }
+
+/* Botões aporte/retirada no card */
+.gc-btns {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.btn-contribute {
+  flex: 1;
+  padding: 9px 0;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s;
+  background: transparent;
+  &:hover { transform: translateY(-1px); }
+  &:active { transform: scale(0.97); }
+}
+
+.btn-aporte {
+  border: 2px solid currentColor;
+}
+
+.btn-retirada {
+  border: 2px solid #ef4444;
+  color: #ef4444 !important;
+}
+
+/* Saldo consolidado strip no modal */
+.contribute-balance-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(59, 130, 246, 0.07);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  .cbs-label { flex: 1; color: var(--text-secondary); }
+  .cbs-pos { color: #10b981; font-weight: 800; }
+  .cbs-neg { color: #ef4444; font-weight: 800; }
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}

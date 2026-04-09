@@ -563,6 +563,121 @@
   }
 }
 
+// ─── BOTÕES APORTE / RETIRADA ─────────────────────────────────────────────
+.envelope-move-btns {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.btn-move {
+  flex: 1;
+  padding: 8px 0;
+  border-radius: 10px;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s;
+  &:hover { transform: translateY(-1px); filter: brightness(1.1); }
+  &:active { transform: scale(0.97); }
+}
+
+.btn-aporte {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+}
+
+.btn-retirada {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+}
+
+// ─── MODAL APORTE/RETIRADA ────────────────────────────────────────────────
+.header-retirada { background: linear-gradient(135deg, #7f1d1d, #991b1b) !important; }
+
+.move-envelope-info {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+
+  .mei-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .mei-name {
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+
+  .mei-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    font-size: 12px;
+  }
+
+  .mei-lbl { color: var(--text-muted); }
+  .mei-val { font-weight: 700; color: var(--text-primary); }
+}
+
+.accounts-balance-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+
+  .abs-icon { font-size: 16px; }
+  .abs-label { color: var(--text-secondary); flex: 1; }
+  .abs-value { font-weight: 800; font-size: 15px; }
+}
+
+.account-balance-badge {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  padding: 6px 10px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  strong { font-size: 13px; }
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s;
+  &:hover { filter: brightness(1.1); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
 // ─── COLOR PICKER ─────────────────────────────────────────────────────────
 .color-picker {
   display: flex;
