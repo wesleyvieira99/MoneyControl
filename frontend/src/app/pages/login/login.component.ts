@@ -12,6 +12,8 @@ import { AuthService } from '../../core/services/auth.service';
   styleUrl: './login.component.scss'
 })
 export class LoginComponent implements OnInit {
+  private static readonly LEAVE_ANIMATION_MS = 420;
+
   email = '';
   password = '';
   error = '';
@@ -44,7 +46,7 @@ export class LoginComponent implements OnInit {
 
       this.leaving = true;
       const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/dashboard';
-      setTimeout(() => this.router.navigateByUrl(returnUrl), 420);
+      setTimeout(() => this.router.navigateByUrl(returnUrl), LoginComponent.LEAVE_ANIMATION_MS);
     } finally {
       this.loading = false;
     }

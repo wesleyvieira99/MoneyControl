@@ -22,6 +22,7 @@ interface CmdItem { label: string; icon: string; path: string; keywords: string;
 })
 export class AppComponent implements OnInit, OnDestroy {
   private static readonly SPLASH_DURATION_MS = 2800;
+  private static readonly ANIMATION_DURATION_MS = 420;
 
   showSplash = true;
   showClosing = false;
@@ -214,7 +215,7 @@ export class AppComponent implements OnInit, OnDestroy {
       this.showClosing = false;
       this.toast.info('Logout realizado', 'Sessão encerrada com segurança.');
       this.router.navigateByUrl('/login');
-    }, 420);
+    }, AppComponent.ANIMATION_DURATION_MS);
   }
 
   // ── JSON EXPORT ─────────────────────────────────────────────────────────
@@ -338,23 +339,29 @@ export class AppComponent implements OnInit, OnDestroy {
 
       const scoreColor = overallScore >= 70 ? '#10b981' : overallScore >= 40 ? '#f59e0b' : '#ef4444';
       const scoreLabel = overallScore >= 70 ? 'Saudável' : overallScore >= 40 ? 'Atenção' : 'Crítico';
-      const debtToIncome = monthlyIncome > 0 ? (totalDebt / monthlyIncome) : 0;
-      const emergencyCoverageMonths = monthlyExpense > 0 ? (Math.max(totalBalance, 0) / monthlyExpense) : 0;
+      const debtIncomePercentage = monthlyIncome > 0 ? (totalDebt / monthlyIncome) * 100 : 0;
+      const monthsOfEmergencyCoverage = monthlyExpense > 0 ? (Math.max(totalBalance, 0) / monthlyExpense) : 0;
       const investmentsShare = patrimony > 0 ? (totalInvested / patrimony) * 100 : 0;
-      const goalProgressPct = goals.length > 0 ? (totalGoalsSaved / Math.max(totalGoals, 1)) * 100 : 0;
+      const goalProgressPercentage = goals.length > 0 ? (totalGoalsSaved / Math.max(totalGoals, 1)) * 100 : 0;
 
       const aiSuggestions: string[] = [];
       if (savingsRate < 10) aiSuggestions.push('Reduza despesas variáveis em 10% e direcione essa diferença para uma reserva automática no dia do recebimento.');
-      if (emergencyCoverageMonths < 3) aiSuggestions.push(`Priorize reserva de emergência até 6 meses: hoje sua cobertura estimada é de ${emergencyCoverageMonths.toFixed(1)} mês(es).`);
-      if (totalDebt > 0 && debtToIncome > 0.5) aiSuggestions.push(`Seu endividamento está elevado (${debtToIncome.toFixed(1)}x da renda mensal). Foque em quitar dívidas de maior juros antes de novos aportes.`);
+      if (monthsOfEmergencyCoverage < 3) aiSuggestions.push(`Priorize a reserva de emergência até 6 meses: hoje sua cobertura estimada é de ${monthsOfEmergencyCoverage.toFixed(1)} meses.`);
+      if (totalDebt > 0 && debtIncomePercentage > 50) aiSuggestions.push(`Seu saldo de dívidas equivale a ${debtIncomePercentage.toFixed(0)}% da renda mensal. Foque em quitar dívidas de maior juros antes de novos aportes.`);
       if (totalCardLimit > 0 && (totalCardBill / totalCardLimit) > 0.7) aiSuggestions.push('Uso do limite do cartão acima de 70%: renegocie gastos recorrentes e adote teto semanal para reduzir risco de inadimplência.');
-      if (goals.length > 0 && goalProgressPct < 35) aiSuggestions.push(`Metas estão em ${goalProgressPct.toFixed(0)}% do objetivo; programe aporte fixo mensal por meta para ganhar tração.`);
+      if (goals.length > 0 && goalProgressPercentage < 35) aiSuggestions.push(`Metas estão em ${goalProgressPercentage.toFixed(0)}% do objetivo; programe aporte fixo mensal por meta para ganhar tração.`);
       if (topCats.length > 0 && catTotal > 0) {
         const topCategoryPct = (+topCats[0].amount / catTotal) * 100;
         if (topCategoryPct > 35) aiSuggestions.push(`A categoria "${topCats[0].category}" concentra ${topCategoryPct.toFixed(0)}% dos gastos; defina limite mensal específico para ela.`);
       }
       if (investments.length > 0 && investmentsShare < 20 && savingsRate >= 15) aiSuggestions.push('Seu caixa está saudável para acelerar investimentos: avalie aumentar aportes progressivos mantendo liquidez da reserva.');
-      if (aiSuggestions.length === 0) aiSuggestions.push('Seu cenário atual está equilibrado. Mantenha aportes consistentes, revisão quinzenal de gastos e rebalanceamento trimestral da carteira.');
+      if (aiSuggestions.length === 0) {
+        aiSuggestions.push(
+          investments.length > 0
+            ? 'Seu cenário atual está equilibrado. Mantenha aportes consistentes, revisão quinzenal de gastos e rebalanceamento trimestral da carteira.'
+            : 'Seu cenário atual está equilibrado. Mantenha aportes consistentes e revisão quinzenal de gastos para preservar a saúde financeira.'
+        );
+      }
 
       const html = `<!DOCTYPE html>
 <html lang="pt-BR">

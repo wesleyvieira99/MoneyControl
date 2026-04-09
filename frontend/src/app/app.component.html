@@ -69,11 +69,11 @@
           <span class="cmd-trigger-hint" *ngIf="sidebarOpen">⌘K</span>
         </button>
         <button class="theme-btn" (click)="toggleTheme()">
-          <span class="theme-icon">{{ isDark ? '☀' : '◑' }}</span>
+          <span class="btn-icon">{{ isDark ? '☀' : '◑' }}</span>
           <span class="theme-label" *ngIf="sidebarOpen">{{ isDark ? 'Modo Claro' : 'Modo Escuro' }}</span>
         </button>
         <button class="logout-btn" (click)="logout()">
-          <span class="theme-icon">⏻</span>
+          <span class="btn-icon">⏻</span>
           <span class="logout-label" *ngIf="sidebarOpen">Logout Seguro</span>
         </button>
         <div class="sb-version" *ngIf="sidebarOpen">v2.0 · MoneyControl OS</div>
