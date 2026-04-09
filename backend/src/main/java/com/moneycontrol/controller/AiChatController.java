@@ -3,6 +3,7 @@ package com.moneycontrol.controller;
 import com.moneycontrol.model.*;
 import com.moneycontrol.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
@@ -10,6 +11,7 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/ai")
 @RequiredArgsConstructor
@@ -127,7 +129,7 @@ public class AiChatController {
             Map<String, Object> analysis = mapper.readValue(content, Map.class);
             return ResponseEntity.ok(Map.of("analysis", analysis));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.warn("PDF AI analysis failed, using fallback: {}", e.getMessage());
             return ResponseEntity.ok(Map.of("analysis", getDefaultPdfAnalysis()));
         }
     }

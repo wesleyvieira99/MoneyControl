@@ -455,8 +455,8 @@ export class AppComponent implements OnInit, OnDestroy {
       }
       this.toast.success('PDF gerado!', 'O relatório foi aberto em uma nova aba.');
     }).catch(err => {
-      console.error('Error generating PDF:', err);
-      this.toast.error('Erro', 'Erro ao gerar relatório. Verifique a conexão.');
+      console.error('Error generating PDF:', err?.message || 'Unknown error');
+      this.toast.error('Erro ao gerar PDF', 'Verifique a conexão com o servidor e tente novamente.');
     });
   }
 
