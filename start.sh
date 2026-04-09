@@ -168,7 +168,7 @@ check_port $FRONTEND_PORT "Frontend Angular"
 log_step "Iniciando Backend (Spring Boot — porta ${BACKEND_PORT})"
 open_terminal \
   "MC Backend :${BACKEND_PORT}" \
-  "export OPENAI_API_KEY='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' && cd ${ROOT}/backend && mvn spring-boot:run 2>&1 | tee /tmp/mc-backend.log"
+  "source ~/.zshrc 2>/dev/null; cd ${ROOT}/backend && java -jar target/moneycontrol-backend-0.0.1-SNAPSHOT.jar --server.port=${BACKEND_PORT} 2>&1 | tee /tmp/mc-backend.log"
 log_ok "Terminal do Backend aberto."
 
 # ── Aguarda backend ficar pronto ──────────────────

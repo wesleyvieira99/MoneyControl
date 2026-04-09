@@ -9,6 +9,8 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.time.LocalDate;
 import java.util.*;
 
 @Slf4j
@@ -25,12 +27,9 @@ public class AiChatController {
     private final BankAccountRepository accountRepo;
     private final InvestmentRepository investRepo;
     private final CreditCardRepository cardRepo;
-    private final CategoryRepository categoryRepo;
     private final DebtReorganizationRepository debtRepo;
     private final FinancialGoalRepository goalRepo;
-    private final ProfitDistributionRuleRepository distributionRepo;
     private final MonthlyBudgetRepository budgetRepo;
-    private final InvestmentTransactionRepository investmentTransactionRepo;
 
     @PostMapping("/chat")
     public ResponseEntity<Map<String, Object>> chat(@RequestBody Map<String, Object> body) {
@@ -151,42 +150,138 @@ public class AiChatController {
         List<Transaction> txs = txRepo.findAll();
         List<BankAccount> accounts = accountRepo.findAll();
         List<CreditCard> cards = cardRepo.findAll();
-        List<Category> categories = categoryRepo.findAll();
         List<Investment> investments = investRepo.findAll();
-        List<InvestmentTransaction> investmentTransactions = investmentTransactionRepo.findAll();
         List<DebtReorganization> debts = debtRepo.findAll();
         List<FinancialGoal> goals = goalRepo.findAll();
-        List<ProfitDistributionRule> distributions = distributionRepo.findAll();
         List<MonthlyBudget> budgets = budgetRepo.findAll();
 
-        Map<String, Object> fullContext = new LinkedHashMap<>();
-        fullContext.put("generatedAt", new Date());
-        fullContext.put("accounts", accounts);
-        fullContext.put("cards", cards);
-        fullContext.put("categories", categories);
-        fullContext.put("investments", investments);
-        fullContext.put("investmentTransactions", investmentTransactions);
-        fullContext.put("debts", debts);
-        fullContext.put("goals", goals);
-        fullContext.put("distributionRules", distributions);
-        fullContext.put("budgets", budgets);
-        fullContext.put("transactions", txs);
-        fullContext.put("totals", Map.of(
-                "accounts", accounts.size(),
-                "cards", cards.size(),
-                "categories", categories.size(),
-                "investments", investments.size(),
-                "investmentTransactions", investmentTransactions.size(),
-                "debts", debts.size(),
-                "goals", goals.size(),
-                "distributionRules", distributions.size(),
-                "budgets", budgets.size(),
-                "transactions", txs.size()
-        ));
-        try {
-            return new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(fullContext);
-        } catch (Exception e) {
-            return "Falha ao serializar contexto financeiro: " + e.getMessage();
+        // ── Resumo de contas ─────────────────────────────────────────────
+        List<Map<String, Object>> accountsSummary = new ArrayList<>();
+        double totalBalance = 0;
+        for (BankAccount a : accounts) {
+            double bal = a.getBalance() != null ? a.getBalance().doubleValue() : 0;
+            totalBalance += bal;
+            accountsSummary.add(Map.of("name", a.getName(), "bank", orEmpty(a.getBankName()), "balance", fmt(bal)));
         }
+
+        // ── Resumo de cartões ────────────────────────────────────────────
+        List<Map<String, Object>> cardsSummary = new ArrayList<>();
+        for (CreditCard c : cards) {
+            double used  = c.getUsedLimit()   != null ? c.getUsedLimit().doubleValue()   : 0;
+            double limit = c.getCreditLimit()  != null ? c.getCreditLimit().doubleValue() : 0;
+            int pct = limit > 0 ? (int) (used / limit * 100) : 0;
+            cardsSummary.add(Map.of("name", c.getName(), "usedLimit", fmt(used),
+                "creditLimit", fmt(limit), "utilizationPct", pct + "%"));
+        }
+
+        // ── Resumo de dívidas ────────────────────────────────────────────
+        double totalDebt = 0; int overdueDebts = 0; int activeDebts = 0;
+        List<Map<String, Object>> debtsSummary = new ArrayList<>();
+        for (DebtReorganization d : debts) {
+            if (d.getStatus() != null && d.getStatus().name().equals("PAID")) continue;
+            activeDebts++;
+            double remaining = d.getRemainingAmount() != null ? d.getRemainingAmount().doubleValue() : 0;
+            totalDebt += remaining;
+            if (d.getStatus() != null && d.getStatus().name().equals("OVERDUE")) overdueDebts++;
+            int paid = d.getPaidInstallments() != null ? d.getPaidInstallments() : 0;
+            int total = d.getTotalInstallments() != null ? d.getTotalInstallments() : 0;
+            debtsSummary.add(Map.of(
+                "desc", orEmpty(d.getDescription()),
+                "remaining", fmt(remaining),
+                "installments", paid + "/" + total,
+                "status", d.getStatus() != null ? d.getStatus().name() : "?"
+            ));
+        }
+
+        // ── Resumo de investimentos ──────────────────────────────────────
+        double totalInvested = 0;
+        List<Map<String, Object>> invSummary = new ArrayList<>();
+        for (Investment inv : investments) {
+            double val = inv.getCurrentValue() != null ? inv.getCurrentValue().doubleValue() :
+                        (inv.getInitialAmount() != null ? inv.getInitialAmount().doubleValue() : 0);
+            totalInvested += val;
+            String typeName = inv.getType() != null ? inv.getType().name() : "?";
+            invSummary.add(Map.of("name", orEmpty(inv.getName()), "type", typeName, "currentValue", fmt(val)));
+        }
+
+        // ── Resumo de transações dos últimos 90 dias ─────────────────────
+        LocalDate cutoff = LocalDate.now().minusDays(90);
+        double income90 = 0, expense90 = 0; int pendingCount = 0;
+        Map<String, Double> byCategory = new LinkedHashMap<>();
+        for (Transaction t : txs) {
+            if (t.getDate() != null && t.getDate().isAfter(cutoff)) {
+                double amt = t.getAmount() != null ? t.getAmount().doubleValue() : 0;
+                if ("INCOME".equals(t.getType() != null ? t.getType().name() : "")) income90 += amt;
+                if ("EXPENSE".equals(t.getType() != null ? t.getType().name() : "")) expense90 += amt;
+                if (t.getStatus() != null && t.getStatus().name().equals("PENDING")) pendingCount++;
+                String cat = t.getCategory() != null ? t.getCategory().getName() : "Sem categoria";
+                byCategory.merge(cat, amt, Double::sum);
+            }
+        }
+        // Top 8 categorias por valor
+        List<Map<String, Object>> topCats = byCategory.entrySet().stream()
+            .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
+            .limit(8)
+            .map(e -> Map.<String, Object>of("category", e.getKey(), "total", fmt(e.getValue())))
+            .toList();
+
+        // ── Metas ────────────────────────────────────────────────────────
+        List<Map<String, Object>> goalsSummary = goals.stream()
+            .map(g -> Map.<String, Object>of(
+                "name", orEmpty(g.getName()),
+                "target", fmt(g.getTargetAmount() != null ? g.getTargetAmount().doubleValue() : 0),
+                "current", fmt(g.getCurrentAmount() != null ? g.getCurrentAmount().doubleValue() : 0),
+                "pct", g.getTargetAmount() != null && g.getTargetAmount().doubleValue() > 0
+                    ? (int)((g.getCurrentAmount() != null ? g.getCurrentAmount().doubleValue() : 0) / g.getTargetAmount().doubleValue() * 100) + "%" : "0%"
+            )).toList();
+
+        // ── Orçamentos ───────────────────────────────────────────────────
+        List<Map<String, Object>> budgetsSummary = budgets.stream().limit(10)
+            .map(b -> Map.<String, Object>of(
+                "category", orEmpty(b.getCategoryName()),
+                "limit", fmt(b.getBudgetAmount() != null ? b.getBudgetAmount().doubleValue() : 0),
+                "spent", fmt(b.getSpentAmount() != null ? b.getSpentAmount().doubleValue() : 0)
+            )).toList();
+
+        // ── Monta contexto compacto ──────────────────────────────────────
+        Map<String, Object> ctx = new LinkedHashMap<>();
+        ctx.put("dataHora", LocalDate.now().toString());
+        ctx.put("resumoGeral", Map.of(
+            "saldoTotalContas", fmt(totalBalance),
+            "totalDividasAtivas", fmt(totalDebt),
+            "totalInvestido", fmt(totalInvested),
+            "patrimonioLiquido", fmt(totalBalance + totalInvested - totalDebt),
+            "dividasAtrasadas", overdueDebts,
+            "dividasAtivas", activeDebts,
+            "transacoesPendentes", pendingCount
+        ));
+        ctx.put("ultimos90Dias", Map.of(
+            "receitas", fmt(income90),
+            "despesas", fmt(expense90),
+            "saldo", fmt(income90 - expense90),
+            "topCategorias", topCats
+        ));
+        ctx.put("contas", accountsSummary);
+        ctx.put("cartoes", cardsSummary);
+        ctx.put("dividasAtivas", debtsSummary);
+        ctx.put("investimentos", invSummary);
+        ctx.put("metas", goalsSummary);
+        ctx.put("orcamentos", budgetsSummary);
+
+        try {
+            ObjectMapper mapper = new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(ctx);
+        } catch (Exception e) {
+            return "Erro ao gerar contexto: " + e.getMessage();
+        }
+    }
+
+    private String fmt(double v) {
+        return String.format("R$ %.2f", v);
+    }
+    private String orEmpty(String s) {
+        return s != null ? s : "";
     }
 }
