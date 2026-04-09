@@ -276,7 +276,7 @@
         📊 Movimentações ({{ detailTxs.length }})
       </button>
       <button class="btn-secondary" [class.btn-primary]="detailTab==='withdrawals'" (click)="detailTab='withdrawals'" style="font-size:13px;padding:6px 16px">
-        💸 Saques em Transações ({{ detailWithdrawals.length }})
+        🧾 Reflexos em Transações ({{ detailWithdrawals.length }})
       </button>
     </div>
 
@@ -307,7 +307,7 @@
     <!-- Saques cadastrados em Transações -->
     <ng-container *ngIf="detailTab==='withdrawals'">
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">
-        💡 Saques/resgates encontrados em <strong>Transações</strong> com descrição contendo "{{ detailInvestment.name }}"
+        💡 Aportes e retiradas deste investimento refletidos automaticamente em <strong>Transações</strong>
       </div>
       <div class="tx-table-wrapper">
         <table>
@@ -325,10 +325,10 @@
                 <div class="empty-state" style="padding:40px 20px">
                   <div class="empty-icon">💸</div>
                   <div class="empty-title">Nenhum saque encontrado</div>
-                  <div class="empty-sub" style="font-size:12px;color:var(--text-muted)">Para vincular, cadastre uma transação de receita com o nome "{{ detailInvestment.name }}" na descrição</div>
-                </div>
-              </td>
-            </tr>
+                   <div class="empty-sub" style="font-size:12px;color:var(--text-muted)">As movimentações aparecerão aqui quando você cadastrar aporte/retirada neste investimento</div>
+                 </div>
+               </td>
+             </tr>
           </tbody>
         </table>
       </div>

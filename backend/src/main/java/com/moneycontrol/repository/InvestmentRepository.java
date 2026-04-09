@@ -5,4 +5,5 @@ import java.util.List;
 public interface InvestmentRepository extends JpaRepository<Investment, Long> {
     List<Investment> findByType(InvestmentType type);
     List<Investment> findByIsActive(Boolean isActive);
+    List<Investment> findByBankAccountId(Long bankAccountId);
 }

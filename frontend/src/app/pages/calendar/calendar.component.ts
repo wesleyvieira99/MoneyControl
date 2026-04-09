@@ -98,28 +98,31 @@ export class CalendarComponent implements OnInit {
     const prevMonthLastDay = new Date(year, month, 0).getDate();
     for (let i = startWeekDay - 1; i >= 0; i--) {
       const date = new Date(year, month - 1, prevMonthLastDay - i);
+      const debts = this.getDebtsForDate(date);
       days.push({ date, day: prevMonthLastDay - i, isCurrentMonth: false, isToday: false,
-        debts: this.getDebtsForDate(date), events: this.getEventsForDate(date) });
+        debts, events: this.getEventsForDate(date, debts) });
     }
 
     for (let d = 1; d <= daysInMonth; d++) {
       const date = new Date(year, month, d);
       const isToday = date.toDateString() === today.toDateString();
+      const debts = this.getDebtsForDate(date);
       days.push({ date, day: d, isCurrentMonth: true, isToday,
-        debts: this.getDebtsForDate(date), events: this.getEventsForDate(date) });
+        debts, events: this.getEventsForDate(date, debts) });
     }
 
     const remaining = 42 - days.length;
     for (let i = 1; i <= remaining; i++) {
       const date = new Date(year, month + 1, i);
+      const debts = this.getDebtsForDate(date);
       days.push({ date, day: i, isCurrentMonth: false, isToday: false,
-        debts: this.getDebtsForDate(date), events: this.getEventsForDate(date) });
+        debts, events: this.getEventsForDate(date, debts) });
     }
 
     this.calendarDays = days;
   }
 
-  getEventsForDate(date: Date): CalEvent[] {
+  getEventsForDate(date: Date, debtInstallments: DebtInstallment[] = []): CalEvent[] {
     const dateStr = date.toISOString().slice(0, 10);
     const events: CalEvent[] = [];
 
@@ -129,6 +132,11 @@ export class CalendarComponent implements OnInit {
 
       const isDebt    = tx.description?.startsWith('📋');
       const isResgate = tx.description?.startsWith('💎');
+      const sameDebtInstallment = isDebt && debtInstallments.some(d =>
+        tx.description?.includes(d.description || '') &&
+        tx.description?.includes(`Parcela ${d.installmentNumber}/${d.totalInstallments}`)
+      );
+      if (sameDebtInstallment) continue;
       const icon = isDebt ? '📋' : isResgate ? '💎' : tx.isRecurring ? '↻' : tx.type === 'INCOME' ? '📈' : '📉';
       const evType: CalEvent['type'] = isDebt ? 'DEBT' : tx.isRecurring ? 'RECURRING' : tx.type === 'INCOME' ? 'INCOME' : 'EXPENSE';
 

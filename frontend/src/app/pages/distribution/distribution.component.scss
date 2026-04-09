@@ -170,6 +170,7 @@
   -webkit-backdrop-filter: blur(28px) saturate(200%);
   animation: cardIn 0.5s ease both;
   transition: var(--t);
+  min-height: 420px;
 
   &::before {
     content: '';
@@ -252,6 +253,7 @@
   -webkit-backdrop-filter: blur(28px) saturate(200%);
   animation: cardIn 0.5s ease both;
   transition: var(--t);
+  min-height: 420px;
 
   &::before {
     content: '';
@@ -269,6 +271,17 @@
     background: var(--bg-card-hover);
     border-color: var(--glass-border-strong);
     box-shadow: var(--glass-shadow-lg);
+  }
+}
+
+.dist-rule-card {
+  min-height: 210px;
+}
+
+@media (max-width: 900px) {
+  .dist-chart-card,
+  .dist-sim-card {
+    min-height: auto;
   }
 }
 
