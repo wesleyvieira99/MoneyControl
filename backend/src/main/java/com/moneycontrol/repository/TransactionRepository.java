@@ -14,6 +14,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findByStatusOrderByDateAsc(TransactionStatus status);
     List<Transaction> findByInstallmentGroupId(Long groupId);
     List<Transaction> findByNotesContaining(String marker);
+    boolean existsByNotesContaining(String marker);
     @Query("SELECT t FROM Transaction t WHERE t.date < :today AND t.status = 'PENDING'")
     List<Transaction> findOverdue(@Param("today") LocalDate today);
 }

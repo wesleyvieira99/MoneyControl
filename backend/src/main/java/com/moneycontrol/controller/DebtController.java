@@ -95,7 +95,9 @@ public class DebtController {
         return repo.findById(id).map(d -> {
             int total = d.getTotalInstallments() != null ? d.getTotalInstallments() : 0;
             if (installmentNumber < 1 || installmentNumber > total) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Installment out of range"));
+                Map<String, Object> err = new LinkedHashMap<>();
+                err.put("error", "Installment out of range");
+                return ResponseEntity.badRequest().body(err);
             }
             String status = body.getOrDefault("status", "PENDING");
             int paid = d.getPaidInstallments() != null ? d.getPaidInstallments() : 0;
@@ -109,12 +111,12 @@ public class DebtController {
             DebtReorganization saved = repo.save(d);
             syncTransactionsForDebt(saved);
             recomputeCardUsedLimit(saved.getCreditCard() != null ? saved.getCreditCard().getId() : null);
-            return ResponseEntity.ok(Map.of(
-                    "paidInstallments", saved.getPaidInstallments(),
-                    "remainingAmount", saved.getRemainingAmount(),
-                    "debtStatus", saved.getStatus()
-            ));
-        }).orElse(ResponseEntity.notFound().build());
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("paidInstallments", saved.getPaidInstallments());
+            out.put("remainingAmount", saved.getRemainingAmount());
+            out.put("debtStatus", saved.getStatus());
+            return ResponseEntity.ok(out);
+        }).orElse(ResponseEntity.notFound().<Map<String, Object>>build());
     }
 
     private List<Map<String, Object>> buildInstallments(DebtReorganization d) {

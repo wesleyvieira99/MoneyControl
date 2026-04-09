@@ -71,7 +71,7 @@ public class InvestmentController {
     private void mirrorToTransactions(Investment inv, InvestmentTransaction tx) {
         if (tx.getType() != InvestmentTransactionType.DEPOSIT && tx.getType() != InvestmentTransactionType.WITHDRAWAL) return;
         String marker = "[INVESTMENT_TX:" + tx.getId() + "]";
-        boolean exists = transactionRepo.findByNotesContaining(marker).stream().findFirst().isPresent();
+        boolean exists = transactionRepo.existsByNotesContaining(marker);
         if (exists) return;
 
         Category category = tx.getType() == InvestmentTransactionType.DEPOSIT
