@@ -7,46 +7,30 @@
  =========|_|==============|___/=/_/_/_/
  :: Spring Boot ::                (v3.2.4)
 
-2026-04-07T02:23:12.529-03:00  INFO 75482 --- [           main] c.moneycontrol.MoneyControlApplication   : Starting MoneyControlApplication v0.0.1-SNAPSHOT using Java 17.0.18 with PID 75482 (/Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend/target/moneycontrol-backend-0.0.1-SNAPSHOT.jar started by wesleyvieira in /Users/wesleyvieira/Documents/MoneyControl/MoneyControl/backend)
-2026-04-07T02:23:12.546-03:00  INFO 75482 --- [           main] c.moneycontrol.MoneyControlApplication   : No active profile set, falling back to 1 default profile: "default"
-2026-04-07T02:23:32.087-03:00  INFO 75482 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-04-07T02:23:32.465-03:00  INFO 75482 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 343 ms. Found 11 JPA repository interfaces.
-2026-04-07T02:23:37.386-03:00  INFO 75482 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
-2026-04-07T02:23:37.466-03:00  INFO 75482 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-04-07T02:23:37.466-03:00  INFO 75482 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.19]
-2026-04-07T02:23:37.727-03:00  INFO 75482 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
-2026-04-07T02:23:37.731-03:00  INFO 75482 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 23905 ms
-2026-04-07T02:23:37.919-03:00  INFO 75482 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-04-07T02:23:38.585-03:00  INFO 75482 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:file:./data/moneycontrol user=SA
-2026-04-07T02:23:38.589-03:00  INFO 75482 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2026-04-07T02:23:38.651-03:00  INFO 75482 --- [           main] o.s.b.a.h2.H2ConsoleAutoConfiguration    : H2 console available at '/h2-console'. Database available at 'jdbc:h2:file:./data/moneycontrol'
-2026-04-07T02:23:39.653-03:00  INFO 75482 --- [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
-2026-04-07T02:23:40.187-03:00  INFO 75482 --- [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.4.4.Final
-2026-04-07T02:23:40.288-03:00  INFO 75482 --- [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
-2026-04-07T02:23:41.049-03:00  INFO 75482 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-04-07T02:23:41.236-03:00  WARN 75482 --- [           main] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2026-04-07T02:23:44.137-03:00  INFO 75482 --- [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2026-04-07T02:23:44.500-03:00  INFO 75482 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-04-07T02:23:46.185-03:00  INFO 75482 --- [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
-2026-04-07T02:23:49.016-03:00  WARN 75482 --- [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
-2026-04-07T02:23:51.953-03:00  WARN 75482 --- [           main] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.context.ApplicationContextException: Failed to start bean 'webServerStartStop'
-2026-04-07T02:23:51.968-03:00  INFO 75482 --- [           main] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-04-07T02:23:51.974-03:00  INFO 75482 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
-2026-04-07T02:23:52.003-03:00  INFO 75482 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
-2026-04-07T02:23:52.119-03:00  INFO 75482 --- [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
-
-Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
-2026-04-07T02:23:52.218-03:00 ERROR 75482 --- [           main] o.s.b.d.LoggingFailureAnalysisReporter   : 
-
-***************************
-APPLICATION FAILED TO START
-***************************
-
-Description:
-
-Web server failed to start. Port 8080 was already in use.
-
-Action:
-
-Identify and stop the process that's listening on port 8080 or configure this application to listen on another port.
-
+2026-04-09T00:13:36.807-03:00  INFO 87205 --- [           main] c.moneycontrol.MoneyControlApplication   : Starting MoneyControlApplication v0.0.1-SNAPSHOT using Java 17.0.18 with PID 87205 (/Users/wesleyvieira/Documents/MoneyControl/backend/target/moneycontrol-backend-0.0.1-SNAPSHOT.jar started by wesleyvieira in /Users/wesleyvieira/Documents/MoneyControl/backend)
+2026-04-09T00:13:36.809-03:00  INFO 87205 --- [           main] c.moneycontrol.MoneyControlApplication   : No active profile set, falling back to 1 default profile: "default"
+2026-04-09T00:13:37.718-03:00  INFO 87205 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-09T00:13:37.771-03:00  INFO 87205 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 47 ms. Found 11 JPA repository interfaces.
+2026-04-09T00:13:38.203-03:00  INFO 87205 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8081 (http)
+2026-04-09T00:13:38.212-03:00  INFO 87205 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-04-09T00:13:38.212-03:00  INFO 87205 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.19]
+2026-04-09T00:13:38.251-03:00  INFO 87205 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-04-09T00:13:38.252-03:00  INFO 87205 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1308 ms
+2026-04-09T00:13:38.275-03:00  INFO 87205 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-09T00:13:38.558-03:00  INFO 87205 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn1: url=jdbc:h2:file:./data/moneycontrol user=SA
+2026-04-09T00:13:38.559-03:00  INFO 87205 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-09T00:13:38.567-03:00  INFO 87205 --- [           main] o.s.b.a.h2.H2ConsoleAutoConfiguration    : H2 console available at '/h2-console'. Database available at 'jdbc:h2:file:./data/moneycontrol'
+2026-04-09T00:13:38.664-03:00  INFO 87205 --- [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-09T00:13:38.706-03:00  INFO 87205 --- [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.4.4.Final
+2026-04-09T00:13:38.735-03:00  INFO 87205 --- [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-09T00:13:38.969-03:00  INFO 87205 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-09T00:13:39.016-03:00  WARN 87205 --- [           main] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-09T00:13:39.781-03:00  INFO 87205 --- [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-09T00:13:39.817-03:00  INFO 87205 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-09T00:13:40.302-03:00  INFO 87205 --- [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-09T00:13:41.023-03:00  WARN 87205 --- [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-09T00:13:41.419-03:00  INFO 87205 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8081 (http) with context path ''
+2026-04-09T00:13:41.447-03:00  INFO 87205 --- [           main] c.moneycontrol.MoneyControlApplication   : Started MoneyControlApplication in 5.533 seconds (process running for 5.861)
+2026-04-09T00:14:07.824-03:00  INFO 87205 --- [nio-8081-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-09T00:14:07.824-03:00  INFO 87205 --- [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-04-09T00:14:07.825-03:00  INFO 87205 --- [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
