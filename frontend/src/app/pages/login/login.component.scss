@@ -1,0 +1,167 @@
+.login-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  position: relative;
+  background: radial-gradient(1200px 700px at 15% -20%, rgba(59, 130, 246, 0.28), transparent 50%),
+              radial-gradient(1000px 680px at 100% 0%, rgba(139, 92, 246, 0.22), transparent 50%),
+              var(--bg-main);
+  overflow: hidden;
+  animation: fadeInLogin .5s ease;
+
+  &.leaving {
+    animation: fadeOutLogin .45s ease forwards;
+  }
+}
+
+.bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(18px);
+  opacity: .32;
+  pointer-events: none;
+}
+
+.orb-1 { width: 260px; height: 260px; background: #3b82f6; top: 8%; left: 7%; animation: drift 9s ease-in-out infinite; }
+.orb-2 { width: 220px; height: 220px; background: #8b5cf6; right: 8%; top: 18%; animation: drift 8s ease-in-out infinite reverse; }
+.orb-3 { width: 170px; height: 170px; background: #10b981; right: 22%; bottom: 12%; animation: drift 10s ease-in-out infinite; }
+
+.login-card {
+  width: min(92vw, 430px);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(22px) saturate(160%);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  padding: 28px;
+  position: relative;
+  z-index: 2;
+  animation: cardIn .55s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+
+  h1 {
+    font-size: 18px;
+    margin: 0;
+    color: var(--text-primary);
+    letter-spacing: -.02em;
+  }
+
+  p {
+    margin: 2px 0 0;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+}
+
+.brand-logo {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+  box-shadow: 0 10px 28px rgba(59, 130, 246, .35);
+}
+
+.title-wrap {
+  margin-bottom: 18px;
+
+  h2 {
+    margin: 0;
+    font-size: 22px;
+    color: var(--text-primary);
+    letter-spacing: -.03em;
+  }
+
+  p {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+}
+
+.login-form {
+  display: grid;
+  gap: 12px;
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+
+  span {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  input {
+    width: 100%;
+    border: 1px solid var(--glass-border);
+    background: rgba(15, 23, 42, 0.28);
+    color: var(--text-primary);
+    border-radius: 12px;
+    padding: 12px 13px;
+    font: inherit;
+    transition: border-color var(--t), box-shadow var(--t), transform var(--t);
+
+    &:focus {
+      outline: none;
+      border-color: rgba(99, 102, 241, 0.7);
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+      transform: translateY(-1px);
+    }
+  }
+}
+
+.error {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 10px;
+  padding: 9px 11px;
+}
+
+.login-btn {
+  margin-top: 4px;
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform var(--t), box-shadow var(--t), opacity var(--t);
+  box-shadow: 0 12px 28px rgba(79, 70, 229, .35);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 34px rgba(79, 70, 229, .45);
+  }
+
+  &:disabled {
+    opacity: .75;
+    cursor: wait;
+  }
+}
+
+@keyframes fadeInLogin { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOutLogin { to { opacity: 0; transform: scale(.985); } }
+@keyframes cardIn { from { opacity: 0; transform: translateY(18px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes drift {
+  0%, 100% { transform: translateY(0) translateX(0) scale(1); }
+  50% { transform: translateY(-16px) translateX(10px) scale(1.04); }
+}

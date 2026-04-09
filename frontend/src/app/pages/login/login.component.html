@@ -1,0 +1,50 @@
+<div class="login-screen" [class.leaving]="leaving">
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <section class="login-card">
+    <div class="brand">
+      <div class="brand-logo">M</div>
+      <div>
+        <h1>MoneyControl</h1>
+        <p>Financial Intelligence OS</p>
+      </div>
+    </div>
+
+    <div class="title-wrap">
+      <h2>Login seguro</h2>
+      <p>Acesse sua central financeira premium.</p>
+    </div>
+
+    <form (ngSubmit)="submit()" class="login-form" autocomplete="off">
+      <label class="field">
+        <span>Email</span>
+        <input
+          type="email"
+          name="email"
+          [(ngModel)]="email"
+          placeholder="Digite seu email"
+          required
+        />
+      </label>
+
+      <label class="field">
+        <span>Senha</span>
+        <input
+          type="password"
+          name="password"
+          [(ngModel)]="password"
+          placeholder="Digite sua senha"
+          required
+        />
+      </label>
+
+      <p class="error" *ngIf="error">{{ error }}</p>
+
+      <button type="submit" class="login-btn" [disabled]="loading">
+        <span>{{ loading ? 'Autenticando...' : 'Entrar' }}</span>
+      </button>
+    </form>
+  </section>
+</div>
