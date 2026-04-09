@@ -3,7 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgxEchartsDirective } from 'ngx-echarts';
 import { ApiService } from '../../core/services/api.service';
-import { catchError, of } from 'rxjs';
+import { ToastService } from '../../core/services/toast.service';
+import { DataSyncService } from '../../core/services/data-sync.service';
+import { catchError, of, firstValueFrom } from 'rxjs';
 import type { EChartsOption } from 'echarts';
 
 @Component({
@@ -23,12 +25,18 @@ export class DistributionComponent implements OnInit {
   chartOption: EChartsOption = {};
   simulationIncome = 10000;
 
+  // Allocate modal
+  showAllocateModal = false;
+  allocateRule: any = null;
+  allocateSaving = false;
+  allocateForm = { accountId: '', amount: 0, categoryName: '' };
+
   colors = ['#3b82f6','#8b5cf6','#10b981','#ef4444','#f59e0b','#06b6d4','#ec4899'];
   destTypes = ['SAVINGS','INVESTMENT','POCKET','EXPENSE','EMERGENCY','CHARITY'];
   destLabels: any = { SAVINGS: '💾 Poupança', INVESTMENT: '📈 Investimento', POCKET: '👜 Bolso', EXPENSE: '💸 Despesas', EMERGENCY: '🆘 Emergência', CHARITY: '❤️ Caridade' };
   destIcons: any = { SAVINGS: '💾', INVESTMENT: '📈', POCKET: '👜', EXPENSE: '💸', EMERGENCY: '🆘', CHARITY: '❤️' };
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private toast: ToastService, private sync: DataSyncService) {}
 
   ngOnInit() {
     this.api.getCategories().pipe(catchError(() => of([]))).subscribe(c => this.categories = c);
@@ -143,4 +151,105 @@ export class DistributionComponent implements OnInit {
   }
 
   emptyForm() { return { name: '', percentage: 0, destinationType: 'SAVINGS', color: '#3b82f6', sortOrder: 0, categoryId: null, bankAccountId: null }; }
+
+  /* ─── Allocate / Separar Dinheiro ─────────────────────── */
+
+  get expenseCategories() {
+    return this.categories.filter(c => c.type === 'EXPENSE');
+  }
+
+  get selectedAllocateAccount(): any {
+    return this.accounts.find(a => a.id === +this.allocateForm.accountId) || null;
+  }
+
+  get allocateMaxAmount(): number {
+    const account = this.selectedAllocateAccount;
+    return account ? +account.balance : 0;
+  }
+
+  get canAllocate(): boolean {
+    return !!this.allocateForm.accountId
+      && this.allocateForm.amount > 0
+      && this.allocateForm.amount <= this.allocateMaxAmount
+      && !!this.allocateForm.categoryName.trim();
+  }
+
+  openAllocate(r: any) {
+    this.allocateRule = r;
+    this.allocateForm = { accountId: '', amount: 0, categoryName: '' };
+    this.showAllocateModal = true;
+  }
+
+  closeAllocateModal() {
+    this.showAllocateModal = false;
+    this.allocateRule = null;
+  }
+
+  fmt(v: number) { return (+v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
+
+  async saveAllocation() {
+    if (!this.canAllocate || !this.allocateRule) return;
+    this.allocateSaving = true;
+
+    try {
+      const r = this.allocateRule;
+      const amt = this.allocateForm.amount;
+      const catName = this.allocateForm.categoryName.trim();
+      const accountId = +this.allocateForm.accountId;
+      const account = this.accounts.find(a => a.id === accountId);
+      if (!account) throw new Error('Conta não encontrada');
+
+      // 1. Find or create EXPENSE category
+      let category = this.categories.find(c => c.type === 'EXPENSE' && c.name.toLowerCase() === catName.toLowerCase());
+      if (!category) {
+        category = await firstValueFrom(
+          this.api.createCategory({ name: catName, type: 'EXPENSE', color: r.color || '#ef4444', icon: '📦' })
+        );
+        // Refresh local categories list so new category appears in autocomplete
+        this.categories = await firstValueFrom(this.api.getCategories().pipe(catchError(() => of(this.categories))));
+      }
+
+      // 2. Create EXPENSE transaction
+      const transaction = {
+        date: new Date().toISOString().slice(0, 10),
+        description: `Envelope: ${r.name}`,
+        amount: amt,
+        type: 'EXPENSE',
+        status: 'PAID',
+        category: { id: category.id },
+        bankAccount: { id: accountId },
+        notes: `Separação para envelope "${r.name}" (${this.destLabels[r.destinationType] || r.destinationType}) — categoria: ${catName}`
+      };
+      await firstValueFrom(this.api.createTransaction(transaction));
+
+      // 3. Update account balance (deduct)
+      const updatedAccount = { ...account, balance: +account.balance - amt };
+      await firstValueFrom(this.api.updateAccount(accountId, updatedAccount));
+
+      // 4. Update rule's allocatedAmount
+      const newAllocated = +(r.allocatedAmount || 0) + amt;
+      const updatedRule = {
+        ...r,
+        allocatedAmount: newAllocated,
+        category: r.category?.id ? { id: r.category.id } : null,
+        bankAccount: r.bankAccount?.id ? { id: r.bankAccount.id } : null
+      };
+      await firstValueFrom(this.api.updateDistributionRule(r.id, updatedRule));
+
+      // 5. Emit sync events
+      this.sync.emit({ type: 'TRANSACTIONS_CHANGED' });
+      this.sync.emit({ type: 'ACCOUNTS_CHANGED' });
+
+      this.toast.success('Dinheiro separado!', `${this.fmt(amt)} debitados de "${account.name}" para o envelope "${r.name}".`);
+
+      // 6. Refresh data
+      this.closeAllocateModal();
+      this.loadRules();
+      this.accounts = await firstValueFrom(this.api.getAccounts().pipe(catchError(() => of(this.accounts))));
+    } catch {
+      this.toast.error('Erro ao separar', 'Verifique os dados e tente novamente.');
+    } finally {
+      this.allocateSaving = false;
+    }
+  }
 }

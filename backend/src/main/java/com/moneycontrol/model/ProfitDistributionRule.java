@@ -18,4 +18,6 @@ public class ProfitDistributionRule {
     private BankAccount bankAccount;
     private String color;
     private Integer sortOrder;
+    @Builder.Default
+    private BigDecimal allocatedAmount = BigDecimal.ZERO;
 }
