@@ -265,8 +265,17 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   generatePDF() {
-    const fmt = (v: number) => v?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) ?? 'R$ 0,00';
-    const fmtPct = (v: number) => (v ?? 0).toFixed(1) + '%';
+    this.toast.info('Gerando PDF...', 'Buscando análise da IA. Aguarde...');
+    const fmt = (v: number) => {
+      const n = Number(v);
+      if (isNaN(n)) return 'R$ 0,00';
+      return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    };
+    const fmtPct = (v: number) => {
+      const n = Number(v);
+      return (isNaN(n) ? 0 : n).toFixed(1) + '%';
+    };
+    const safeStr = (v: any) => v != null ? String(v) : '—';
     const now = new Date();
     const dateStr = now.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
     const timeStr = now.toLocaleTimeString('pt-BR');
@@ -286,7 +295,8 @@ export class AppComponent implements OnInit, OnDestroy {
       firstValueFrom(this.api.getDashboardSummary().pipe(catchError(() => of({})))),
       firstValueFrom(this.api.getBalanceHistory(12).pipe(catchError(() => of([])))),
       firstValueFrom(this.api.getCategoryBreakdown().pipe(catchError(() => of([])))),
-    ]).then(([accounts, cards, investments, debts, transactions, goals, rules, summary, history, categories]: any[]) => {
+      firstValueFrom(this.api.aiPdfAnalysis().pipe(catchError(() => of({ analysis: null })))),
+    ]).then(([accounts, cards, investments, debts, transactions, goals, rules, summary, history, catBreakdown, aiResult]: any[]) => {
       accounts     = accounts     || [];
       cards        = cards        || [];
       investments  = investments  || [];
@@ -296,19 +306,20 @@ export class AppComponent implements OnInit, OnDestroy {
       rules        = rules        || [];
       summary      = summary      || {};
       history      = history      || [];
-      categories   = categories   || [];
+      catBreakdown = catBreakdown || [];
+      const aiAnalysis = aiResult?.analysis || null;
 
-      const totalBalance   = accounts.reduce((s: number, a: any) => s + +a.balance, 0);
-      const totalInvested  = investments.reduce((s: number, i: any) => s + +i.currentValue, 0);
-      const totalInitial   = investments.reduce((s: number, i: any) => s + +i.initialAmount, 0);
+      const totalBalance   = accounts.reduce((s: number, a: any) => s + (+a.balance || 0), 0);
+      const totalInvested  = investments.reduce((s: number, i: any) => s + (+i.currentValue || 0), 0);
+      const totalInitial   = investments.reduce((s: number, i: any) => s + (+i.initialAmount || 0), 0);
       const totalGain      = totalInvested - totalInitial;
       const gainPct        = totalInitial > 0 ? (totalGain / totalInitial) * 100 : 0;
-      const totalDebt      = debts.reduce((s: number, d: any) => s + +d.remainingAmount, 0);
-      const totalGoals     = goals.reduce((s: number, g: any) => s + +g.targetAmount, 0);
-      const totalGoalsSaved= goals.reduce((s: number, g: any) => s + +g.currentAmount, 0);
+      const totalDebt      = debts.reduce((s: number, d: any) => s + (+d.remainingAmount || 0), 0);
+      const totalGoals     = goals.reduce((s: number, g: any) => s + (+g.targetAmount || 0), 0);
+      const totalGoalsSaved= goals.reduce((s: number, g: any) => s + (+g.currentAmount || 0), 0);
       const patrimony      = totalBalance + totalInvested - totalDebt;
-      const monthlyIncome  = summary.monthlyIncome  || 0;
-      const monthlyExpense = summary.monthlyExpense || 0;
+      const monthlyIncome  = +summary.monthlyIncome  || 0;
+      const monthlyExpense = +summary.monthlyExpense || 0;
       const netMonth       = monthlyIncome - monthlyExpense;
       const savingsRate    = monthlyIncome > 0 ? (netMonth / monthlyIncome) * 100 : 0;
 
@@ -319,19 +330,17 @@ export class AppComponent implements OnInit, OnDestroy {
       const incTx      = recentTx.filter((t: any) => t.type === 'INCOME' || t.type === 'RECEITA');
       const expTx      = recentTx.filter((t: any) => t.type !== 'INCOME' && t.type !== 'RECEITA');
       const overdueTx  = recentTx.filter((t: any) => t.status === 'OVERDUE' || t.status === 'ATRASADA');
-      const catTotal   = categories.reduce((s: number, c: any) => s + +c.amount, 0);
-      const topCats    = [...categories].sort((a: any, b: any) => b.amount - a.amount).slice(0, 8);
+      const catTotal   = catBreakdown.reduce((s: number, c: any) => s + (+c.amount || 0), 0);
+      const topCats    = [...catBreakdown].sort((a: any, b: any) => (+b.amount || 0) - (+a.amount || 0)).slice(0, 8);
 
-      // Avg monthly from history
-      const avgIncome  = history.length ? history.reduce((s: number, h: any) => s + +h.income,  0) / history.length : monthlyIncome;
-      const avgExpense = history.length ? history.reduce((s: number, h: any) => s + +h.expense, 0) / history.length : monthlyExpense;
+      const avgIncome  = history.length ? history.reduce((s: number, h: any) => s + (+h.income || 0),  0) / history.length : monthlyIncome;
+      const avgExpense = history.length ? history.reduce((s: number, h: any) => s + (+h.expense || 0), 0) / history.length : monthlyExpense;
 
       const perennialDebts    = debts.filter((d: any) => d.perennial);
       const installmentDebts  = debts.filter((d: any) => !d.perennial);
       const overdueDebts      = debts.filter((d: any) => d.status === 'OVERDUE');
       const paidDebts         = debts.filter((d: any) => d.status === 'PAID');
 
-      // Pillar scores (simple heuristic)
       const debtScore = patrimony > 0 ? Math.max(0, Math.min(100, 100 - (totalDebt / Math.max(patrimony, 1)) * 100)) : 50;
       const savScore  = Math.max(0, Math.min(100, savingsRate * 2));
       const invScore  = patrimony > 0 ? Math.min(100, (totalInvested / Math.max(patrimony, 1)) * 100) : 0;
@@ -343,27 +352,132 @@ export class AppComponent implements OnInit, OnDestroy {
       const monthsOfEmergencyCoverage = monthlyExpense > 0 ? (Math.max(totalBalance, 0) / monthlyExpense) : 0;
       const investmentsShare = patrimony > 0 ? (totalInvested / patrimony) * 100 : 0;
       const goalProgressPercentage = goals.length > 0 ? (totalGoalsSaved / Math.max(totalGoals, 1)) * 100 : 0;
+      const totalPerennialMonthly = perennialDebts.reduce((s: number, d: any) => s + (+d.remainingAmount || 0), 0);
+      const totalInstallmentDebt = installmentDebts.reduce((s: number, d: any) => s + (+d.remainingAmount || 0), 0);
 
-      const aiSuggestions: string[] = [];
-      if (savingsRate < 10) aiSuggestions.push('Reduza despesas variáveis em 10% e direcione essa diferença para uma reserva automática no dia do recebimento.');
-      if (monthsOfEmergencyCoverage < 3) aiSuggestions.push(`Priorize a reserva de emergência até 6 meses: hoje sua cobertura estimada é de ${monthsOfEmergencyCoverage.toFixed(1)} meses.`);
-      if (totalDebt > 0 && debtIncomePercentage > 50) aiSuggestions.push(`Seu saldo de dívidas equivale a ${debtIncomePercentage.toFixed(0)}% da renda mensal. Foque em quitar dívidas de maior juros antes de novos aportes.`);
-      if (totalCardLimit > 0 && (totalCardBill / totalCardLimit) > 0.7) aiSuggestions.push('Uso do limite do cartão acima de 70%: renegocie gastos recorrentes e adote teto semanal para reduzir risco de inadimplência.');
-      if (goals.length > 0 && goalProgressPercentage < 35) aiSuggestions.push(`Metas estão em ${goalProgressPercentage.toFixed(0)}% do objetivo; programe aporte fixo mensal por meta para ganhar tração.`);
-      if (topCats.length > 0 && catTotal > 0) {
-        const topCategoryPct = (+topCats[0].amount / catTotal) * 100;
-        if (topCategoryPct > 35) aiSuggestions.push(`A categoria "${topCats[0].category}" concentra ${topCategoryPct.toFixed(0)}% dos gastos; defina limite mensal específico para ela.`);
-      }
-      if (investments.length > 0 && investmentsShare < 20 && savingsRate >= 15) aiSuggestions.push('Seu caixa está saudável para acelerar investimentos: avalie aumentar aportes progressivos mantendo liquidez da reserva.');
-      if (aiSuggestions.length === 0) {
-        aiSuggestions.push(
-          investments.length > 0
-            ? 'Seu cenário atual está equilibrado. Mantenha aportes consistentes, revisão quinzenal de gastos e rebalanceamento trimestral da carteira.'
-            : 'Seu cenário atual está equilibrado. Mantenha aportes consistentes e revisão quinzenal de gastos para preservar a saúde financeira.'
-        );
-      }
+      // Build AI OpenAI section HTML
+      const buildAiSection = () => {
+        if (!aiAnalysis) return '';
+        const situacao = aiAnalysis.situacaoAtual || '';
+        const pontosFortes: string[] = aiAnalysis.pontosFortes || [];
+        const pontosAtencao: string[] = aiAnalysis.pontosAtencao || [];
+        const dicasCurto: string[] = aiAnalysis.dicasCurto || [];
+        const dicasMedio: string[] = aiAnalysis.dicasMedio || [];
+        const dicasLongo: string[] = aiAnalysis.dicasLongo || [];
+        const previsao = aiAnalysis.previsaoFuturo || '';
+        const nota = aiAnalysis.notaConsultor || '';
+        return `
+<div class="section page-break">
+  <div class="section-title"><span class="s-icon">🧠</span> Análise do Consultor IA — OpenAI GPT-4o</div>
+  <div class="ai-openai-panel">
+    <div class="ai-openai-badge-row">
+      <span class="ai-openai-badge">🤖 Powered by OpenAI</span>
+      <span class="ai-openai-badge ai-openai-badge-date">📅 ${dateStr}</span>
+    </div>
 
-      const html = `<!DOCTYPE html>
+    <!-- Situação Atual -->
+    <div class="ai-openai-block">
+      <div class="ai-openai-block-title">📊 Diagnóstico da Situação Atual</div>
+      <p class="ai-openai-text">${situacao}</p>
+    </div>
+
+    <!-- Pontos Fortes & Atenção -->
+    <div class="ai-openai-two-col">
+      <div class="ai-openai-col ai-openai-col-green">
+        <div class="ai-openai-col-title">✅ Pontos Fortes</div>
+        <ul class="ai-openai-ul">${pontosFortes.map((p: string) => '<li>' + p + '</li>').join('')}</ul>
+      </div>
+      <div class="ai-openai-col ai-openai-col-red">
+        <div class="ai-openai-col-title">⚠️ Pontos de Atenção</div>
+        <ul class="ai-openai-ul">${pontosAtencao.map((p: string) => '<li>' + p + '</li>').join('')}</ul>
+      </div>
+    </div>
+
+    <!-- Dicas por prazo -->
+    <div class="ai-openai-block">
+      <div class="ai-openai-block-title">🎯 Plano de Ação Personalizado</div>
+      <div class="ai-openai-tips-grid">
+        <div class="ai-openai-tip-card ai-tip-short">
+          <div class="ai-tip-header">🚀 Curto Prazo <span class="ai-tip-badge">30 dias</span></div>
+          <ul class="ai-openai-ul">${dicasCurto.map((d: string) => '<li>' + d + '</li>').join('')}</ul>
+        </div>
+        <div class="ai-openai-tip-card ai-tip-medium">
+          <div class="ai-tip-header">📈 Médio Prazo <span class="ai-tip-badge">3-6 meses</span></div>
+          <ul class="ai-openai-ul">${dicasMedio.map((d: string) => '<li>' + d + '</li>').join('')}</ul>
+        </div>
+        <div class="ai-openai-tip-card ai-tip-long">
+          <div class="ai-tip-header">🏆 Longo Prazo <span class="ai-tip-badge">1-5 anos</span></div>
+          <ul class="ai-openai-ul">${dicasLongo.map((d: string) => '<li>' + d + '</li>').join('')}</ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Previsão Futuro -->
+    <div class="ai-openai-block ai-openai-forecast">
+      <div class="ai-openai-block-title">🔮 Previsão & Projeção Futura</div>
+      <p class="ai-openai-text">${previsao}</p>
+    </div>
+
+    <!-- Nota do Consultor -->
+    <div class="ai-openai-note">
+      <div class="ai-openai-note-icon">💬</div>
+      <div>
+        <div class="ai-openai-note-title">Nota do Consultor IA</div>
+        <p class="ai-openai-note-text">${nota}</p>
+      </div>
+    </div>
+  </div>
+</div>`;
+      };
+
+      const html = this.buildPdfHtml({
+        fmt, fmtPct, safeStr, dateStr, timeStr, monthStr,
+        overallScore, scoreColor, scoreLabel,
+        patrimony, totalBalance, accounts, totalInvested, investments,
+        gainPct, totalGain, totalDebt, debts, overdueDebts, paidDebts,
+        monthlyIncome, monthlyExpense, netMonth, savingsRate, avgIncome, avgExpense,
+        totalCardLimit, totalCardBill, cards,
+        savScore, debtScore, invScore,
+        totalGoals, totalGoalsSaved, goals, goalProgressPercentage,
+        incTx, expTx, overdueTx, recentTx,
+        catTotal, topCats, catBreakdown,
+        perennialDebts, installmentDebts, totalInitial,
+        rules, history, transactions,
+        totalPerennialMonthly, totalInstallmentDebt,
+        debtIncomePercentage, monthsOfEmergencyCoverage, investmentsShare,
+        aiSectionHtml: buildAiSection(),
+      });
+
+      const w = window.open('', '_blank');
+      if (w) {
+        w.document.write(html);
+        w.document.close();
+      }
+      this.toast.success('PDF gerado!', 'O relatório foi aberto em uma nova aba.');
+    }).catch(err => {
+      console.error('Error generating PDF:', err);
+      this.toast.error('Erro', 'Erro ao gerar relatório. Verifique a conexão.');
+    });
+  }
+
+  private buildPdfHtml(d: any): string {
+    const { fmt, fmtPct, safeStr, dateStr, timeStr, monthStr,
+      overallScore, scoreColor, scoreLabel,
+      patrimony, totalBalance, accounts, totalInvested, investments,
+      gainPct, totalGain, totalDebt, debts, overdueDebts, paidDebts,
+      monthlyIncome, monthlyExpense, netMonth, savingsRate, avgIncome, avgExpense,
+      totalCardLimit, totalCardBill, cards,
+      savScore, debtScore, invScore,
+      totalGoals, totalGoalsSaved, goals, goalProgressPercentage,
+      incTx, expTx, overdueTx, recentTx,
+      catTotal, topCats,
+      perennialDebts, installmentDebts, totalInitial,
+      rules, history, transactions,
+      totalPerennialMonthly, totalInstallmentDebt,
+      debtIncomePercentage, monthsOfEmergencyCoverage, investmentsShare,
+      aiSectionHtml } = d;
+
+    return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -375,20 +489,25 @@ export class AppComponent implements OnInit, OnDestroy {
   .page-wrap{max-width:1100px;margin:0 auto;padding:36px 32px}
 
   /* ── COVER ── */
-  .cover{background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);color:#fff;padding:52px 48px 44px;border-radius:20px;margin-bottom:32px;position:relative;overflow:hidden;page-break-after:always}
-  .cover::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 70% 30%,rgba(139,92,246,0.25) 0%,transparent 60%)}
-  .cover-logo{font-size:44px;margin-bottom:10px;position:relative}
-  .cover-title{font-size:36px;font-weight:900;letter-spacing:-0.04em;line-height:1.1;position:relative}
+  .cover{background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 40%,#312e81 70%,#0f172a 100%);color:#fff;padding:56px 48px 48px;border-radius:24px;margin-bottom:32px;position:relative;overflow:hidden;page-break-after:always}
+  .cover::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 70% 30%,rgba(139,92,246,0.3) 0%,transparent 60%)}
+  .cover::after{content:'';position:absolute;bottom:-40px;right:-40px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(96,165,250,0.15) 0%,transparent 70%)}
+  .cover-logo{font-size:48px;margin-bottom:12px;position:relative}
+  .cover-title{font-size:38px;font-weight:900;letter-spacing:-0.04em;line-height:1.1;position:relative}
   .cover-title span{background:linear-gradient(135deg,#60a5fa,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-  .cover-sub{font-size:14px;color:#94a3b8;margin-top:8px;position:relative}
-  .cover-date{margin-top:24px;font-size:11px;color:#64748b;border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;position:relative;display:flex;gap:24px;align-items:center}
+  .cover-sub{font-size:14px;color:#94a3b8;margin-top:10px;position:relative}
+  .cover-stats{display:flex;gap:16px;margin-top:20px;position:relative}
+  .cover-stat{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 16px;min-width:120px}
+  .cover-stat-val{font-size:16px;font-weight:900;color:#fff}
+  .cover-stat-lbl{font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px}
+  .cover-date{margin-top:24px;font-size:11px;color:#64748b;border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;position:relative;display:flex;gap:20px;align-items:center;flex-wrap:wrap}
   .cover-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.4);padding:4px 14px;border-radius:99px;font-size:10px;color:#c4b5fd;font-weight:700;letter-spacing:0.06em}
-  .cover-score{position:absolute;right:48px;top:52px;text-align:center}
-  .score-circle{width:100px;height:100px;border-radius:50%;background:conic-gradient(${scoreColor} 0% ${overallScore}%,rgba(255,255,255,0.08) ${overallScore}% 100%);display:flex;align-items:center;justify-content:center;margin:0 auto}
-  .score-inner{width:76px;height:76px;border-radius:50%;background:rgba(15,23,42,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center}
-  .score-val{font-size:22px;font-weight:900;color:${scoreColor};line-height:1}
+  .cover-score{position:absolute;right:48px;top:56px;text-align:center}
+  .score-circle{width:110px;height:110px;border-radius:50%;background:conic-gradient(${scoreColor} 0% ${overallScore}%,rgba(255,255,255,0.08) ${overallScore}% 100%);display:flex;align-items:center;justify-content:center;margin:0 auto;box-shadow:0 0 30px rgba(139,92,246,0.2)}
+  .score-inner{width:82px;height:82px;border-radius:50%;background:rgba(15,23,42,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .score-val{font-size:24px;font-weight:900;color:${scoreColor};line-height:1}
   .score-lbl{font-size:9px;color:#94a3b8;margin-top:2px;font-weight:700;letter-spacing:0.05em}
-  .score-title{font-size:10px;color:#64748b;margin-top:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em}
+  .score-title{font-size:10px;color:#64748b;margin-top:8px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em}
 
   /* ── SECTIONS ── */
   .section{background:#fff;border-radius:16px;padding:24px 28px;margin-bottom:20px;border:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
@@ -485,11 +604,7 @@ export class AppComponent implements OnInit, OnDestroy {
   /* ── FOOTER ── */
   .footer{text-align:center;margin-top:32px;padding:20px;border-top:2px solid #e2e8f0;font-size:10px;color:#94a3b8}
   .footer strong{color:#64748b}
-
-  /* ── DIVIDER ── */
   .divider{height:1px;background:linear-gradient(90deg,transparent,#e2e8f0,transparent);margin:20px 0}
-
-  /* ── PAGE BREAK ── */
   .page-break{page-break-before:always}
 
   /* ── IR SECTION ── */
@@ -509,6 +624,36 @@ export class AppComponent implements OnInit, OnDestroy {
   .ai-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
   .ai-item{background:#fff;border:1px solid #ddd6fe;border-radius:10px;padding:10px 12px;font-size:11px;color:#312e81}
   .ai-prio{font-size:9px;font-weight:900;color:#4c1d95;background:#ede9fe;border-radius:999px;padding:2px 7px;margin-right:8px}
+
+  /* ── AI OPENAI PANEL ── */
+  .ai-openai-panel{border-radius:16px;overflow:hidden}
+  .ai-openai-badge-row{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+  .ai-openai-badge{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#4338ca,#6366f1);color:#fff;border-radius:99px;padding:5px 14px;font-size:10px;font-weight:800;letter-spacing:0.05em}
+  .ai-openai-badge-date{background:linear-gradient(135deg,#0f172a,#1e293b)}
+  .ai-openai-block{background:#fff;border:1px solid #e0e7ff;border-radius:14px;padding:18px 20px;margin-bottom:14px}
+  .ai-openai-block-title{font-size:13px;font-weight:800;color:#312e81;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .ai-openai-text{font-size:12px;color:#334155;line-height:1.8}
+  .ai-openai-two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  .ai-openai-col{border-radius:14px;padding:16px 18px}
+  .ai-openai-col-green{background:#f0fdf4;border:1px solid #bbf7d0}
+  .ai-openai-col-red{background:#fff7ed;border:1px solid #fed7aa}
+  .ai-openai-col-title{font-size:12px;font-weight:800;color:#334155;margin-bottom:10px}
+  .ai-openai-ul{list-style:none;padding:0;margin:0}
+  .ai-openai-ul li{font-size:11px;color:#475569;padding:5px 0;border-bottom:1px solid rgba(0,0,0,0.04);line-height:1.6}
+  .ai-openai-ul li:last-child{border-bottom:none}
+  .ai-openai-ul li::before{content:'▸ ';color:#6366f1;font-weight:700}
+  .ai-openai-tips-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .ai-openai-tip-card{border-radius:12px;padding:14px 16px}
+  .ai-tip-short{background:#eff6ff;border:1px solid #bfdbfe}
+  .ai-tip-medium{background:#faf5ff;border:1px solid #e9d5ff}
+  .ai-tip-long{background:#f0fdf4;border:1px solid #bbf7d0}
+  .ai-tip-header{font-size:11px;font-weight:800;color:#334155;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .ai-tip-badge{font-size:8px;font-weight:800;background:rgba(0,0,0,0.06);color:#64748b;border-radius:99px;padding:2px 8px}
+  .ai-openai-forecast{background:linear-gradient(135deg,#eef2ff,#f5f3ff);border:1px solid #c7d2fe}
+  .ai-openai-note{display:flex;gap:14px;background:linear-gradient(135deg,#0f172a,#1e1b4b);border-radius:14px;padding:18px 20px;margin-top:14px;color:#fff}
+  .ai-openai-note-icon{font-size:28px;flex-shrink:0}
+  .ai-openai-note-title{font-size:12px;font-weight:800;color:#c4b5fd;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em}
+  .ai-openai-note-text{font-size:12px;color:#cbd5e1;line-height:1.8}
 
   @media print{body{background:#fff}.page-wrap{padding:16px 12px}.cover{border-radius:0}.no-print{display:none}}
   @page{margin:1cm;size:A4}
@@ -531,10 +676,17 @@ export class AppComponent implements OnInit, OnDestroy {
   <div class="cover-logo">💰</div>
   <div class="cover-title">MoneyControl<br><span>Relatório Financeiro</span></div>
   <div class="cover-sub">Financial Intelligence OS — Relatório Premium Completo</div>
+  <div class="cover-stats">
+    <div class="cover-stat"><div class="cover-stat-val">${fmt(patrimony)}</div><div class="cover-stat-lbl">Patrimônio Líquido</div></div>
+    <div class="cover-stat"><div class="cover-stat-val">${fmt(totalInvested)}</div><div class="cover-stat-lbl">Investido</div></div>
+    <div class="cover-stat"><div class="cover-stat-val">${fmt(totalBalance)}</div><div class="cover-stat-lbl">Saldo em Contas</div></div>
+    <div class="cover-stat"><div class="cover-stat-val" style="color:${totalDebt > 0 ? '#f87171' : '#34d399'}">${fmt(totalDebt)}</div><div class="cover-stat-lbl">Dívidas</div></div>
+  </div>
   <div class="cover-date">
     <div class="cover-badge">📅 ${dateStr}</div>
     <div class="cover-badge">🕐 ${timeStr}</div>
     <div class="cover-badge">📊 ${monthStr}</div>
+    <div class="cover-badge">🏦 ${accounts.length} contas · ${investments.length} investimentos · ${debts.length} dívidas</div>
   </div>
 </div>
 
@@ -569,12 +721,12 @@ export class AppComponent implements OnInit, OnDestroy {
     <div class="kpi teal">
       <div class="kpi-lbl">Receita do Mês</div>
       <div class="kpi-val">${fmt(monthlyIncome)}</div>
-      <div class="kpi-sub">Média: ${fmt(avgIncome)}</div>
+      <div class="kpi-sub">Média 12m: ${fmt(avgIncome)}</div>
     </div>
     <div class="kpi gold">
       <div class="kpi-lbl">Despesas do Mês</div>
       <div class="kpi-val">${fmt(monthlyExpense)}</div>
-      <div class="kpi-sub">Média: ${fmt(avgExpense)}</div>
+      <div class="kpi-sub">Média 12m: ${fmt(avgExpense)}</div>
     </div>
     <div class="kpi ${netMonth >= 0 ? 'green' : 'red'}">
       <div class="kpi-lbl">Saldo Líquido</div>
@@ -583,9 +735,36 @@ export class AppComponent implements OnInit, OnDestroy {
       <span class="kpi-trend ${savingsRate >= 20 ? 'trend-up' : savingsRate >= 10 ? '' : 'trend-down'}">${fmtPct(savingsRate)} poupança</span>
     </div>
     <div class="kpi blue">
-      <div class="kpi-lbl">Cartões</div>
+      <div class="kpi-lbl">Cartões — Fatura</div>
       <div class="kpi-val">${fmt(totalCardBill)}</div>
-      <div class="kpi-sub">Fatura total · Limite: ${fmt(totalCardLimit)}</div>
+      <div class="kpi-sub">${cards.length} cartão(ões) · Limite: ${fmt(totalCardLimit)}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ INDICADORES ESTRATÉGICOS ═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title"><span class="s-icon">📐</span> Indicadores Estratégicos</div>
+  <div class="kpi-grid kpi-4">
+    <div class="kpi ${monthsOfEmergencyCoverage >= 6 ? 'green' : monthsOfEmergencyCoverage >= 3 ? 'gold' : 'red'}">
+      <div class="kpi-lbl">Reserva de Emergência</div>
+      <div class="kpi-val">${monthsOfEmergencyCoverage.toFixed(1)} meses</div>
+      <div class="kpi-sub">Meta: 6 meses de despesas</div>
+    </div>
+    <div class="kpi ${debtIncomePercentage <= 30 ? 'green' : debtIncomePercentage <= 50 ? 'gold' : 'red'}">
+      <div class="kpi-lbl">Dívida / Renda</div>
+      <div class="kpi-val">${fmtPct(debtIncomePercentage)}</div>
+      <div class="kpi-sub">Meta: abaixo de 30%</div>
+    </div>
+    <div class="kpi ${investmentsShare >= 50 ? 'green' : investmentsShare >= 20 ? 'blue' : 'gold'}">
+      <div class="kpi-lbl">Investimentos / Patrimônio</div>
+      <div class="kpi-val">${fmtPct(investmentsShare)}</div>
+      <div class="kpi-sub">Participação dos investimentos</div>
+    </div>
+    <div class="kpi ${goalProgressPercentage >= 70 ? 'green' : goalProgressPercentage >= 30 ? 'blue' : 'gold'}">
+      <div class="kpi-lbl">Progresso das Metas</div>
+      <div class="kpi-val">${fmtPct(goalProgressPercentage)}</div>
+      <div class="kpi-sub">${goals.length} meta(s) cadastrada(s)</div>
     </div>
   </div>
 </div>
@@ -621,9 +800,9 @@ export class AppComponent implements OnInit, OnDestroy {
     <div class="pillar">
       <div class="pillar-header">
         <div class="pillar-name">🏆 Metas</div>
-        <div class="pillar-score" style="color:#7c3aed">${goals.length > 0 ? Math.round((totalGoalsSaved / Math.max(totalGoals, 1)) * 100) : 0}/100</div>
+        <div class="pillar-score" style="color:#7c3aed">${goals.length > 0 ? Math.round(goalProgressPercentage) : 0}/100</div>
       </div>
-      <div class="pillar-bar"><div class="pillar-fill" style="width:${goals.length > 0 ? Math.min((totalGoalsSaved / Math.max(totalGoals, 1)) * 100, 100) : 0}%;background:#8b5cf6"></div></div>
+      <div class="pillar-bar"><div class="pillar-fill" style="width:${goals.length > 0 ? Math.min(goalProgressPercentage, 100) : 0}%;background:#8b5cf6"></div></div>
       <div class="pillar-meta">${fmt(totalGoalsSaved)} de ${fmt(totalGoals)} · ${goals.length} meta(s)</div>
     </div>
   </div>
@@ -635,13 +814,13 @@ export class AppComponent implements OnInit, OnDestroy {
   <div class="balancete">
     <div class="bal-col income-col">
       <div class="bal-col-title">✅ Receitas</div>
-      ${incTx.slice(0, 12).map((t: any) => `<div class="bal-item"><span class="bal-item-name">${t.description}</span><span class="bal-item-val income-val">${fmt(Math.abs(+t.amount))}</span></div>`).join('')}
+      ${incTx.slice(0, 15).map((t: any) => '<div class="bal-item"><span class="bal-item-name">' + safeStr(t.description) + '</span><span class="bal-item-val income-val">' + fmt(Math.abs(+t.amount || 0)) + '</span></div>').join('')}
       ${incTx.length === 0 ? '<div style="color:#94a3b8;font-size:11px;padding:8px 0">Nenhuma receita encontrada</div>' : ''}
       <div class="bal-total inc-total"><span>TOTAL RECEITAS</span><span>${fmt(monthlyIncome)}</span></div>
     </div>
     <div class="bal-col expense-col">
       <div class="bal-col-title">❌ Despesas</div>
-      ${expTx.slice(0, 12).map((t: any) => `<div class="bal-item"><span class="bal-item-name">${t.description}</span><span class="bal-item-val expense-val">${fmt(Math.abs(+t.amount))}</span></div>`).join('')}
+      ${expTx.slice(0, 15).map((t: any) => '<div class="bal-item"><span class="bal-item-name">' + safeStr(t.description) + '</span><span class="bal-item-val expense-val">' + fmt(Math.abs(+t.amount || 0)) + '</span></div>').join('')}
       ${expTx.length === 0 ? '<div style="color:#94a3b8;font-size:11px;padding:8px 0">Nenhuma despesa encontrada</div>' : ''}
       <div class="bal-total exp-total"><span>TOTAL DESPESAS</span><span>${fmt(monthlyExpense)}</span></div>
     </div>
@@ -663,21 +842,21 @@ ${topCats.length > 0 ? `
     <div>
       ${topCats.map((c: any, i: number) => {
         const colors = ['#3b82f6','#8b5cf6','#10b981','#ef4444','#f59e0b','#06b6d4','#ec4899','#f97316'];
-        const pct = catTotal > 0 ? (+c.amount / catTotal) * 100 : 0;
-        return `<div class="cat-row">
-          <div class="cat-dot" style="background:${colors[i % colors.length]}"></div>
-          <div class="cat-name">${c.category}</div>
-          <div class="cat-bar-wrap"><div class="cat-bar-fill" style="width:${pct.toFixed(1)}%;background:${colors[i % colors.length]}"></div></div>
-          <div class="cat-pct">${pct.toFixed(0)}%</div>
-          <div class="cat-amt">${fmt(+c.amount)}</div>
-        </div>`;
+        const pct = catTotal > 0 ? ((+c.amount || 0) / catTotal) * 100 : 0;
+        return '<div class="cat-row">' +
+          '<div class="cat-dot" style="background:' + colors[i % colors.length] + '"></div>' +
+          '<div class="cat-name">' + safeStr(c.category) + '</div>' +
+          '<div class="cat-bar-wrap"><div class="cat-bar-fill" style="width:' + pct.toFixed(1) + '%;background:' + colors[i % colors.length] + '"></div></div>' +
+          '<div class="cat-pct">' + pct.toFixed(0) + '%</div>' +
+          '<div class="cat-amt">' + fmt(+c.amount || 0) + '</div>' +
+        '</div>';
       }).join('')}
     </div>
     <div>
       <div class="highlight-row" style="display:flex;flex-direction:column;gap:10px">
         <div class="highlight-card">
           <div class="hl-icon">🔝</div>
-          <div class="hl-val">${topCats[0]?.category ?? '—'}</div>
+          <div class="hl-val">${safeStr(topCats[0]?.category)}</div>
           <div class="hl-lbl">Maior categoria: ${fmt(+(topCats[0]?.amount ?? 0))}</div>
         </div>
         <div class="highlight-card">
@@ -701,15 +880,15 @@ ${topCats.length > 0 ? `
   <table>
     <thead><tr><th>Conta</th><th>Tipo</th><th>Banco</th><th class="text-right">Saldo</th><th>Status</th></tr></thead>
     <tbody>
-      ${accounts.map((a: any) => `<tr>
-        <td class="fw-bold">${a.name}</td>
-        <td><span class="badge badge-blue">${a.type || 'Corrente'}</span></td>
-        <td>${a.bank || '—'}</td>
-        <td class="text-right ${+a.balance >= 0 ? 'text-green' : 'text-red'}">${fmt(+a.balance)}</td>
-        <td><span class="badge ${+a.balance >= 0 ? 'badge-green' : 'badge-red'}">${+a.balance >= 0 ? 'Positivo' : 'Negativo'}</span></td>
-      </tr>`).join('')}
+      ${accounts.map((a: any) => '<tr>' +
+        '<td class="fw-bold">' + safeStr(a.name) + '</td>' +
+        '<td><span class="badge badge-blue">' + safeStr(a.type || 'Corrente') + '</span></td>' +
+        '<td>' + safeStr(a.bank) + '</td>' +
+        '<td class="text-right ' + (+a.balance >= 0 ? 'text-green' : 'text-red') + '">' + fmt(+a.balance || 0) + '</td>' +
+        '<td><span class="badge ' + (+a.balance >= 0 ? 'badge-green' : 'badge-red') + '">' + (+a.balance >= 0 ? 'Positivo' : 'Negativo') + '</span></td>' +
+      '</tr>').join('')}
       ${accounts.length === 0 ? '<tr><td colspan="5" class="text-center" style="color:#94a3b8;padding:20px">Nenhuma conta cadastrada</td></tr>' : ''}
-      ${accounts.length > 0 ? `<tr style="background:#f8fafc"><td colspan="3" class="fw-900" style="color:#0f172a">TOTAL</td><td class="text-right fw-900 ${totalBalance >= 0 ? 'text-green' : 'text-red'}" style="font-size:13px">${fmt(totalBalance)}</td><td></td></tr>` : ''}
+      ${accounts.length > 0 ? '<tr style="background:#f8fafc"><td colspan="3" class="fw-900" style="color:#0f172a">TOTAL</td><td class="text-right fw-900 ' + (totalBalance >= 0 ? 'text-green' : 'text-red') + '" style="font-size:13px">' + fmt(totalBalance) + '</td><td></td></tr>' : ''}
     </tbody>
   </table>
 </div>
@@ -723,21 +902,21 @@ ${topCats.length > 0 ? `
       ${cards.map((c: any) => {
         const available = +(c.creditLimit || 0) - +(c.usedLimit || 0);
         const usagePct = +(c.creditLimit || 0) > 0 ? ((+(c.usedLimit || 0) / +(c.creditLimit || 0)) * 100) : 0;
-        return `<tr>
-          <td class="fw-bold">${c.name}</td>
-          <td><span class="badge badge-purple">${c.bankName || '—'}</span></td>
-          <td class="text-right">${fmt(+(c.creditLimit || 0))}</td>
-          <td class="text-right text-red">${fmt(+(c.usedLimit || 0))}</td>
-          <td class="text-right ${available >= 0 ? 'text-green' : 'text-red'}">
-            ${fmt(available)}
-            <div class="prog-bar" style="margin-top:4px"><div class="prog-fill ${usagePct > 80 ? 'red' : 'green'}" style="width:${Math.min(usagePct, 100).toFixed(0)}%"></div></div>
-            <div style="font-size:9px;color:#94a3b8">${usagePct.toFixed(0)}% usado</div>
-          </td>
-          <td>Dia ${c.dueDay || '—'}</td>
-        </tr>`;
+        return '<tr>' +
+          '<td class="fw-bold">' + safeStr(c.name) + '</td>' +
+          '<td><span class="badge badge-purple">' + safeStr(c.bankName) + '</span></td>' +
+          '<td class="text-right">' + fmt(+(c.creditLimit || 0)) + '</td>' +
+          '<td class="text-right text-red">' + fmt(+(c.usedLimit || 0)) + '</td>' +
+          '<td class="text-right ' + (available >= 0 ? 'text-green' : 'text-red') + '">' +
+            fmt(available) +
+            '<div class="prog-bar" style="margin-top:4px"><div class="prog-fill ' + (usagePct > 80 ? 'red' : 'green') + '" style="width:' + Math.min(usagePct, 100).toFixed(0) + '%"></div></div>' +
+            '<div style="font-size:9px;color:#94a3b8">' + usagePct.toFixed(0) + '% usado</div>' +
+          '</td>' +
+          '<td>Dia ' + safeStr(c.dueDay) + '</td>' +
+        '</tr>';
       }).join('')}
       ${cards.length === 0 ? '<tr><td colspan="6" class="text-center" style="color:#94a3b8;padding:20px">Nenhum cartão cadastrado</td></tr>' : ''}
-      ${cards.length > 0 ? `<tr style="background:#f8fafc"><td colspan="2" class="fw-900">TOTAL</td><td class="text-right fw-900">${fmt(totalCardLimit)}</td><td class="text-right fw-900 text-red">${fmt(totalCardBill)}</td><td class="text-right fw-900 text-green">${fmt(totalCardLimit - totalCardBill)}</td><td></td></tr>` : ''}
+      ${cards.length > 0 ? '<tr style="background:#f8fafc"><td colspan="2" class="fw-900">TOTAL</td><td class="text-right fw-900">' + fmt(totalCardLimit) + '</td><td class="text-right fw-900 text-red">' + fmt(totalCardBill) + '</td><td class="text-right fw-900 text-green">' + fmt(totalCardLimit - totalCardBill) + '</td><td></td></tr>' : ''}
     </tbody>
   </table>
 </div>
@@ -752,23 +931,23 @@ ${topCats.length > 0 ? `
     <div class="kpi teal"><div class="kpi-lbl">Participação</div><div class="kpi-val">${patrimony > 0 ? fmtPct((totalInvested / patrimony) * 100) : '0%'}</div><div class="kpi-sub">do patrimônio total</div></div>
   </div>
   <table>
-    <thead><tr><th>Ativo</th><th>Tipo</th><th class="text-right">Investido</th><th class="text-right">Valor Atual</th><th class="text-right">Rendimento</th><th class="text-right">% do Portfolio</th></tr></thead>
+    <thead><tr><th>Ativo</th><th>Tipo</th><th class="text-right">Investido</th><th class="text-right">Valor Atual</th><th class="text-right">Rendimento</th><th class="text-right">% Portfolio</th></tr></thead>
     <tbody>
       ${investments.map((i: any) => {
-        const gain = +i.currentValue - +i.initialAmount;
+        const gain = (+i.currentValue || 0) - (+i.initialAmount || 0);
         const pct = +i.initialAmount > 0 ? (gain / +i.initialAmount) * 100 : 0;
-        const share = totalInvested > 0 ? (+i.currentValue / totalInvested) * 100 : 0;
-        return `<tr>
-          <td class="fw-bold">${i.name}</td>
-          <td><span class="badge badge-purple">${i.type || '—'}</span></td>
-          <td class="text-right">${fmt(+i.initialAmount)}</td>
-          <td class="text-right fw-bold">${fmt(+i.currentValue)}</td>
-          <td class="text-right ${gain >= 0 ? 'text-green' : 'text-red'}">${gain >= 0 ? '+' : ''}${fmt(gain)} (${gain >= 0 ? '+' : ''}${fmtPct(pct)})</td>
-          <td class="text-right">
-            <div class="prog-bar"><div class="prog-fill green" style="width:${Math.min(share, 100).toFixed(0)}%"></div></div>
-            <div style="font-size:9px;color:#64748b;margin-top:2px">${share.toFixed(1)}%</div>
-          </td>
-        </tr>`;
+        const share = totalInvested > 0 ? ((+i.currentValue || 0) / totalInvested) * 100 : 0;
+        return '<tr>' +
+          '<td class="fw-bold">' + safeStr(i.name) + '</td>' +
+          '<td><span class="badge badge-purple">' + safeStr(i.type) + '</span></td>' +
+          '<td class="text-right">' + fmt(+i.initialAmount || 0) + '</td>' +
+          '<td class="text-right fw-bold">' + fmt(+i.currentValue || 0) + '</td>' +
+          '<td class="text-right ' + (gain >= 0 ? 'text-green' : 'text-red') + '">' + (gain >= 0 ? '+' : '') + fmt(gain) + ' (' + (gain >= 0 ? '+' : '') + fmtPct(pct) + ')</td>' +
+          '<td class="text-right">' +
+            '<div class="prog-bar"><div class="prog-fill green" style="width:' + Math.min(share, 100).toFixed(0) + '%"></div></div>' +
+            '<div style="font-size:9px;color:#64748b;margin-top:2px">' + share.toFixed(1) + '%</div>' +
+          '</td>' +
+        '</tr>';
       }).join('')}
       ${investments.length === 0 ? '<tr><td colspan="6" class="text-center" style="color:#94a3b8;padding:20px">Nenhum investimento cadastrado</td></tr>' : ''}
     </tbody>
@@ -780,39 +959,41 @@ ${topCats.length > 0 ? `
   <div class="section-title"><span class="s-icon">📉</span> Dívidas & Financiamentos</div>
   ${perennialDebts.length > 0 ? `
   <div style="margin-bottom:14px">
-    <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px">🔄 Despesas Perenes (mensais recorrentes)</div>
+    <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px">🔄 Despesas Perenes (mensais recorrentes) — Total: ${fmt(totalPerennialMonthly)}/mês</div>
     <table>
       <thead><tr><th>Descrição</th><th>Credor</th><th class="text-right">Valor Mensal</th><th>Dia Vencimento</th><th>Início</th></tr></thead>
       <tbody>
-        ${perennialDebts.map((d: any) => `<tr>
-          <td class="fw-bold">${d.description} <span class="badge badge-purple">Perene</span></td>
-          <td>${d.creditCard?.name || d.bankAccount?.name || '—'}</td>
-          <td class="text-right text-red">${fmt(+d.remainingAmount)}</td>
-          <td class="text-center">Dia ${d.dueDayOfMonth || '—'}</td>
-          <td>${d.perennialStartDate || d.startDate || '—'}</td>
-        </tr>`).join('')}
+        ${perennialDebts.map((dd: any) => '<tr>' +
+          '<td class="fw-bold">' + safeStr(dd.description) + ' <span class="badge badge-purple">Perene</span></td>' +
+          '<td>' + safeStr(dd.creditCard?.name || dd.bankAccount?.name) + '</td>' +
+          '<td class="text-right text-red">' + fmt(+dd.remainingAmount || 0) + '</td>' +
+          '<td class="text-center">Dia ' + safeStr(dd.dueDayOfMonth) + '</td>' +
+          '<td>' + safeStr(dd.perennialStartDate || dd.startDate) + '</td>' +
+        '</tr>').join('')}
       </tbody>
     </table>
   </div>` : ''}
   ${installmentDebts.length > 0 ? `
   <div>
-    <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px">📋 Parceladas & Financiamentos</div>
+    <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px">📋 Parceladas & Financiamentos — Restante: ${fmt(totalInstallmentDebt)}</div>
     <table>
       <thead><tr><th>Dívida</th><th>Credor</th><th class="text-right">Total</th><th class="text-right">Restante</th><th>Progresso</th><th>Status</th></tr></thead>
       <tbody>
-        ${installmentDebts.map((d: any) => {
-          const progress = +d.originalAmount > 0 ? Math.round(((+d.originalAmount - +d.remainingAmount) / +d.originalAmount) * 100) : 0;
-          return `<tr>
-            <td class="fw-bold">${d.description}</td>
-            <td>${d.creditCard?.name || d.bankAccount?.name || '—'}</td>
-            <td class="text-right">${fmt(+d.originalAmount)}</td>
-            <td class="text-right text-red">${fmt(+d.remainingAmount)}</td>
-            <td>
-              <div class="prog-bar"><div class="prog-fill ${progress >= 70 ? 'green' : ''}" style="width:${progress}%"></div></div>
-              <div style="font-size:9px;color:#64748b;margin-top:2px">${progress}% pago · ${d.paidInstallments}/${d.totalInstallments} parcelas</div>
-            </td>
-            <td><span class="badge ${d.status === 'PAID' ? 'badge-green' : d.status === 'OVERDUE' ? 'badge-red' : 'badge-yellow'}">${d.status || 'PENDENTE'}</span></td>
-          </tr>`;
+        ${installmentDebts.map((dd: any) => {
+          const progress = +dd.originalAmount > 0 ? Math.round(((+dd.originalAmount - (+dd.remainingAmount || 0)) / +dd.originalAmount) * 100) : 0;
+          const paid = dd.paidInstallments != null ? dd.paidInstallments : '?';
+          const total = dd.totalInstallments != null ? dd.totalInstallments : '?';
+          return '<tr>' +
+            '<td class="fw-bold">' + safeStr(dd.description) + '</td>' +
+            '<td>' + safeStr(dd.creditCard?.name || dd.bankAccount?.name) + '</td>' +
+            '<td class="text-right">' + fmt(+dd.originalAmount || 0) + '</td>' +
+            '<td class="text-right text-red">' + fmt(+dd.remainingAmount || 0) + '</td>' +
+            '<td>' +
+              '<div class="prog-bar"><div class="prog-fill ' + (progress >= 70 ? 'green' : '') + '" style="width:' + progress + '%"></div></div>' +
+              '<div style="font-size:9px;color:#64748b;margin-top:2px">' + progress + '% pago · ' + paid + '/' + total + ' parcelas</div>' +
+            '</td>' +
+            '<td><span class="badge ' + (dd.status === 'PAID' ? 'badge-green' : dd.status === 'OVERDUE' ? 'badge-red' : 'badge-yellow') + '">' + safeStr(dd.status || 'PENDENTE') + '</span></td>' +
+          '</tr>';
         }).join('')}
         <tr style="background:#f8fafc"><td colspan="3" class="fw-900">TOTAL RESTANTE</td><td class="text-right fw-900 text-red" style="font-size:13px">${fmt(totalDebt)}</td><td colspan="2"></td></tr>
       </tbody>
@@ -830,18 +1011,18 @@ ${topCats.length > 0 ? `
     <tbody>
       ${goals.map((g: any) => {
         const pct = +g.targetAmount > 0 ? Math.round((+g.currentAmount / +g.targetAmount) * 100) : 0;
-        const remaining = +g.targetAmount - +g.currentAmount;
-        return `<tr>
-          <td class="fw-bold">${g.name}</td>
-          <td class="text-right">${fmt(+g.targetAmount)}</td>
-          <td class="text-right text-blue">${fmt(+g.currentAmount)}</td>
-          <td>
-            <div class="prog-bar"><div class="prog-fill" style="width:${Math.min(pct, 100)}%"></div></div>
-            <div style="font-size:9px;color:#64748b;margin-top:2px">${pct}% · falta ${fmt(Math.max(remaining, 0))}</div>
-          </td>
-          <td>${g.deadline || '—'}</td>
-          <td><span class="badge ${pct >= 100 ? 'badge-green' : pct >= 50 ? 'badge-blue' : 'badge-yellow'}">${pct >= 100 ? '✅ Concluída' : pct >= 50 ? 'Em progresso' : 'Iniciando'}</span></td>
-        </tr>`;
+        const remaining = (+g.targetAmount || 0) - (+g.currentAmount || 0);
+        return '<tr>' +
+          '<td class="fw-bold">' + safeStr(g.name) + '</td>' +
+          '<td class="text-right">' + fmt(+g.targetAmount || 0) + '</td>' +
+          '<td class="text-right text-blue">' + fmt(+g.currentAmount || 0) + '</td>' +
+          '<td>' +
+            '<div class="prog-bar"><div class="prog-fill" style="width:' + Math.min(pct, 100) + '%"></div></div>' +
+            '<div style="font-size:9px;color:#64748b;margin-top:2px">' + pct + '% · falta ' + fmt(Math.max(remaining, 0)) + '</div>' +
+          '</td>' +
+          '<td>' + safeStr(g.deadline) + '</td>' +
+          '<td><span class="badge ' + (pct >= 100 ? 'badge-green' : pct >= 50 ? 'badge-blue' : 'badge-yellow') + '">' + (pct >= 100 ? '✅ Concluída' : pct >= 50 ? 'Em progresso' : 'Iniciando') + '</span></td>' +
+        '</tr>';
       }).join('')}
     </tbody>
   </table>` : '<div style="text-align:center;color:#94a3b8;padding:20px;font-size:12px">Nenhuma meta cadastrada</div>'}
@@ -854,12 +1035,12 @@ ${rules.length > 0 ? `
   <table>
     <thead><tr><th>Categoria</th><th class="text-right">Percentual</th><th class="text-right">Valor Mensal</th><th>Descrição</th></tr></thead>
     <tbody>
-      ${rules.map((r: any) => `<tr>
-        <td class="fw-bold">${r.category || r.name}</td>
-        <td class="text-right text-blue">${r.percentage}%</td>
-        <td class="text-right">${fmt(monthlyIncome * r.percentage / 100)}</td>
-        <td style="color:#64748b">${r.description || '—'}</td>
-      </tr>`).join('')}
+      ${rules.map((r: any) => '<tr>' +
+        '<td class="fw-bold">' + safeStr(r.category || r.name) + '</td>' +
+        '<td class="text-right text-blue">' + (r.percentage || 0) + '%</td>' +
+        '<td class="text-right">' + fmt(monthlyIncome * (r.percentage || 0) / 100) + '</td>' +
+        '<td style="color:#64748b">' + safeStr(r.description) + '</td>' +
+      '</tr>').join('')}
     </tbody>
   </table>
 </div>` : ''}
@@ -872,21 +1053,21 @@ ${history.length > 0 ? `
     <thead><tr><th>Mês</th><th class="text-right">Receita</th><th class="text-right">Despesas</th><th class="text-right">Saldo Líquido</th><th class="text-right">Taxa Poupança</th><th>Resultado</th></tr></thead>
     <tbody>
       ${history.map((h: any) => {
-        const net = +h.income - +h.expense;
+        const net = (+h.income || 0) - (+h.expense || 0);
         const sp = +h.income > 0 ? (net / +h.income) * 100 : 0;
-        return `<tr>
-          <td class="fw-bold">${h.month}</td>
-          <td class="text-right text-green">${fmt(+h.income)}</td>
-          <td class="text-right text-red">${fmt(+h.expense)}</td>
-          <td class="text-right ${net >= 0 ? 'text-green' : 'text-red'}">${fmt(net)}</td>
-          <td class="text-right">
-            <div class="prog-bar" style="width:80px;display:inline-block;vertical-align:middle;margin-right:6px">
-              <div class="prog-fill ${sp >= 20 ? 'green' : sp >= 10 ? '' : 'red'}" style="width:${Math.min(Math.max(sp, 0), 100).toFixed(0)}%"></div>
-            </div>
-            ${fmtPct(sp)}
-          </td>
-          <td><span class="badge ${net >= 0 ? 'badge-green' : 'badge-red'}">${net >= 0 ? '▲ Superávit' : '▼ Déficit'}</span></td>
-        </tr>`;
+        return '<tr>' +
+          '<td class="fw-bold">' + safeStr(h.month) + '</td>' +
+          '<td class="text-right text-green">' + fmt(+h.income || 0) + '</td>' +
+          '<td class="text-right text-red">' + fmt(+h.expense || 0) + '</td>' +
+          '<td class="text-right ' + (net >= 0 ? 'text-green' : 'text-red') + '">' + fmt(net) + '</td>' +
+          '<td class="text-right">' +
+            '<div class="prog-bar" style="width:80px;display:inline-block;vertical-align:middle;margin-right:6px">' +
+              '<div class="prog-fill ' + (sp >= 20 ? 'green' : sp >= 10 ? '' : 'red') + '" style="width:' + Math.min(Math.max(sp, 0), 100).toFixed(0) + '%"></div>' +
+            '</div>' +
+            fmtPct(sp) +
+          '</td>' +
+          '<td><span class="badge ' + (net >= 0 ? 'badge-green' : 'badge-red') + '">' + (net >= 0 ? '▲ Superávit' : '▼ Déficit') + '</span></td>' +
+        '</tr>';
       }).join('')}
     </tbody>
   </table>
@@ -894,7 +1075,7 @@ ${history.length > 0 ? `
 
 <!-- ══ TRANSAÇÕES RECENTES ════════════════════════════════════════════════ -->
 <div class="section">
-  <div class="section-title"><span class="s-icon">💳</span> Últimas ${recentTx.length} Transações</div>
+  <div class="section-title"><span class="s-icon">💳</span> Últimas ${recentTx.length} Transações do Mês</div>
   ${overdueTx.length > 0 ? `
   <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
     <span style="font-size:18px">⚠️</span>
@@ -908,14 +1089,14 @@ ${history.length > 0 ? `
     <tbody>
       ${recentTx.map((t: any) => {
         const isIncome = t.type === 'INCOME' || t.type === 'RECEITA';
-        return `<tr>
-          <td style="white-space:nowrap;color:#64748b">${t.date ? new Date(t.date).toLocaleDateString('pt-BR') : '—'}</td>
-          <td class="fw-bold">${t.description}</td>
-          <td><span class="badge badge-gray">${t.categoryName || t.category || '—'}</span></td>
-          <td style="color:#64748b;font-size:10px">${t.accountName || t.account || '—'}</td>
-          <td class="text-right ${isIncome ? 'text-green' : 'text-red'}">${isIncome ? '+' : '−'}${fmt(Math.abs(+t.amount))}</td>
-          <td><span class="badge ${t.status === 'PAID' || t.status === 'PAGO' ? 'badge-green' : t.status === 'OVERDUE' ? 'badge-red' : 'badge-yellow'}">${t.status || 'PENDENTE'}</span></td>
-        </tr>`;
+        return '<tr>' +
+          '<td style="white-space:nowrap;color:#64748b">' + (t.date ? new Date(t.date).toLocaleDateString('pt-BR') : '—') + '</td>' +
+          '<td class="fw-bold">' + safeStr(t.description) + '</td>' +
+          '<td><span class="badge badge-gray">' + safeStr(t.categoryName || t.category) + '</span></td>' +
+          '<td style="color:#64748b;font-size:10px">' + safeStr(t.accountName || t.account) + '</td>' +
+          '<td class="text-right ' + (isIncome ? 'text-green' : 'text-red') + '">' + (isIncome ? '+' : '−') + fmt(Math.abs(+t.amount || 0)) + '</td>' +
+          '<td><span class="badge ' + (t.status === 'PAID' || t.status === 'PAGO' ? 'badge-green' : t.status === 'OVERDUE' ? 'badge-red' : 'badge-yellow') + '">' + safeStr(t.status || 'PENDENTE') + '</span></td>' +
+        '</tr>';
       }).join('')}
       ${recentTx.length === 0 ? '<tr><td colspan="6" class="text-center" style="color:#94a3b8;padding:20px">Nenhuma transação encontrada</td></tr>' : ''}
     </tbody>
@@ -964,47 +1145,26 @@ ${history.length > 0 ? `
   <div class="section-title"><span class="s-icon">📋</span> Resumo Executivo</div>
   <div class="kpi-grid kpi-4">
     <div class="kpi gold"><div class="kpi-lbl">Metas Acumuladas</div><div class="kpi-val">${fmt(totalGoalsSaved)}</div><div class="kpi-sub">de ${fmt(totalGoals)} objetivo</div></div>
-    <div class="kpi blue"><div class="kpi-lbl">Total Transações</div><div class="kpi-val">${transactions.length}</div><div class="kpi-sub">registradas no sistema</div></div>
+    <div class="kpi blue"><div class="kpi-lbl">Total Transações</div><div class="kpi-val">${transactions.length}</div><div class="kpi-sub">registradas no mês</div></div>
     <div class="kpi teal"><div class="kpi-lbl">Distribuição</div><div class="kpi-val">${rules.length}</div><div class="kpi-sub">regra(s) ativa(s)</div></div>
     <div class="kpi purple"><div class="kpi-lbl">Score Financeiro</div><div class="kpi-val" style="color:${scoreColor}">${overallScore}/100</div><div class="kpi-sub">${scoreLabel}</div></div>
   </div>
 </div>
 
-<!-- ══ SUGESTÕES DE IA ═════════════════════════════════════════════════════ -->
-<div class="section">
-  <div class="section-title"><span class="s-icon">🤖</span> Plano de Ação Inteligente</div>
-  <div class="ai-panel">
-    <div class="ai-head">
-      <div class="ai-title">Assistente IA Financeiro</div>
-      <div class="ai-badge">${overallScore >= 70 ? 'Otimização' : overallScore >= 40 ? 'Recuperação' : 'Urgente'}</div>
-    </div>
-    <div class="ai-sub">Recomendações automáticas com base no comportamento financeiro do período.</div>
-    <ul class="ai-list">
-      ${aiSuggestions.slice(0, 6).map((s, i) => `<li class="ai-item"><span class="ai-prio">P${i + 1}</span>${s}</li>`).join('')}
-    </ul>
-  </div>
-</div>
+<!-- ══ ANÁLISE IA OPENAI ═══════════════════════════════════════════════════ -->
+${aiSectionHtml}
 
 <!-- ══ FOOTER ══════════════════════════════════════════════════════════════ -->
 <div class="footer">
   <p><strong>MoneyControl</strong> — Financial Intelligence OS v2.0 · Premium Report</p>
   <p>Gerado automaticamente em ${dateStr} às ${timeStr} · Documento confidencial de uso pessoal</p>
-  <p style="margin-top:4px;color:#cbd5e1">Os dados apresentados são baseados nos registros inseridos pelo usuário. Consulte um profissional financeiro para decisões de investimento.</p>
+  <p style="margin-top:4px;color:#cbd5e1">Os dados apresentados são baseados nos registros inseridos pelo usuário. Análise IA gerada via OpenAI GPT-4o. Consulte um profissional financeiro para decisões de investimento.</p>
 </div>
 
 </div>
 <script>window.onload = function() { setTimeout(function(){ window.print(); }, 500); }<\/script>
 </body>
 </html>`;
-
-      const w = window.open('', '_blank');
-      if (w) {
-        w.document.write(html);
-        w.document.close();
-      }
-    }).catch(err => {
-      console.error('Error generating PDF:', err);
-      alert('Erro ao gerar relatório. Verifique a conexão com o servidor.');
-    });
   }
+
 }
