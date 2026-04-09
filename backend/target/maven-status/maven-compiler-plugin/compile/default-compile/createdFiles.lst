@@ -51,5 +51,6 @@ com/moneycontrol/model/TransactionType.class
 com/moneycontrol/controller/CreditCardController.class
 com/moneycontrol/model/MonthlyBudget$MonthlyBudgetBuilder.class
 com/moneycontrol/controller/FinancialGoalController.class
+com/moneycontrol/controller/DataExportController.class
 com/moneycontrol/model/BankAccount.class
 com/moneycontrol/model/Category.class
