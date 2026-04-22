@@ -10,6 +10,7 @@
 /Users/wesleyvieira/Documents/MoneyControl/backend/src/main/java/com/moneycontrol/repository/MonthlyBudgetRepository.java
 /Users/wesleyvieira/Documents/MoneyControl/backend/src/main/java/com/moneycontrol/controller/ForecastController.java
 /Users/wesleyvieira/Documents/MoneyControl/backend/src/main/java/com/moneycontrol/repository/TransactionRepository.java
+/Users/wesleyvieira/Documents/MoneyControl/backend/src/main/java/com/moneycontrol/service/BackupGitService.java
 /Users/wesleyvieira/Documents/MoneyControl/backend/src/main/java/com/moneycontrol/controller/DebtController.java
 /Users/wesleyvieira/Documents/MoneyControl/backend/src/main/java/com/moneycontrol/config/DataSeeder.java
 /Users/wesleyvieira/Documents/MoneyControl/backend/src/main/java/com/moneycontrol/controller/TransactionController.java

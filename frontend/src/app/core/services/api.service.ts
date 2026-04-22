@@ -109,6 +109,9 @@ export class ApiService {
     formData.append('file', file);
     return this.http.post<any>(`${BASE}/data/import`, formData);
   }
+  saveCurrentPosition(): Observable<any> {
+    return this.http.post<any>(`${BASE}/data/save-position`, {});
+  }
 
   // Debt WhatsApp reminders
   sendDebtReminders() { return this.http.post<any>(`${BASE}/debts/send-reminders`, {}); }

@@ -39,6 +39,7 @@ export class AppComponent implements OnInit, OnDestroy {
   importLoading = false;
   importSuccess = false;
   importError = '';
+  savingPosition = false;
 
   // Command Palette
   cmdOpen = false;
@@ -232,6 +233,25 @@ export class AppComponent implements OnInit, OnDestroy {
         URL.revokeObjectURL(url);
       },
       error: () => alert('Erro ao exportar dados. Verifique a conexão com o servidor.')
+    });
+  }
+
+  saveCurrentPosition() {
+    if (this.savingPosition) return;
+    this.savingPosition = true;
+    this.toast.info('Salvando posição...', 'Criando backup em history e enviando para o GitHub.');
+
+    this.api.saveCurrentPosition().subscribe({
+      next: (result: any) => {
+        this.savingPosition = false;
+        const backupFile = result?.backupFile || 'history/moneycontrol-backup-*.json';
+        this.toast.success('Posição salva com sucesso', `Backup criado em ${backupFile} e push para main concluído.`);
+      },
+      error: (err: any) => {
+        this.savingPosition = false;
+        const msg = err?.error?.error || err?.error?.output || err?.message || 'Falha ao salvar posição.';
+        this.toast.error('Erro ao salvar posição', msg);
+      }
     });
   }
 

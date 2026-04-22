@@ -1,0 +1,41 @@
+{
+  "name": "moneycontrol-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "main": "desktop/main.js",
+  "scripts": {
+    "desktop:prepare": "cd frontend && npm install && npm run build -- --base-href ./ --deploy-url ./ && cd ../backend && mvn -DskipTests package",
+    "desktop:run": "electron desktop/main.js",
+    "desktop:build": "npm run desktop:prepare && electron-builder --mac --publish never"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.moneycontrol.desktop",
+    "productName": "MoneyControl",
+    "directories": {
+      "output": "desktop/dist"
+    },
+    "files": [
+      "desktop/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "frontend/dist/frontend",
+        "to": "frontend/dist/frontend"
+      },
+      {
+        "from": "backend/target",
+        "to": "backend/target"
+      }
+    ],
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.finance"
+    }
+  }
+}

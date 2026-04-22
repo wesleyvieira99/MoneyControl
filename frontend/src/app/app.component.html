@@ -144,6 +144,12 @@
     <span class="pdf-fab-label">Import</span>
   </button>
 
+  <!-- FIXED SAVE POSITION BUTTON -->
+  <button class="save-position-fab" (click)="saveCurrentPosition()" [disabled]="savingPosition" title="Salvar posição atual" *ngIf="!showSplash">
+    <span class="pdf-fab-icon">📌</span>
+    <span class="pdf-fab-label">{{ savingPosition ? 'Salvando...' : 'Salvar posição' }}</span>
+  </button>
+
   <!-- IMPORT MODAL -->
   <div class="cmd-overlay" *ngIf="showImportModal" (click)="closeImportModal()">
     <div class="cmd-box import-modal" (click)="$event.stopPropagation()" style="max-width:440px">

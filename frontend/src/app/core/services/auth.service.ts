@@ -5,7 +5,7 @@ export class AuthService {
   private static readonly SESSION_KEY = 'mc-auth-session';
   private static readonly AUTH_TOKEN = 'f39ac88e3f0f6a9a7eb0f5d1f8157fd2af2c16b6d13fb4f5f2cc5b6db8d2a16f';
   private static readonly EMAIL_HASH = '1939510536a0a1ac0219c066e813e5fe5376566b014c728eb617ac69003f705e';
-  private static readonly PASSWORD_HASH = '38a5c2b6bbc088ef7f6ff38171c27c76502a55995ab07d269529f3994b6e9b6b';
+  private static readonly PASSWORD_HASH = '0b52b1fc49a1341ace40ca06602215391837aef914869c6d87d46985f4b5131e';
 
   readonly authenticated = signal<boolean>(localStorage.getItem(AuthService.SESSION_KEY) === AuthService.AUTH_TOKEN);
 
