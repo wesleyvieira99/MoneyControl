@@ -109,6 +109,12 @@ export class ApiService {
     formData.append('file', file);
     return this.http.post<any>(`${BASE}/data/import`, formData);
   }
+  listHistoryFiles(): Observable<string[]> {
+    return this.http.get<string[]>(`${BASE}/data/history`);
+  }
+  importFromHistory(filename: string): Observable<any> {
+    return this.http.post<any>(`${BASE}/data/import-from-history?filename=${encodeURIComponent(filename)}`, {});
+  }
   saveCurrentPosition(): Observable<any> {
     return this.http.post<any>(`${BASE}/data/save-position`, {});
   }

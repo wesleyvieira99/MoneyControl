@@ -152,28 +152,73 @@
 
   <!-- IMPORT MODAL -->
   <div class="cmd-overlay" *ngIf="showImportModal" (click)="closeImportModal()">
-    <div class="cmd-box import-modal" (click)="$event.stopPropagation()" style="max-width:440px">
+    <div class="cmd-box import-modal" (click)="$event.stopPropagation()" style="max-width:480px">
       <div class="cmd-header" style="border-bottom:1px solid rgba(255,255,255,0.07);padding-bottom:14px;margin-bottom:16px">
         <span class="cmd-search-icon">📥</span>
         <span style="font-size:15px;font-weight:700;color:var(--text-primary);flex:1">Importar Backup JSON</span>
         <button (click)="closeImportModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;padding:0 4px">✕</button>
       </div>
       <div style="padding:0 4px">
-        <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;line-height:1.6">
-          ⚠️ <strong>Atenção:</strong> a importação <strong>substitui todos os dados</strong> do sistema pelo conteúdo do arquivo. Esta ação não pode ser desfeita.
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
+          ⚠️ <strong>Atenção:</strong> a importação <strong>substitui todos os dados</strong> do sistema. Esta ação não pode ser desfeita.
         </p>
+
         <div *ngIf="!importLoading && !importSuccess">
-          <label style="display:block;background:var(--bg-glass);border:2px dashed var(--border);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:border-color .2s"
-                 onmouseover="this.style.borderColor='#8b5cf6'" onmouseout="this.style.borderColor=''">
-            <span style="font-size:32px;display:block;margin-bottom:8px">📂</span>
-            <span style="color:var(--text-primary);font-weight:600;font-size:13px">Clique para selecionar o arquivo .json</span>
-            <span style="display:block;font-size:11px;color:var(--text-muted);margin-top:4px">Apenas arquivos exportados pelo MoneyControl</span>
-            <input type="file" accept=".json" style="display:none" (change)="onImportFileSelected($event)">
-          </label>
+          <!-- Tabs -->
+          <div style="display:flex;gap:8px;margin-bottom:14px">
+            <button (click)="importTab='history'"
+              style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s"
+              [style.background]="importTab==='history' ? 'var(--primary)' : 'var(--bg-glass)'"
+              [style.color]="importTab==='history' ? '#fff' : 'var(--text-muted)'">
+              🗂️ Histórico do servidor
+            </button>
+            <button (click)="importTab='file'"
+              style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s"
+              [style.background]="importTab==='file' ? 'var(--primary)' : 'var(--bg-glass)'"
+              [style.color]="importTab==='file' ? '#fff' : 'var(--text-muted)'">
+              📂 Arquivo local
+            </button>
+          </div>
+
+          <!-- Tab: Histórico do servidor -->
+          <div *ngIf="importTab==='history'">
+            <div *ngIf="historyLoading" style="text-align:center;padding:20px 0;color:var(--text-muted);font-size:13px">
+              ⟳ Carregando histórico...
+            </div>
+            <div *ngIf="historyError" style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;color:#dc2626;font-size:12px">
+              ❌ {{ historyError }}
+            </div>
+            <div *ngIf="!historyLoading && !historyError && historyFiles.length === 0"
+              style="text-align:center;padding:20px 0;color:var(--text-muted);font-size:13px">
+              Nenhum backup encontrado na pasta history/.
+            </div>
+            <div *ngIf="!historyLoading && historyFiles.length > 0"
+              style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
+              <button *ngFor="let f of historyFiles" (click)="importFromHistoryFile(f)"
+                style="display:flex;align-items:center;gap:10px;background:var(--bg-glass);border:1px solid var(--border);border-radius:8px;padding:10px 14px;cursor:pointer;text-align:left;transition:border-color .15s;width:100%"
+                onmouseover="this.style.borderColor='#8b5cf6'" onmouseout="this.style.borderColor=''">
+                <span style="font-size:18px">📄</span>
+                <span style="font-size:12px;color:var(--text-primary);font-weight:500;word-break:break-all">{{ f }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tab: Arquivo local -->
+          <div *ngIf="importTab==='file'">
+            <label style="display:block;background:var(--bg-glass);border:2px dashed var(--border);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:border-color .2s"
+                   onmouseover="this.style.borderColor='#8b5cf6'" onmouseout="this.style.borderColor=''">
+              <span style="font-size:32px;display:block;margin-bottom:8px">📂</span>
+              <span style="color:var(--text-primary);font-weight:600;font-size:13px">Clique para selecionar o arquivo .json</span>
+              <span style="display:block;font-size:11px;color:var(--text-muted);margin-top:4px">Apenas arquivos exportados pelo MoneyControl</span>
+              <input type="file" accept=".json" style="display:none" (change)="onImportFileSelected($event)">
+            </label>
+          </div>
+
           <div *ngIf="importError" style="margin-top:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;color:#dc2626;font-size:12px">
             ❌ {{ importError }}
           </div>
         </div>
+
         <div *ngIf="importLoading" style="text-align:center;padding:32px 0">
           <div style="font-size:32px;margin-bottom:12px;animation:spin 1s linear infinite;display:inline-block">⟳</div>
           <div style="color:var(--text-muted);font-size:13px">Importando dados...</div>

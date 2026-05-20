@@ -40,6 +40,10 @@ export class AppComponent implements OnInit, OnDestroy {
   importSuccess = false;
   importError = '';
   savingPosition = false;
+  historyFiles: string[] = [];
+  historyLoading = false;
+  historyError = '';
+  importTab: 'history' | 'file' = 'history';
 
   // Command Palette
   cmdOpen = false;
@@ -260,8 +264,35 @@ export class AppComponent implements OnInit, OnDestroy {
     this.importSuccess = false;
     this.importError = '';
     this.importLoading = false;
+    this.importTab = 'history';
+    this.historyFiles = [];
+    this.historyError = '';
+    this.historyLoading = true;
+    this.api.listHistoryFiles().subscribe({
+      next: (files) => { this.historyLoading = false; this.historyFiles = files; },
+      error: () => { this.historyLoading = false; this.historyError = 'Não foi possível carregar o histórico.'; }
+    });
   }
   closeImportModal() { this.showImportModal = false; }
+
+  importFromHistoryFile(filename: string) {
+    if (!confirm(`Importar "${filename}"? Isso substituirá todos os dados do sistema.`)) return;
+    this.importLoading = true;
+    this.importError = '';
+    this.api.importFromHistory(filename).subscribe({
+      next: (result: any) => {
+        this.importLoading = false;
+        this.importSuccess = true;
+        const txCount = result?.counts?.transactions ?? 0;
+        this.toast.success('Importação concluída', `${txCount} transações importadas de ${filename}.`);
+        setTimeout(() => { this.showImportModal = false; this.router.navigateByUrl('/dashboard'); }, 1200);
+      },
+      error: (err: any) => {
+        this.importLoading = false;
+        this.importError = 'Erro ao importar: ' + (err?.error?.error || err?.message || 'verifique o arquivo.');
+      }
+    });
+  }
 
   onImportFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -274,10 +305,15 @@ export class AppComponent implements OnInit, OnDestroy {
     this.importLoading = true;
     this.importError = '';
     this.api.importData(file).subscribe({
-      next: () => {
+      next: (result: any) => {
         this.importLoading = false;
         this.importSuccess = true;
-        setTimeout(() => { this.showImportModal = false; window.location.reload(); }, 1800);
+        const txCount = result?.counts?.transactions ?? 0;
+        this.toast.success('Importação concluída', `${txCount} transações importadas com sucesso.`);
+        setTimeout(() => {
+          this.showImportModal = false;
+          this.router.navigateByUrl('/dashboard');
+        }, 1200);
       },
       error: (err: any) => {
         this.importLoading = false;
