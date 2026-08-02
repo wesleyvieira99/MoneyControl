@@ -259,6 +259,27 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
+  resetSystemData() {
+    if (!confirm('Deseja realmente limpar todos os dados do sistema? Essa ação remove contas, transações, cartões, metas, investimentos, dívidas e demais registros.')) return;
+
+    this.toast.info('Resetando sistema...', 'Removendo todos os dados armazenados.');
+    this.api.resetData().subscribe({
+      next: () => {
+        localStorage.removeItem('customTvChannels');
+        localStorage.removeItem('ir-chat-history');
+        this.toast.success('Sistema resetado', 'Todos os dados foram removidos com sucesso.');
+        setTimeout(() => {
+          this.router.navigateByUrl('/dashboard');
+          window.location.reload();
+        }, 600);
+      },
+      error: (err: any) => {
+        const msg = err?.error?.error || err?.message || 'Não foi possível resetar os dados.';
+        this.toast.error('Erro ao resetar', msg);
+      }
+    });
+  }
+
   openImportModal() {
     this.showImportModal = true;
     this.importSuccess = false;

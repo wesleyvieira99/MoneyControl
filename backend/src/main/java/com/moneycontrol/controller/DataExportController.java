@@ -110,6 +110,20 @@ public class DataExportController {
         }
     }
 
+    @PostMapping("/reset")
+    public ResponseEntity<Map<String, Object>> resetData() {
+        try {
+            clearAllData();
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("status", "reset");
+            result.put("message", "Todos os dados foram removidos com sucesso.");
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Falha ao resetar os dados: " + e.getMessage()));
+        }
+    }
+
     @SuppressWarnings({"null","unchecked"})
     private Map<String, Object> doImport(String json) throws Exception {
             Map<String, Object> data = objectMapper.readValue(json, Map.class);
@@ -126,17 +140,7 @@ public class DataExportController {
             List<InvestmentTransaction> investmentTransactions = convertList(data.get("investmentTransactions"), InvestmentTransaction.class);
             List<ProfitDistributionRule> distributionRules = convertList(data.get("distributionRules"), ProfitDistributionRule.class);
 
-            txRepo.deleteAll();
-            debtRepo.deleteAll();
-            investmentTransactionRepo.deleteAll();
-            investRepo.deleteAll();
-            installmentGroupRepo.deleteAll();
-            distributionRuleRepo.deleteAll();
-            cardRepo.deleteAll();
-            budgetRepo.deleteAll();
-            goalRepo.deleteAll();
-            categoryRepo.deleteAll();
-            accountRepo.deleteAll();
+            clearAllData();
 
             Map<Long, BankAccount> savedAccountsByOldId = new LinkedHashMap<>();
             for (BankAccount account : accounts) {
@@ -245,6 +249,20 @@ public class DataExportController {
             counts.put("distributionRules", distributionRules.size());
             result.put("counts", counts);
             return result;
+    }
+
+    private void clearAllData() {
+        txRepo.deleteAll();
+        debtRepo.deleteAll();
+        investmentTransactionRepo.deleteAll();
+        investRepo.deleteAll();
+        installmentGroupRepo.deleteAll();
+        distributionRuleRepo.deleteAll();
+        cardRepo.deleteAll();
+        budgetRepo.deleteAll();
+        goalRepo.deleteAll();
+        categoryRepo.deleteAll();
+        accountRepo.deleteAll();
     }
 
     @PostMapping("/save-position")

@@ -144,6 +144,12 @@
     <span class="pdf-fab-label">Import</span>
   </button>
 
+  <!-- FIXED RESET BUTTON -->
+  <button class="reset-fab" (click)="resetSystemData()" title="Resetar todos os dados do sistema" *ngIf="!showSplash">
+    <span class="pdf-fab-icon">🧹</span>
+    <span class="pdf-fab-label">Reset</span>
+  </button>
+
   <!-- FIXED SAVE POSITION BUTTON -->
   <button class="save-position-fab" (click)="saveCurrentPosition()" [disabled]="savingPosition" title="Salvar posição atual" *ngIf="!showSplash">
     <span class="pdf-fab-icon">📌</span>

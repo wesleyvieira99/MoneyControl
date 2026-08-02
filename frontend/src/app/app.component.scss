@@ -1178,6 +1178,38 @@ $transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   @media (max-width: 768px) { padding: 9px 12px; font-size: 11px; bottom: 148px; right: 12px; }
 }
 
+/* ── Reset FAB ── */
+.reset-fab {
+  position: fixed;
+  bottom: 210px;
+  right: 20px;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 16px;
+  background: linear-gradient(135deg, rgba(239,68,68,0.9), rgba(185,28,28,0.85));
+  border: 1px solid rgba(248,113,113,0.4);
+  border-radius: 14px;
+  color: white;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 0 6px 24px rgba(239,68,68,0.28);
+  backdrop-filter: blur(12px);
+  white-space: nowrap;
+
+  &:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 12px 36px rgba(239,68,68,0.4);
+  }
+  &:active { transform: translateY(0) scale(0.98); }
+
+  @media (max-width: 768px) { padding: 9px 12px; font-size: 11px; bottom: 196px; right: 12px; }
+}
+
 /* ── Save Position FAB (left side) ── */
 .save-position-fab {
   position: fixed;

@@ -115,6 +115,9 @@ export class ApiService {
   importFromHistory(filename: string): Observable<any> {
     return this.http.post<any>(`${BASE}/data/import-from-history?filename=${encodeURIComponent(filename)}`, {});
   }
+  resetData(): Observable<any> {
+    return this.http.post<any>(`${BASE}/data/reset`, {});
+  }
   saveCurrentPosition(): Observable<any> {
     return this.http.post<any>(`${BASE}/data/save-position`, {});
   }
