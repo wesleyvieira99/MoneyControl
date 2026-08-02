@@ -22,6 +22,6 @@ fi
     "$NPM_BIN" install
   fi
 
-  echo "Abrindo app desktop..."
+  echo "Abrindo app no navegador..."
   "$NPM_BIN" run desktop:run
 } >> "$LOG_FILE" 2>&1
