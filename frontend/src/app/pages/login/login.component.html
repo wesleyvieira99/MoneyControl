@@ -42,7 +42,7 @@
 
       <p class="error" *ngIf="error">{{ error }}</p>
 
-      <button type="submit" class="login-btn" [disabled]="loading">
+      <button type="button" class="login-btn" [disabled]="loading" (click)="submit()">
         <span>{{ loading ? 'Autenticando...' : 'Entrar' }}</span>
       </button>
     </form>

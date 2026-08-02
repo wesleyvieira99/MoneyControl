@@ -125,9 +125,7 @@ export class AppComponent implements OnInit, OnDestroy {
     private toast: ToastService
   ) {}
 
-  get isAuthenticated(): boolean {
-    return this.auth.isAuthenticated();
-  }
+  readonly isAuthenticated = this.auth.authenticated;
 
   @HostListener('window:keydown', ['$event'])
   onKey(e: KeyboardEvent) {

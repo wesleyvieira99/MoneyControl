@@ -1,4 +1,4 @@
-<ng-container *ngIf="isAuthenticated; else loginOutlet">
+<ng-container *ngIf="isAuthenticated(); else loginOutlet">
   <!-- SPLASH SCREEN -->
   <div class="splash-screen" *ngIf="showSplash">
     <div class="splash-content">

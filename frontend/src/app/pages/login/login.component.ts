@@ -39,6 +39,7 @@ export class LoginComponent implements OnInit {
 
     try {
       const ok = await this.auth.login(this.email, this.password);
+      console.log('[login] ok', ok);
       if (!ok) {
         this.error = 'Credenciais inválidas.';
         return;
@@ -46,7 +47,8 @@ export class LoginComponent implements OnInit {
 
       this.leaving = true;
       const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/dashboard';
-      setTimeout(() => this.router.navigateByUrl(returnUrl), LoginComponent.LEAVE_ANIMATION_MS);
+      console.log('[login] navigating to', returnUrl);
+      this.router.navigateByUrl(returnUrl);
     } finally {
       this.loading = false;
     }
