@@ -5,7 +5,7 @@
   "main": "desktop/main.js",
   "scripts": {
     "desktop:prepare": "cd frontend && npm install && npm run build -- --base-href ./ --deploy-url ./ && cd ../backend && mvn -DskipTests package",
-    "desktop:run": "python3 -c \"import webbrowser; webbrowser.open('http://127.0.0.1:4200')\"",
+    "desktop:run": "./start.sh",
     "desktop:build": "npm run desktop:prepare && electron-builder --mac --publish never"
   },
   "devDependencies": {
