@@ -365,7 +365,7 @@
     "creditCard" : null,
     "installmentGroup" : null,
     "installmentNumber" : 4,
-    "status" : "OVERDUE",
+    "status" : "PAID",
     "notes" : "Gerado automaticamente da divida: [Itaú] Renegociação de crédito",
     "isRecurring" : false,
     "recurringUntilDate" : null,
